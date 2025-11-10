@@ -6,7 +6,7 @@
 #include "BaseDrawingTool.h"
 
 class MyGraphicsView;
-class RectShape;
+class QGraphicsRectItem;
 
 class RectDrawingTool : public QObject, public BaseDrawingTool
 {
@@ -21,7 +21,7 @@ public:
     virtual int  ToolType() override;
 
 private:
-    RectShape*         m_pDrawingItem;
+    QGraphicsRectItem* m_pDrawingItem;
     bool               m_bDrawing;
     QPointF            m_startPos;
 };

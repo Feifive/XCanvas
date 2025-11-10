@@ -23,20 +23,21 @@ void RectDrawingTool::mousePressEvent(QMouseEvent *event)
 {
     if(event->button() == Qt::LeftButton)
     {
-        m_bDrawing = true;
         m_startPos = m_pView->mapToScene(event->pos());
 
-        m_pDrawingItem = new RectShape();
-
-        m_pView->GetCurrentShapes()->AddShape(m_pDrawingItem);
+        m_pDrawingItem = new QGraphicsRectItem;
+        QPen pen       = GetDrawedLinePen(m_pView->GetScaleFactory());
+        m_pDrawingItem->setPen(pen);
         m_pView->scene()->addItem(m_pDrawingItem);
     }
 }
 
 void RectDrawingTool::mouseMoveEvent(QMouseEvent *event)
 {
-    if(m_bDrawing && m_pDrawingItem)
+    if(m_pDrawingItem)
     {
+        m_bDrawing = true;
+
         QPointF currentPos = m_pView->mapToScene(event->pos());
         QRectF rect(
             qMin(m_startPos.x(), currentPos.x()),
@@ -45,7 +46,7 @@ void RectDrawingTool::mouseMoveEvent(QMouseEvent *event)
             qAbs(currentPos.y() - m_startPos.y())
             );
 
-        m_pDrawingItem->SetRect(rect);
+        m_pDrawingItem->setRect(rect);
     }
 }
 
@@ -54,10 +55,26 @@ void RectDrawingTool::mouseReleaseEvent(QMouseEvent *event)
     if(m_bDrawing && m_pDrawingItem)
     {
         m_pView->GetCurrentShapes()->SelectShapes(false);
-        m_pDrawingItem->Select(true);
-        m_pDrawingItem = nullptr;
-        m_bDrawing = false;
+        RectShape* pShape = new RectShape;
+        pShape->SetRect(m_pDrawingItem->boundingRect());
+        pShape->Select(true);
+        m_pView->GetCurrentShapes()->AddShape(pShape);
+        m_pView->scene()->addItem(pShape);
 
+        m_pView->scene()->removeItem(m_pDrawingItem);
+        delete m_pDrawingItem;
+        m_pDrawingItem = nullptr;
+        m_bDrawing     = false;
+
+        m_pView->UpdateCanvas();
+    }
+    else if(m_pDrawingItem && !m_bDrawing)
+    {
+        m_pView->scene()->removeItem(m_pDrawingItem);
+        delete m_pDrawingItem;
+        m_pDrawingItem = nullptr;
+
+        m_pView->GetCurrentShapes()->SelectShapes(false);
         m_pView->UpdateCanvas();
     }
 }

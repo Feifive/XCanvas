@@ -19,8 +19,18 @@ bool BaseShape::IsSelected() const
 
 bool BaseShape::IsPointNearPath(const QPointF &point, double dScale)
 {
+    if(!m_pPath)
+    {
+        UpdatePath();
+
+        if(!m_pPath)
+        {
+            return false;
+        }
+    }
+
     const QList<QPolygonF>& polygons = m_pPath->toSubpathPolygons();
-    const double maxDist = 6 / dScale;
+    const double            maxDist  = 6 / dScale;
 
     for (const QPolygonF& polygon : polygons)
     {

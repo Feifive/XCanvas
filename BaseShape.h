@@ -15,6 +15,9 @@ public:
     virtual bool IsPointNearPath(const QPointF& point, double dScale);
 
 protected:
+    virtual void UpdatePath() = 0;
+
+protected:
     bool m_bSelected      = false;
     QPainterPath* m_pPath = nullptr;
 };

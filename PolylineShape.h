@@ -12,10 +12,10 @@ public:
     QPainterPath shape() const         override;
     QRectF       boundingRect() const  override;
     void SetPoints(QVector<QPointF> points);
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 
-private:
-    void UpdatePath();
+protected:
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+    void UpdatePath() override;
 
 private:
     QVector<QPointF> m_points;
