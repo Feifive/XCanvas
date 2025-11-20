@@ -20,12 +20,10 @@ public:
     virtual void GetTraceRects(const QRectF& rect, QRectF rects[9]);
 
     virtual void DrawTrace();
+    virtual void ClearTrace();
 
 protected:
     MyGraphicsView* m_pView;
-
-private:
-    void ClearTrace();
 
 private:
     QGraphicsPathItem* m_pTraceItem;

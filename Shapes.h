@@ -11,15 +11,17 @@ public:
     Shapes();
     ~Shapes();
     int Count();
-    void AddShape(BaseShape* pShape);
-    BaseShape* GetShape(int index);
+    void AddShape(Shape* pShape);
+    Shape* GetShape(int index);
     void SelectShapes(bool selected);
     void SelectShapes(const QRectF& rect);
-    BaseShape* GetShapeByPoint(const QPointF& pt);
+    Shape* GetShapeByPoint(const QPointF& pt);
+    Shapes* GetSelectedShapes();
     QRectF GetSelectedShapeRect();
+    void Offset(const QPointF& offset);
 
 private:
-    QVector<BaseShape*> m_shapes;
+    QVector<Shape*> m_shapes;
 };
 
 #endif // SHAPES_H

@@ -27,6 +27,12 @@ void RectShape::SetRect(const QRectF &rect)
     update();
 }
 
+void RectShape::Offset(const QPointF& offset)
+{
+    QRectF rect = m_rect.translated(offset);
+    SetRect(rect);
+}
+
 QPainterPath RectShape::shape() const
 {
     return *m_pPath;

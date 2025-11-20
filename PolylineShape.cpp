@@ -22,6 +22,10 @@ void PolylineShape::SetPoints(QVector<QPointF> points)
     update();
 }
 
+void PolylineShape::Offset(const QPointF& offset)
+{
+}
+
 QPainterPath PolylineShape::shape() const
 {
     return *m_pPath;

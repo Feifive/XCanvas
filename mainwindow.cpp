@@ -4,6 +4,7 @@
 #include "MyGraphicsView.h"
 #include "DrawingToolsBar.h"
 #include "rulerwidget.h"
+#include "DXFTranslator.h"
 
 #include <QLayout>
 #include <QResizeEvent>
@@ -59,6 +60,14 @@ MainWindow::MainWindow(QWidget *parent)
     // QGraphicsPixmapItem* pPixmapItem = new QGraphicsPixmapItem;
     // pPixmapItem->setPixmap(QPixmap("/Users/ze/Downloads/test.jpg"));
     // pGraphicsView->scene()->addItem(pPixmapItem);
+
+	DXFTranslator translator;
+    Shapes* pShapes = pGraphicsView->GetCurrentShapes();
+	translator.Load("C:/Users/Ze/Desktop/Test.dxf", pShapes);
+    for (int i = 0; i < pShapes->Count(); i++)
+    {
+        pGraphicsView->scene()->addItem(pShapes->GetShape(i));
+    }
 }
 
 MainWindow::~MainWindow()

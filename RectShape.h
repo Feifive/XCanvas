@@ -3,7 +3,7 @@
 
 #include "BaseShape.h"
 
-class RectShape : public BaseShape
+class RectShape : public Shape
 {
 public:
     RectShape();
@@ -13,6 +13,8 @@ public:
     QPainterPath shape() const         override;
 
     void SetRect(const QRectF& rect);
+
+    void Offset(const QPointF& offset) override;
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;

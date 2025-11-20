@@ -11,6 +11,7 @@ SelectDrawingTool::SelectDrawingTool(MyGraphicsView* pView) :
     m_pDrawingItem(nullptr),
     m_pHighlightItem(nullptr),
     m_bDrawing(false),
+    m_bMovingItem(false),
     m_startPos(-1, -1)
 {}
 
@@ -21,21 +22,24 @@ SelectDrawingTool::~SelectDrawingTool()
 
 void SelectDrawingTool::mousePressEvent(QMouseEvent *event)
 {
+    if (!m_pView)
+    {
+        return;
+    }
+
     QPointF scenePos = m_pView->mapToScene(event->pos());
-    if(m_pView && event->button() == Qt::LeftButton)
+    m_startPos       = scenePos;
+    if(event->button() == Qt::LeftButton && m_pView->cursor().shape() == Qt::ArrowCursor)
     {
         m_bDrawing     = true;
-        m_startPos     = scenePos;
         m_pDrawingItem = new QGraphicsRectItem();
         m_pDrawingItem->setPen(DRAWING_LINE_PEN);
         m_pView->scene()->addItem(m_pDrawingItem);
-
-        m_pView->GetCurrentShapes()->SelectShapes(false);
-        BaseShape* pShape = HitUnselectedShape(scenePos);
-        if(pShape)
-        {
-            pShape->Select(true);
-        }
+    }
+    if (event->button() == Qt::LeftButton && m_pView->cursor().shape() == Qt::SizeAllCursor)
+    {
+        m_bMovingItem = true;
+        ClearTrace();
     }
 }
 
@@ -57,23 +61,33 @@ void SelectDrawingTool::mouseMoveEvent(QMouseEvent *event)
     }
     else
     {
-        nHitPos = HitSelectedShapeTrace(scenePos);
-        SetCanvasCursorShape(nHitPos);
-        if(nHitPos == -1)
+        if (m_bMovingItem)
         {
-            BaseShape* pShape = HitUnselectedShape(scenePos);
-            if(pShape)
+            Shapes* pShapes = m_pView->GetCurrentShapes()->GetSelectedShapes();
+            pShapes->Offset(scenePos - m_startPos);
+            delete pShapes;
+            m_startPos = scenePos;
+        }
+        else
+        {
+            nHitPos = HitSelectedShapeTrace(scenePos);
+            SetCanvasCursorShape(nHitPos);
+            if (nHitPos == -1)
             {
-                AddHighlightItemToCanvas(pShape->boundingRect());
+                Shape* pShape = HitUnselectedShape(scenePos);
+                if (pShape)
+                {
+                    AddHighlightItemToCanvas(pShape);
+                }
+                else
+                {
+                    RemoveHighlightItemFromCanvas();
+                }
             }
             else
             {
                 RemoveHighlightItemFromCanvas();
             }
-        }
-        else
-        {
-            RemoveHighlightItemFromCanvas();
         }
     }
 }
@@ -87,12 +101,30 @@ void SelectDrawingTool::mouseReleaseEvent(QMouseEvent *event)
         {
             m_pView->GetCurrentShapes()->SelectShapes(rect);
         }
+        else
+        {
+            m_pView->GetCurrentShapes()->SelectShapes(false);
+            Shape* pShape = HitUnselectedShape(m_pView->mapToScene(event->pos()));
+            if (pShape)
+            {
+                pShape->Select(true);
+            }
+        }
+
         delete m_pDrawingItem;
         m_pDrawingItem = nullptr;
         m_bDrawing     = false;
 
+        RemoveHighlightItemFromCanvas();
         m_pView->UpdateCanvas();
     }
+
+    if (m_bMovingItem)
+    {
+        m_bMovingItem = false;
+        m_pView->UpdateCanvas();
+    }
+
 }
 
 int SelectDrawingTool::ToolType()
@@ -147,13 +179,13 @@ void SelectDrawingTool::SetCanvasCursorShape(int nHitPos)
     }
 }
 
-BaseShape *SelectDrawingTool::HitUnselectedShape(QPointF pos)
+Shape *SelectDrawingTool::HitUnselectedShape(QPointF pos)
 {
     double  dScale  = m_pView->GetScaleFactory();
     Shapes* pShapes = m_pView->GetCurrentShapes();
     for (int i = 0; i < pShapes->Count(); ++i)
     {
-        BaseShape* pShape = pShapes->GetShape(i);
+        Shape* pShape = pShapes->GetShape(i);
         if(!pShape)
         {
             continue;
@@ -171,20 +203,20 @@ BaseShape *SelectDrawingTool::HitUnselectedShape(QPointF pos)
     return nullptr;
 }
 
-void SelectDrawingTool::AddHighlightItemToCanvas(const QRectF& rect)
+void SelectDrawingTool::AddHighlightItemToCanvas(const Shape* pShape)
 {
     if(!m_pHighlightItem)
     {
-        m_pHighlightItem = new QGraphicsRectItem;
+        m_pHighlightItem = new QGraphicsPathItem;
         QPen pen = HIGHLIGHT_LINE_PEN(m_pView->GetScaleFactory());
         m_pHighlightItem->setPen(pen);
-        m_pHighlightItem->setRect(rect);
+        m_pHighlightItem->setPath(*pShape->GetPath());
         m_pHighlightItem->setZValue(Z_VALUE_HIGHLIGHT);
         m_pView->scene()->addItem(m_pHighlightItem);
     }
     else
     {
-        m_pHighlightItem->setRect(rect);
+        m_pHighlightItem->setPath(*pShape->GetPath());
     }
 }
 

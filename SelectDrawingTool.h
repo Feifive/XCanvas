@@ -7,7 +7,8 @@
 
 class MyGraphicsView;
 class QGraphicsRectItem;
-class BaseShape;
+class QGraphicsPathItem;
+class Shape;
 
 class SelectDrawingTool : public QObject, public BaseDrawingTool
 {
@@ -24,15 +25,16 @@ public:
 private:
     int HitSelectedShapeTrace(QPointF pos);
     void SetCanvasCursorShape(int nHitPos);
-    BaseShape* HitUnselectedShape(QPointF pos);
-    void AddHighlightItemToCanvas(const QRectF& rect);
+    Shape* HitUnselectedShape(QPointF pos);
+    void AddHighlightItemToCanvas(const Shape* pShape);
     void RemoveHighlightItemFromCanvas();
 
 private:
     QGraphicsRectItem* m_pDrawingItem;
     bool m_bDrawing;
+    bool m_bMovingItem;
     QPointF m_startPos;
-    QGraphicsRectItem* m_pHighlightItem;
+    QGraphicsPathItem* m_pHighlightItem;
 };
 
 #endif // SELECTDRAWINGTOOL_H

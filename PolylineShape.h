@@ -3,7 +3,7 @@
 
 #include "BaseShape.h"
 
-class PolylineShape : public BaseShape
+class PolylineShape : public Shape
 {
 public:
     PolylineShape();
@@ -12,6 +12,8 @@ public:
     QPainterPath shape() const         override;
     QRectF       boundingRect() const  override;
     void SetPoints(QVector<QPointF> points);
+
+    void Offset(const QPointF& offset) override;
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;

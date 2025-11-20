@@ -1,7 +1,7 @@
 #include "BaseShape.h"
 #include "MyMath.h"
 
-void BaseShape::Select(bool selected)
+void Shape::Select(bool selected)
 {
     if(m_bSelected == selected)
     {
@@ -12,12 +12,12 @@ void BaseShape::Select(bool selected)
     update();
 }
 
-bool BaseShape::IsSelected() const
+bool Shape::IsSelected() const
 {
     return m_bSelected;
 }
 
-bool BaseShape::IsPointNearPath(const QPointF &point, double dScale)
+bool Shape::IsPointNearPath(const QPointF &point, double dScale)
 {
     if(!m_pPath)
     {
