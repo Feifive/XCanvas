@@ -36,7 +36,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         PolylineDrawingTool.h PolylineDrawingTool.cpp
         SelectDrawingTool.h SelectDrawingTool.cpp
         BaseShape.h
-        RectShape.h RectShape.cpp
         Shapes.h Shapes.cpp
         PolylineShape.h PolylineShape.cpp
         BaseDrawingTool.cpp
@@ -44,6 +43,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MyMath.h
         BaseShape.cpp
         DXFTranslator.cpp DXFTranslator.h
+        EllipseShape.h EllipseShape.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET XCanvas APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -82,11 +82,11 @@ set_target_properties(XCanvas PROPERTIES
 )
 
 target_include_directories(XCanvas PRIVATE
-    E:/Projects/libdxfrw/src
+    ${CMAKE_SOURCE_DIR}/3rdparty/libdxfrw/src
 )
 
 target_link_directories(XCanvas PRIVATE
-    E:/Projects/libdxfrw/build/Debug
+    ${CMAKE_SOURCE_DIR}/SDK/lib
 )
 
 target_link_libraries(XCanvas PRIVATE

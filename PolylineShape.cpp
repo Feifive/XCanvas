@@ -1,16 +1,16 @@
 #include "PolylineShape.h"
 #include "Global.h"
-#include <QPainterPath>
 #include <QPainter>
+#include <QPainterPath>
 
 PolylineShape::PolylineShape()
 {
     setFlags(QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable);
+    setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 }
 
 PolylineShape::~PolylineShape()
 {
-
 }
 
 void PolylineShape::SetPoints(QVector<QPointF> points)
@@ -24,11 +24,23 @@ void PolylineShape::SetPoints(QVector<QPointF> points)
 
 void PolylineShape::Offset(const QPointF& offset)
 {
+    if (m_points.isEmpty())
+    {
+        return;
+    }
+
+    QVector<QPointF> newPoints = m_points;
+    for (auto& pt : newPoints)
+    {
+        pt += offset;
+    }
+
+    SetPoints(newPoints);
 }
 
 QPainterPath PolylineShape::shape() const
 {
-    return *m_pPath;
+    return m_pPath ? *m_pPath : QPainterPath();
 }
 
 QRectF PolylineShape::boundingRect() const
@@ -36,16 +48,16 @@ QRectF PolylineShape::boundingRect() const
     return m_pPath ? m_pPath->boundingRect() : QRectF();
 }
 
-void PolylineShape::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+void PolylineShape::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
-    if(!m_pPath)
+    if (!m_pPath)
     {
         return;
     }
 
     qreal scale = painter->transform().m11();
 
-    if(IsSelected())
+    if (IsSelected())
     {
         painter->setPen(SELECTED_LINE_PEN(scale));
     }
@@ -58,12 +70,12 @@ void PolylineShape::paint(QPainter *painter, const QStyleOptionGraphicsItem *opt
 
 void PolylineShape::UpdatePath()
 {
-    if(m_points.isEmpty())
+    if (m_points.isEmpty())
     {
         return;
     }
 
-    if(!m_pPath)
+    if (!m_pPath)
     {
         m_pPath = new QPainterPath;
     }

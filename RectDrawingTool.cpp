@@ -1,78 +1,88 @@
 #include "RectDrawingTool.h"
 #include "Global.h"
 #include "MyGraphicsView.h"
-#include "RectShape.h"
-#include <QMouseEvent>
+#include "PolylineShape.h"
 #include <QDebug>
+#include <QMouseEvent>
 
-RectDrawingTool::RectDrawingTool(MyGraphicsView *pView) :
-    BaseDrawingTool(pView),
-    m_pDrawingItem(nullptr),
-    m_bDrawing(false),
-    m_startPos(-1, -1)
+RectDrawingTool::RectDrawingTool(MyGraphicsView* pView) : BaseDrawingTool(pView), m_pTempPolylineItem(nullptr), m_bDrawing(false), m_startPos(-1, -1)
 {
-
 }
 
 RectDrawingTool::~RectDrawingTool()
 {
-    qDebug()<<__FUNCTION__;
 }
 
-void RectDrawingTool::mousePressEvent(QMouseEvent *event)
+void RectDrawingTool::mousePressEvent(QMouseEvent* event)
 {
-    if(event->button() == Qt::LeftButton)
+    if (event->button() == Qt::LeftButton)
     {
-        m_startPos = m_pView->mapToScene(event->pos());
-
-        m_pDrawingItem = new QGraphicsRectItem;
-        QPen pen       = GetDrawedLinePen(m_pView->GetScaleFactory());
-        m_pDrawingItem->setPen(pen);
-        m_pView->scene()->addItem(m_pDrawingItem);
+        m_startPos          = m_pView->mapToScene(event->pos());
+        m_pTempPolylineItem = new QGraphicsPathItem;
+        QPen pen            = GetDrawedLinePen(m_pView->GetScaleFactory());
+        m_pTempPolylineItem->setPen(pen);
+        m_pView->scene()->addItem(m_pTempPolylineItem);
     }
 }
 
-void RectDrawingTool::mouseMoveEvent(QMouseEvent *event)
+void RectDrawingTool::mouseMoveEvent(QMouseEvent* event)
 {
-    if(m_pDrawingItem)
+    if (m_pTempPolylineItem)
     {
         m_bDrawing = true;
 
         QPointF currentPos = m_pView->mapToScene(event->pos());
-        QRectF rect(
-            qMin(m_startPos.x(), currentPos.x()),
-            qMin(m_startPos.y(), currentPos.y()),
-            qAbs(currentPos.x() - m_startPos.x()),
-            qAbs(currentPos.y() - m_startPos.y())
-            );
 
-        m_pDrawingItem->setRect(rect);
+        QPointF p1 = m_startPos;
+        QPointF p2(currentPos.x(), m_startPos.y());
+        QPointF p3 = currentPos;
+        QPointF p4(m_startPos.x(), currentPos.y());
+
+        QPainterPath path;
+        path.moveTo(p1);
+        path.lineTo(p2);
+        path.lineTo(p3);
+        path.lineTo(p4);
+        path.lineTo(p1);// 闭合
+
+        m_pTempPolylineItem->setPath(path);
     }
 }
 
-void RectDrawingTool::mouseReleaseEvent(QMouseEvent *event)
+void RectDrawingTool::mouseReleaseEvent(QMouseEvent* event)
 {
-    if(m_bDrawing && m_pDrawingItem)
+    if (m_bDrawing && m_pTempPolylineItem)
     {
         m_pView->GetCurrentShapes()->SelectShapes(false);
-        RectShape* pShape = new RectShape;
-        pShape->SetRect(m_pDrawingItem->boundingRect());
+
+        QPointF endPos = m_pView->mapToScene(event->pos());
+
+        QPointF p1 = m_startPos;
+        QPointF p2(endPos.x(), m_startPos.y());
+        QPointF p3 = endPos;
+        QPointF p4(m_startPos.x(), endPos.y());
+
+        QVector<QPointF> points{p1, p2, p3, p4, p1};// 闭合
+
+        PolylineShape* pShape = new PolylineShape();
+        pShape->SetPoints(points);
         pShape->Select(true);
+
         m_pView->GetCurrentShapes()->AddShape(pShape);
         m_pView->scene()->addItem(pShape);
 
-        m_pView->scene()->removeItem(m_pDrawingItem);
-        delete m_pDrawingItem;
-        m_pDrawingItem = nullptr;
-        m_bDrawing     = false;
+        m_pView->scene()->removeItem(m_pTempPolylineItem);
+        delete m_pTempPolylineItem;
+        m_pTempPolylineItem = nullptr;
 
+        m_bDrawing = false;
         m_pView->UpdateCanvas();
     }
-    else if(m_pDrawingItem && !m_bDrawing)
+    else if (m_pTempPolylineItem && !m_bDrawing)
     {
-        m_pView->scene()->removeItem(m_pDrawingItem);
-        delete m_pDrawingItem;
-        m_pDrawingItem = nullptr;
+        m_pView->scene()->removeItem(m_pTempPolylineItem);
+        delete m_pTempPolylineItem;
+        m_pTempPolylineItem = nullptr;
 
         m_pView->GetCurrentShapes()->SelectShapes(false);
         m_pView->UpdateCanvas();

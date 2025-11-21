@@ -1,9 +1,9 @@
 #ifndef RECTDRAWINGTOOL_H
 #define RECTDRAWINGTOOL_H
 
+#include "BaseDrawingTool.h"
 #include <QObject>
 #include <QPointF>
-#include "BaseDrawingTool.h"
 
 class MyGraphicsView;
 class QGraphicsRectItem;
@@ -11,7 +11,7 @@ class QGraphicsRectItem;
 class RectDrawingTool : public QObject, public BaseDrawingTool
 {
     Q_OBJECT
-public:
+  public:
     explicit RectDrawingTool(MyGraphicsView* pView);
     virtual ~RectDrawingTool() override;
 
@@ -20,10 +20,10 @@ public:
     virtual void mouseReleaseEvent(QMouseEvent* event) override;
     virtual int  ToolType() override;
 
-private:
-    QGraphicsRectItem* m_pDrawingItem;
+  private:
+    QGraphicsPathItem* m_pTempPolylineItem;
     bool               m_bDrawing;
     QPointF            m_startPos;
 };
 
-#endif // RECTDRAWINGTOOL_H
+#endif// RECTDRAWINGTOOL_H

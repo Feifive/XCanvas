@@ -1,9 +1,10 @@
 #include "DXFTranslator.h"
-#include "Shapes.h"
+#include "EllipseShape.h"
+#include "Global.h"
 #include "PolylineShape.h"
+#include "Shapes.h"
 
-DXFTranslator::DXFTranslator()
-    : m_pShapes(nullptr)
+DXFTranslator::DXFTranslator() : m_pShapes(nullptr)
 {
 }
 
@@ -18,8 +19,7 @@ bool DXFTranslator::Load(const QString& filePath, Shapes* pShapes)
 
     m_pShapes = pShapes;
 
-    dxfRW reader(filePath.toStdString().c_str());
-    reader.setDebug(DRW::DebugLevel::Debug);
+    dxfRW reader(filePath.toLocal8Bit().toStdString().c_str());
 
     qDebug() << "[DXF] Start loading:" << filePath;
 
@@ -40,9 +40,7 @@ void DXFTranslator::addVport(const DRW_Vport& data)
 
 void DXFTranslator::addInsert(const DRW_Insert& data)
 {
-    qDebug() << "[DXF] addInsert at ("
-        << data.basePoint.x << data.basePoint.y << "), block="
-        << data.name.c_str();
+    qDebug() << "[DXF] addInsert at (" << data.basePoint.x << data.basePoint.y << "), block=" << data.name.c_str();
 }
 
 void DXFTranslator::addViewport(const DRW_Viewport& data)
@@ -57,17 +55,18 @@ void DXFTranslator::linkImage(const DRW_ImageDef* data)
 
 void DXFTranslator::addLine(const DRW_Line& data)
 {
-    qDebug() << "[DXF] addLine ("
-        << data.basePoint.x << data.basePoint.y
-        << ") -> ("
-        << data.secPoint.x << data.secPoint.y << ")";
+    qDebug() << "[DXF] addLine (" << data.basePoint.x << data.basePoint.y << ") -> (" << data.secPoint.x << data.secPoint.y << ")";
 }
 
 void DXFTranslator::addCircle(const DRW_Circle& data)
 {
-    qDebug() << "[DXF] addCircle center=("
-        << data.basePoint.x << data.basePoint.y << ")"
-        << " radius=" << data.radious;
+    qDebug() << "[DXF] addCircle center=(" << data.basePoint.x << data.basePoint.y << ")"
+             << " radius=" << data.radious;
+
+    EllipseShape* pShape = new EllipseShape;
+    pShape->SetEllipse(QPointF(data.basePoint.x, data.basePoint.y), data.radious, data.radious, 0.0);
+
+    m_pShapes->AddShape(pShape);
 }
 
 void DXFTranslator::addLayer(const DRW_Layer& data)
@@ -77,24 +76,38 @@ void DXFTranslator::addLayer(const DRW_Layer& data)
 
 void DXFTranslator::addArc(const DRW_Arc& data)
 {
-    qDebug() << "[DXF] addArc center=("
-        << data.basePoint.x << data.basePoint.y << ")"
-        << " radius=" << data.radious
-        << " start=" << data.staangle
-        << " end=" << data.endangle;
+    qDebug() << "[DXF] addArc center=(" << data.basePoint.x << data.basePoint.y << ")"
+             << " radius=" << data.radious << " start=" << data.staangle << " end=" << data.endangle;
 }
 
 void DXFTranslator::addEllipse(const DRW_Ellipse& data)
 {
     qDebug() << "[DXF] addEllipse";
+
+    QPointF center(data.basePoint.x, data.basePoint.y);
+    double  dMajor          = hypot(data.secPoint.x, data.secPoint.y);
+    double  dMinor          = dMajor * data.ratio;
+    double  dRotationDegree = std::atan2(data.secPoint.y, data.secPoint.x) * 180.0 / M_PI;
+    double  dStartDegree    = data.staparam * 180.0 / M_PI;
+    double  dEndDegree      = data.endparam * 180.0 / M_PI;
+
+    EllipseShape* shape = new EllipseShape;
+
+    if (qFuzzyCompare(dStartDegree, 0.0) && qFuzzyCompare(dEndDegree, 2 * 180.0))
+    {
+        shape->SetEllipse(center, dMajor, dMinor, dRotationDegree);
+    }
+    else
+    {
+        shape->SetEllipseArc(center, dMajor, dMinor, dRotationDegree, dStartDegree, dEndDegree);
+    }
+
+    m_pShapes->AddShape(shape);
 }
 
 void DXFTranslator::addText(const DRW_Text& data)
 {
-    qDebug() << "[DXF] addText \""
-        << data.text.c_str()
-        << "\" at ("
-        << data.basePoint.x << data.basePoint.y << ")";
+    qDebug() << "[DXF] addText \"" << data.text.c_str() << "\" at (" << data.basePoint.x << data.basePoint.y << ")";
 }
 
 void DXFTranslator::addMText(const DRW_MText& data)
@@ -139,33 +152,70 @@ void DXFTranslator::addDimOrdinate(const DRW_DimOrdinate* data)
 
 void DXFTranslator::addLWPolyline(const DRW_LWPolyline& data)
 {
-    qDebug() << "[DXF] addLWPolyline vertexCount =" << data.vertlist.size();
+    // qDebug() << "[DXF] addLWPolyline vertexCount =" << data.vertlist.size();
 
-    for (auto v : data.vertlist)
-        qDebug() << "    (" << v->x << "," << v->y << ")";
+    QVector<QPointF> points;
+    points.reserve(data.vertlist.size() + 1);
+
+    for (const auto& v : data.vertlist)
+    {
+        points.append(ConvertDXFPoint(v->x, v->y));
+    }
+
+    // DXF flags 0x01 表示 polyline 是闭合的
+    bool closed = (data.flags & 0x01u) != 0;
+
+    if (closed)
+    {
+        // 若首尾点未重复，则手动补上闭合点
+        if (!IsEqual(points.first(), points.last()))
+        {
+            points.append(points.first());
+        }
+
+        // qDebug() << "[DXF] Polyline is CLOSED";
+    }
+
+    // 以下忽略 bulge、width、elevation、thickness
+    // 专注：转换为你的 PolylineShape
+
+    PolylineShape* pShape = new PolylineShape();
+    pShape->SetPoints(points);
+    pShape->Select(false);// 默认不选中
+
+    if (m_pShapes)
+        m_pShapes->AddShape(pShape);
 }
 
 void DXFTranslator::addPolyline(const DRW_Polyline& data)
 {
-    qDebug() << "[DXF] addPolyline vertexCount =" << data.vertlist.size();
+    // qDebug() << "[DXF] addPolyline vertexCount =" << data.vertlist.size();
 
     QVector<QPointF> points;
-    for (const auto& v : data.vertlist) {
-        points.append(QPointF(v->basePoint.x, v->basePoint.y));
+    for (const auto& v : data.vertlist)
+    {
+        points.append(ConvertDXFPoint(v->basePoint.x, v->basePoint.y));
     }
 
     bool closed = (data.flags & 0x01u) != 0;
 
     if (closed)
-        qDebug() << "[DXF] Polyline is CLOSED";
+    {
+        // qDebug() << "[DXF] Polyline is CLOSED";
+    }
 
-    // ת���� Shape
+    if (closed && points.size() > 1 && !IsEqual(points.first(), points.last()))
+    {
+        points.append(points.first());
+    }
+
     PolylineShape* pLine = new PolylineShape();
     pLine->SetPoints(points);
 
     if (m_pShapes)
+    {
         m_pShapes->AddShape(pLine);
-
+    }
 }
 
 void DXFTranslator::addSpline(const DRW_Spline* data)
@@ -175,8 +225,7 @@ void DXFTranslator::addSpline(const DRW_Spline* data)
 
 void DXFTranslator::addPoint(const DRW_Point& data)
 {
-    qDebug() << "[DXF] addPoint ("
-        << data.basePoint.x << data.basePoint.y << ")";
+    qDebug() << "[DXF] addPoint (" << data.basePoint.x << data.basePoint.y << ")";
 }
 
 void DXFTranslator::addHatch(const DRW_Hatch* data)
@@ -196,8 +245,7 @@ void DXFTranslator::addLType(const DRW_LType& data)
 
 void DXFTranslator::addImage(const DRW_Image* data)
 {
-    qDebug() << "[DXF] addImage inserted at ("
-        << data->basePoint.x << data->basePoint.y << ")";
+    qDebug() << "[DXF] addImage inserted at (" << data->basePoint.x << data->basePoint.y << ")";
 }
 
 void DXFTranslator::setBlock(const int handle)
@@ -238,4 +286,9 @@ void DXFTranslator::writeLayers()
 void DXFTranslator::writeAppId()
 {
     qDebug() << "[DXF] writeAppId";
+}
+
+QPointF DXFTranslator::ConvertDXFPoint(double x, double y)
+{
+    return QPointF(x, -y);
 }

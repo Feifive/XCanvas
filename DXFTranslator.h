@@ -1,55 +1,79 @@
 #ifndef DXF_TRANSLATOR_H
 #define DXF_TRANSLATOR_H
 
+#include <QPointF>
 #include <QString>
 
-#include "libdxfrw.h"
-#include "drw_interface.h"
 #include "drw_base.h"
+#include "drw_interface.h"
+#include "libdxfrw.h"
 
 class Shapes;
 
 class DXFTranslator : public DRW_Interface
 {
-public:
-
+  public:
     DXFTranslator();
-	~DXFTranslator();
+    ~DXFTranslator();
 
     bool Load(const QString& filePath, Shapes* pShapes);
 
     // READ FUNCTIONALITY
-    void addHeader(const DRW_Header* data) override {}
+    void addHeader(const DRW_Header* data) override
+    {
+    }
 
-    void addDimStyle(const DRW_Dimstyle& data) override {}
+    void addDimStyle(const DRW_Dimstyle& data) override
+    {
+    }
 
     void addVport(const DRW_Vport& data) override;
 
-    void addTextStyle(const DRW_Textstyle& data) override {}
+    void addTextStyle(const DRW_Textstyle& data) override
+    {
+    }
 
-    void addAppId(const DRW_AppId& data) override {}
+    void addAppId(const DRW_AppId& data) override
+    {
+    }
 
-    void addRay(const DRW_Ray& data) override {}
+    void addRay(const DRW_Ray& data) override
+    {
+    }
 
-    void addXline(const DRW_Xline& data) override {}
+    void addXline(const DRW_Xline& data) override
+    {
+    }
 
-    void addKnot(const DRW_Entity& data) override {}
+    void addKnot(const DRW_Entity& data) override
+    {
+    }
 
     void addInsert(const DRW_Insert& data) override;
 
-    void addTrace(const DRW_Trace& data) override {}
+    void addTrace(const DRW_Trace& data) override
+    {
+    }
 
-    void add3dFace(const DRW_3Dface& data) override {}
+    void add3dFace(const DRW_3Dface& data) override
+    {
+    }
 
-    void addSolid(const DRW_Solid& data) override {}
+    void addSolid(const DRW_Solid& data) override
+    {
+    }
 
-    void addLeader(const DRW_Leader* data) override {}
+    void addLeader(const DRW_Leader* data) override
+    {
+    }
 
     void addViewport(const DRW_Viewport& data) override;
 
     void linkImage(const DRW_ImageDef* data) override;
 
-    void addComment(const char* comment) override {}
+    void addComment(const char* comment) override
+    {
+    }
 
     void addLine(const DRW_Line& data) override;
 
@@ -100,7 +124,9 @@ public:
     void endBlock() override;
 
     // WRITE FUNCTIONALITY
-    void writeHeader(DRW_Header& data) override {}
+    void writeHeader(DRW_Header& data) override
+    {
+    }
 
     void writeBlocks() override;
 
@@ -112,23 +138,33 @@ public:
 
     void writeLayers() override;
 
-    void writeTextstyles() override {}
+    void writeTextstyles() override
+    {
+    }
 
-    void writeVports() override {}
+    void writeVports() override
+    {
+    }
 
-    void writeDimstyles() override {}
+    void writeDimstyles() override
+    {
+    }
 
     void writeAppId() override;
 
-    void writeObjects() override {}
+    void writeObjects() override
+    {
+    }
 
-    void addPlotSettings(const DRW_PlotSettings* data) override {}
+    void addPlotSettings(const DRW_PlotSettings* data) override
+    {
+    }
 
+  private:
+    QPointF ConvertDXFPoint(double x, double y);
 
-private:
-	Shapes* m_pShapes;
+  private:
+    Shapes* m_pShapes;
 };
 
-
-#endif // !DXF_TRANSLATOR_H
-
+#endif// !DXF_TRANSLATOR_H

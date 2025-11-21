@@ -1,8 +1,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include <QPen>
 #include <QDateTime>
+#include <QPen>
 
 #define qDebugTime() qDebug().noquote() << QDateTime::currentDateTime().toString("hh:mm:ss.zzz")
 
@@ -54,7 +54,7 @@ inline QPen GetDrawedLinePen(qreal scale)
 
 inline QPen GetSelectedLinePen(qreal scale)
 {
-    QPen pen(QColor(244,155,33));
+    QPen pen(QColor(244, 155, 33));
     pen.setWidthF(1.0 / scale);
     pen.setStyle(Qt::DashLine);
     return pen;
@@ -62,11 +62,20 @@ inline QPen GetSelectedLinePen(qreal scale)
 
 inline QPen GetHighlightPen(qreal scale)
 {
-    QPen pen(QColor(244,155,33));
+    QPen pen(QColor(244, 155, 33));
     pen.setWidthF(1.0 / scale);
     pen.setStyle(Qt::SolidLine);
     return pen;
 }
 
+inline bool IsEqual(double a, double b, double eps = 1e-6)
+{
+    return std::fabs(a - b) <= eps;
+}
 
-#endif // GLOBAL_H
+inline bool IsEqual(const QPointF& a, const QPointF& b, double eps = 1e-6)
+{
+    return (std::fabs(a.x() - b.x()) < eps) && (std::fabs(a.y() - b.y()) < eps);
+}
+
+#endif// GLOBAL_H

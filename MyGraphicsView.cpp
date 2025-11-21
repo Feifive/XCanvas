@@ -1,28 +1,21 @@
 #include "MyGraphicsView.h"
 #include "BaseDrawingTool.h"
-#include "SelectDrawingTool.h"
-#include "RectDrawingTool.h"
 #include "EllipseDrawingTool.h"
 #include "PolylineDrawingTool.h"
-#include <QGraphicsScene>
-#include <QGraphicsRectItem>
-#include <QMouseEvent>
+#include "RectDrawingTool.h"
+#include "SelectDrawingTool.h"
 #include <QDebug>
+#include <QGraphicsRectItem>
+#include <QGraphicsScene>
+#include <QMouseEvent>
 #include <QScrollBar>
 #include <QWheelEvent>
 
 #define MIN_ZOOM 0.1
 #define MAX_ZOOM 10.0
 
-MyGraphicsView::MyGraphicsView(QWidget *parent) :
-    m_dScaleFactor(1.0),
-    m_eToolType(DrawingToolType::None),
-    m_startPos(-1, -1),
-    m_bDragging(false),
-    m_pBaseDrawingTool(nullptr),
-    m_pShapes(new Shapes),
-    m_bInitPosition(false),
-    QGraphicsView{parent}
+MyGraphicsView::MyGraphicsView(QWidget* parent)
+    : m_dScaleFactor(1.0), m_eToolType(DrawingToolType::None), m_startPos(-1, -1), m_bDragging(false), m_pBaseDrawingTool(nullptr), m_pShapes(new Shapes), m_bInitPosition(false), QGraphicsView{parent}
 {
     m_pScene = new QGraphicsScene;
     m_pScene->setBackgroundBrush(QBrush(QColor(240, 240, 240)));
@@ -36,7 +29,7 @@ MyGraphicsView::MyGraphicsView(QWidget *parent) :
 
 MyGraphicsView::~MyGraphicsView()
 {
-    if(m_pBaseDrawingTool)
+    if (m_pBaseDrawingTool)
     {
         delete m_pBaseDrawingTool;
         m_pBaseDrawingTool = nullptr;
@@ -45,7 +38,7 @@ MyGraphicsView::~MyGraphicsView()
 
 void MyGraphicsView::SetTool(DrawingToolType type)
 {
-    if(m_pBaseDrawingTool)
+    if (m_pBaseDrawingTool)
     {
         delete m_pBaseDrawingTool;
         m_pBaseDrawingTool = nullptr;
@@ -57,22 +50,22 @@ void MyGraphicsView::SetTool(DrawingToolType type)
     {
         m_pBaseDrawingTool = new SelectDrawingTool(this);
     }
-        break;
+    break;
     case DrawingToolType::Rect:
     {
         m_pBaseDrawingTool = new RectDrawingTool(this);
     }
-        break;
+    break;
     case DrawingToolType::Ellipse:
     {
         m_pBaseDrawingTool = new EllipseDrawingTool(this);
     }
-        break;
+    break;
     case DrawingToolType::Line:
     {
         m_pBaseDrawingTool = new LineDrawingTool(this);
     }
-        break;
+    break;
     default:
         m_pBaseDrawingTool = nullptr;
         break;
@@ -94,30 +87,30 @@ double MyGraphicsView::GetScaleFactory()
 
 void MyGraphicsView::UpdateCanvas()
 {
-    if(m_pBaseDrawingTool)
+    if (m_pBaseDrawingTool)
     {
         m_pBaseDrawingTool->DrawTrace();
     }
 }
 
-void MyGraphicsView::mousePressEvent(QMouseEvent *event)
+void MyGraphicsView::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton)
     {
         // 记录初始鼠标位置并进入拖动状态
-        m_startPos = event->pos();
+        m_startPos  = event->pos();
         m_bDragging = true;
-        setCursor(Qt::ClosedHandCursor);  // 设置为闭合手型光标
-        event->accept();  // 标记事件已处理
+        setCursor(Qt::ClosedHandCursor);// 设置为闭合手型光标
+        event->accept();// 标记事件已处理
     }
 
-    if(m_pBaseDrawingTool)
+    if (m_pBaseDrawingTool)
     {
         m_pBaseDrawingTool->mousePressEvent(event);
     }
 }
 
-void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
+void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
 {
     if (m_bDragging)
     {
@@ -135,7 +128,7 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
         event->accept();
     }
 
-    if(m_pBaseDrawingTool)
+    if (m_pBaseDrawingTool)
     {
         m_pBaseDrawingTool->mouseMoveEvent(event);
     }
@@ -143,32 +136,32 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent *event)
     emit mouseMovePos(event->pos());
 }
 
-void MyGraphicsView::mouseReleaseEvent(QMouseEvent *event)
+void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton && m_bDragging)
     {
         m_bDragging = false;
-        setCursor(Qt::ArrowCursor);  // 恢复默认光标
+        setCursor(Qt::ArrowCursor);// 恢复默认光标
         event->accept();
     }
 
-    if(m_pBaseDrawingTool)
+    if (m_pBaseDrawingTool)
     {
         m_pBaseDrawingTool->mouseReleaseEvent(event);
     }
 }
 
-void MyGraphicsView::wheelEvent(QWheelEvent *event)
+void MyGraphicsView::wheelEvent(QWheelEvent* event)
 {
     // 获取当前光标在视图中的坐标
     const QPointF cursorViewPos             = event->position();
     const QPointF cursorScenePosBeforeScale = mapToScene(cursorViewPos.toPoint());
 
     // 计算缩放因子（根据滚轮方向调整）
-    const double dScale = event->angleDelta().y() > 0 ? 1.1 : 1/1.1;
+    const double dScale = event->angleDelta().y() > 0 ? 1.1 : 1 / 1.1;
 
     // 计算新缩放因子并应用缩放
-    if((m_dScaleFactor == MAX_ZOOM && dScale == 1.1) || (m_dScaleFactor == MIN_ZOOM && dScale == 1/1.1))
+    if ((m_dScaleFactor == MAX_ZOOM && dScale == 1.1) || (m_dScaleFactor == MIN_ZOOM && dScale == 1 / 1.1))
     {
         return;
     }
@@ -189,7 +182,7 @@ void MyGraphicsView::wheelEvent(QWheelEvent *event)
     UpdateCanvas();
 }
 
-void MyGraphicsView::resizeEvent(QResizeEvent *event)
+void MyGraphicsView::resizeEvent(QResizeEvent* event)
 {
     // if(m_pScene)
     // {
@@ -198,11 +191,11 @@ void MyGraphicsView::resizeEvent(QResizeEvent *event)
     return QGraphicsView::resizeEvent(event);
 }
 
-void MyGraphicsView::showEvent(QShowEvent *event)
+void MyGraphicsView::showEvent(QShowEvent* event)
 {
     QGraphicsView::showEvent(event);
 
-    if(!m_bInitPosition)
+    if (!m_bInitPosition)
     {
         horizontalScrollBar()->setSliderPosition(0);
         verticalScrollBar()->setSliderPosition(0);
