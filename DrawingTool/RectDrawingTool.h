@@ -8,7 +8,7 @@
 class MyGraphicsView;
 class QGraphicsRectItem;
 
-class RectDrawingTool : public QObject, public BaseDrawingTool
+class RectDrawingTool : public BaseDrawingTool
 {
     Q_OBJECT
   public:
@@ -20,9 +20,11 @@ class RectDrawingTool : public QObject, public BaseDrawingTool
     virtual void mouseReleaseEvent(QMouseEvent* event) override;
     virtual int  ToolType() override;
 
+protected:
+    void CancelDrawing() override;
+
   private:
     QGraphicsPathItem* m_pTempPolylineItem;
-    bool               m_bDrawing;
     QPointF            m_startPos;
 };
 

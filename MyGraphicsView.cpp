@@ -1,9 +1,9 @@
 #include "MyGraphicsView.h"
-#include "BaseDrawingTool.h"
-#include "EllipseDrawingTool.h"
-#include "PolylineDrawingTool.h"
-#include "RectDrawingTool.h"
-#include "SelectDrawingTool.h"
+#include "DrawingTool/BaseDrawingTool.h"
+#include "DrawingTool/EllipseDrawingTool.h"
+#include "DrawingTool/PolylineDrawingTool.h"
+#include "DrawingTool/RectDrawingTool.h"
+#include "DrawingTool/SelectDrawingTool.h"
 #include <QDebug>
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
@@ -25,6 +25,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
     setAlignment(Qt::AlignLeft | Qt::AlignTop);
     setMouseTracking(true);
+    SetTool(DrawingToolType::Select);
 }
 
 MyGraphicsView::~MyGraphicsView()
@@ -61,9 +62,9 @@ void MyGraphicsView::SetTool(DrawingToolType type)
         m_pBaseDrawingTool = new EllipseDrawingTool(this);
     }
     break;
-    case DrawingToolType::Line:
+    case DrawingToolType::Polyline:
     {
-        m_pBaseDrawingTool = new LineDrawingTool(this);
+        m_pBaseDrawingTool = new PolylineDrawingTool(this);
     }
     break;
     default:
@@ -71,6 +72,8 @@ void MyGraphicsView::SetTool(DrawingToolType type)
         break;
     }
     m_eToolType = type;
+
+    connect(m_pBaseDrawingTool, &BaseDrawingTool::ToolFinished, this, &MyGraphicsView::OnToolFinished);
 
     UpdateCanvas();
 }
@@ -201,4 +204,11 @@ void MyGraphicsView::showEvent(QShowEvent* event)
         verticalScrollBar()->setSliderPosition(0);
         m_bInitPosition = true;
     }
+}
+
+void MyGraphicsView::OnToolFinished()
+{
+    emit ToolFinished();
+
+    SetTool(DrawingToolType::Select);
 }

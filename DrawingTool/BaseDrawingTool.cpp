@@ -1,15 +1,21 @@
 #include "BaseDrawingTool.h"
 #include "Global.h"
-#include "MyGraphicsView.h"
+#include "../MyGraphicsView.h"
 #include <QRectF>
 #include <QGraphicsPathItem>
+#include <QMouseEvent>
 #include <QDebug>
 
-BaseDrawingTool::BaseDrawingTool(MyGraphicsView *pView)
-{
-    m_pView = pView;
-    m_pTraceItem = nullptr;
-}
+const double RIGHT_DRAG_THRESHOLD = 3.0;
+
+BaseDrawingTool::BaseDrawingTool(MyGraphicsView *pView) :
+    m_pView(pView),
+    m_pTraceItem(nullptr),
+    m_state(State::Idle),
+    m_bRightPressed(false),
+    m_bRightDragged(false)
+
+{}
 
 BaseDrawingTool::~BaseDrawingTool()
 {
@@ -90,4 +96,56 @@ void BaseDrawingTool::ClearTrace()
         delete m_pTraceItem;
         m_pTraceItem = nullptr;
     }
+}
+
+void BaseDrawingTool::HandleRightButtonPress(QMouseEvent *event)
+{
+    m_bRightPressed  = true;
+    m_bRightDragged  = false;
+    m_rightPressPos  = event->pos();
+}
+
+void BaseDrawingTool::HandleRightButtonMove(QMouseEvent *event)
+{
+    if (!m_bRightPressed)
+    {
+        return;
+    }
+
+    QPointF delta = event->pos() - m_rightPressPos;
+
+    if (!m_bRightDragged && (qAbs(delta.x()) > RIGHT_DRAG_THRESHOLD || qAbs(delta.y()) > RIGHT_DRAG_THRESHOLD))
+    {
+        m_bRightDragged = true;
+    }
+}
+
+void BaseDrawingTool::HandleRightButtonRelease(QMouseEvent *event)
+{
+    if (!m_bRightPressed)
+    {
+        return;
+    }
+
+    // 拖动右键 → 拖动画布，不中断
+    if (m_bRightDragged)
+    {
+        m_bRightPressed = false;
+        return;
+    }
+
+    // 未拖动 → 右键单击逻辑
+    if (m_state == State::Drawing)
+    {
+        // 中断绘制
+        m_state = State::Interrupted;
+        CancelDrawing();
+    }
+    else
+    {
+        // 第二次右键 → 完全结束工具
+        emit ToolFinished();
+    }
+
+    m_bRightPressed = false;
 }

@@ -47,6 +47,21 @@ void EllipseShape::SetEllipse(const QPointF& center, double rx, double ry, doubl
     update();
 }
 
+void EllipseShape::SetEllipse(const QRectF &rect)
+{
+    prepareGeometryChange();
+
+    m_center          = rect.center();
+    m_rx              = rect.width() / 2.0;
+    m_ry              = rect.height() / 2.0;
+    m_dRotationDegree = 0;
+    m_dStartDegree    = 0;
+    m_dEndDegree      = 360;
+
+    UpdatePath();
+    update();
+}
+
 void EllipseShape::SetEllipseArc(const QPointF& center, double rx, double ry, double rotationDeg, double startDeg, double endDeg)
 {
     prepareGeometryChange();

@@ -7,45 +7,83 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QWidget{parent}
+DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
 {
-    QVBoxLayout* pVBoxLayout = new QVBoxLayout(this);
-    pVBoxLayout->setSpacing(12);
+    setOrientation(Qt::Vertical);
+    setIconSize(QSize(32, 32));
+    setMovable(false);
+    setFloatable(false);
 
-    QButtonGroup* pButtonGroup = new QButtonGroup(this);
-    pButtonGroup->setExclusive(true);
-    QPushButton* pSelectTool = new QPushButton("Select", this);
-    pSelectTool->setCheckable(true);
-    QPushButton* pDrawRectTool = new QPushButton("Rect", this);
-    pDrawRectTool->setCheckable(true);
-    QPushButton* pDrawLineTool = new QPushButton("Line", this);
-    pDrawLineTool->setCheckable(true);
-    QPushButton* pDrawEllipseTool = new QPushButton("Ellipse", this);
-    pDrawEllipseTool->setCheckable(true);
+    setStyleSheet(R"(
+        QToolBar {
+            background: transparent;
+            spacing: 8px;
+            border: none;
+        }
 
-    QToolButton* pImport = new QToolButton(this);
+        QToolButton {
+            padding: 0;
+            margin: 0;
+            border: none;
+            border-radius: 5px;
+        }
 
-    pVBoxLayout->addWidget(pSelectTool);
-    pVBoxLayout->addWidget(pImport);
-    pVBoxLayout->addWidget(pDrawRectTool);
-    pVBoxLayout->addWidget(pDrawLineTool);
-    pVBoxLayout->addWidget(pDrawEllipseTool);
-    pVBoxLayout->addStretch();
+        QToolButton:hover {
+            background: rgb(246,247,249);
+        }
 
-    pButtonGroup->addButton(pSelectTool);
-    pButtonGroup->addButton(pDrawRectTool);
-    pButtonGroup->addButton(pDrawLineTool);
-    pButtonGroup->addButton(pDrawEllipseTool);
+        QToolButton:checked {
+            background: rgb(239,239,243);
+        }
+    )");
 
-    connect(pSelectTool, &QPushButton::clicked, this, [=](bool checked) { emit DrawingToolRequest(DrawingToolType::Select); });
-    connect(pImport, &QToolButton::clicked, this, &DrawingToolsBar::onImport);
-    connect(pDrawRectTool, &QPushButton::clicked, this, [=](bool checked) { emit DrawingToolRequest(DrawingToolType::Rect); });
-    connect(pDrawLineTool, &QPushButton::clicked, this, [=](bool checked) { emit DrawingToolRequest(DrawingToolType::Line); });
-    connect(pDrawEllipseTool, &QPushButton::clicked, this, [=](bool checked) { emit DrawingToolRequest(DrawingToolType::Ellipse); });
+    m_pGroup = new QButtonGroup(this);
+    m_pGroup->setExclusive(true);
+
+    auto MakeButton = [&](const QString& iconPath, bool addToGroup = true)
+    {
+        QToolButton* pToolButton = new QToolButton(this);
+        pToolButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        pToolButton->setIcon(QIcon(iconPath));
+        if(addToGroup)
+        {
+            pToolButton->setCheckable(true);
+            m_pGroup->addButton(pToolButton);
+        }
+        addWidget(pToolButton);
+        return pToolButton;
+    };
+
+    m_pMainMenu     = MakeButton(":/Resource/Icons/MainMenu.svg", false);
+    m_pImport       = MakeButton(":/Resource/Icons/Import.svg", false);
+    m_pRectTool     = MakeButton(":/Resource/Icons/Rect.svg");
+    m_pPolylineTool = MakeButton(":/Resource/Icons/Polyline.svg");
+    m_pEllipseTool  = MakeButton(":/Resource/Icons/Ellipse.svg");
+    // 垂直弹簧
+    QWidget* pSpring = new QWidget(this);
+    pSpring->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    addWidget(pSpring);
+    m_pSelectTool   = MakeButton(":/Resource/Icons/Select.svg");
+
+    connect(m_pSelectTool,   &QToolButton::clicked, this, [=]{ emit DrawingToolRequest(DrawingToolType::Select); });
+    connect(m_pImport,       &QToolButton::clicked, this, &DrawingToolsBar::onImport);
+    connect(m_pRectTool,     &QToolButton::clicked, this, [=]{ emit DrawingToolRequest(DrawingToolType::Rect); });
+    connect(m_pPolylineTool, &QToolButton::clicked, this, [=]{ emit DrawingToolRequest(DrawingToolType::Polyline); });
+    connect(m_pEllipseTool,  &QToolButton::clicked, this, [=]{ emit DrawingToolRequest(DrawingToolType::Ellipse); });
+
+    m_pSelectTool->setChecked(true);
 }
 
 DrawingToolsBar::~DrawingToolsBar()
 {
+}
+
+void DrawingToolsBar::OnToolFinished()
+{
+    if(m_pSelectTool)
+    {
+        m_pSelectTool->click();
+    }
 }
 
 void DrawingToolsBar::onImport()

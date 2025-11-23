@@ -9,7 +9,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-SET(QT_SDK_DIR D:/Qt/6.8.3/msvc2022_64 CACHE PATH "QT SDK DIR" FORCE)
+SET(QT_SDK_DIR /Users/ze/Qt/6.10.1/macos CACHE PATH "QT SDK DIR" FORCE)
 list(APPEND CMAKE_PREFIX_PATH ${QT_SDK_DIR})
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
@@ -29,21 +29,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         MyGraphicsView.cpp MyGraphicsView.h
         DrawingToolsBar.h DrawingToolsBar.cpp
-        Global.h
-        BaseDrawingTool.h
-        RectDrawingTool.h RectDrawingTool.cpp
-        EllipseDrawingTool.h EllipseDrawingTool.cpp
-        PolylineDrawingTool.h PolylineDrawingTool.cpp
-        SelectDrawingTool.h SelectDrawingTool.cpp
-        BaseShape.h
-        Shapes.h Shapes.cpp
-        PolylineShape.h PolylineShape.cpp
-        BaseDrawingTool.cpp
         rulerwidget.h rulerwidget.cpp
-        MyMath.h
-        BaseShape.cpp
         DXFTranslator.cpp DXFTranslator.h
-        EllipseShape.h EllipseShape.cpp
+        DrawingTool/BaseDrawingTool.cpp DrawingTool/BaseDrawingTool.h DrawingTool/EllipseDrawingTool.cpp DrawingTool/EllipseDrawingTool.h DrawingTool/PolylineDrawingTool.cpp DrawingTool/PolylineDrawingTool.h DrawingTool/RectDrawingTool.cpp DrawingTool/RectDrawingTool.h DrawingTool/SelectDrawingTool.cpp DrawingTool/SelectDrawingTool.h Shape/BaseShape.cpp Shape/BaseShape.h Shape/EllipseShape.cpp Shape/EllipseShape.h Shape/PolylineShape.cpp Shape/PolylineShape.h Shape/Shapes.cpp Shape/Shapes.h
+        Resource.qrc
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET XCanvas APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -82,16 +71,31 @@ set_target_properties(XCanvas PROPERTIES
 )
 
 target_include_directories(XCanvas PRIVATE
-    ${CMAKE_SOURCE_DIR}/3rdparty/libdxfrw/src
+    ${PROJECT_SOURCE_DIR}/3rdparty/libdxfrw/src
+    ${PROJECT_SOURCE_DIR}/Shape
+    ${PROJECT_SOURCE_DIR}/DrawingTool
+    ${PROJECT_SOURCE_DIR}/Common
 )
 
-target_link_directories(XCanvas PRIVATE
-    ${CMAKE_SOURCE_DIR}/SDK/lib
-)
+if (WIN32)
+    set(LIBDXFRW_PATH
+        ${PROJECT_SOURCE_DIR}/SDK/lib/x86_64/libdxfrw.lib
+    )
 
-target_link_libraries(XCanvas PRIVATE
-    dxfrw
-)
+elseif (APPLE)
+    set(LIBDXFRW_PATH
+        ${PROJECT_SOURCE_DIR}/SDK/lib/macos/libdxfrw.a
+    )
+
+else()
+    message(FATAL_ERROR "Unsupported platform!")
+endif()
+
+if (NOT EXISTS "${LIBDXFRW_PATH}")
+    message(FATAL_ERROR "libdxfrw not found: ${LIBDXFRW_PATH}")
+endif()
+
+target_link_libraries(XCanvas PRIVATE "${LIBDXFRW_PATH}")
 
 target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

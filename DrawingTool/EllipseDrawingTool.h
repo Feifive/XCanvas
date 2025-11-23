@@ -8,7 +8,7 @@
 class MyGraphicsView;
 class QGraphicsEllipseItem;
 
-class EllipseDrawingTool : public QObject, public BaseDrawingTool
+class EllipseDrawingTool : public BaseDrawingTool
 {
     Q_OBJECT
 public:
@@ -20,8 +20,11 @@ public:
     virtual void mouseReleaseEvent(QMouseEvent* event) override;
     virtual int  ToolType() override;
 
+protected:
+    void CancelDrawing() override;
+
 private:
-    QGraphicsEllipseItem* m_pDrawingItem;
+    QGraphicsEllipseItem* m_pTempEllipseItem;
     bool                  m_bDrawing;
     QPointF               m_startPos;
 };

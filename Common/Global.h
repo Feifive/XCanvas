@@ -15,11 +15,11 @@
 
 enum class DrawingToolType : uint8_t
 {
-    None    = 0,
-    Select  = 1,
-    Rect    = 2,
-    Line    = 3,
-    Ellipse = 4
+    None     = 0,
+    Select   = 1,
+    Rect     = 2,
+    Polyline = 3,
+    Ellipse  = 4
 };
 
 enum ERECT_POS

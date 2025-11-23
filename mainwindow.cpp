@@ -48,6 +48,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     connect(pGraphicsView->horizontalScrollBar(), &QScrollBar::valueChanged, [pGraphicsView, pRulerHorizontal] { pRulerHorizontal->setOffset(pGraphicsView->mapToScene(0, 0).x()); });
     connect(pGraphicsView->verticalScrollBar(), &QScrollBar::valueChanged, [pGraphicsView, pRulerVertical] { pRulerVertical->setOffset(pGraphicsView->mapToScene(0, 0).y()); });
 
+    connect(pGraphicsView, &MyGraphicsView::ToolFinished, m_pDrawingToolsBar, &DrawingToolsBar::OnToolFinished);
     connect(m_pDrawingToolsBar, &DrawingToolsBar::DrawingToolRequest, pGraphicsView, &MyGraphicsView::SetTool);
 
     // QGraphicsPixmapItem* pPixmapItem = new QGraphicsPixmapItem;

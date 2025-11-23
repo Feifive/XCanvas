@@ -10,22 +10,24 @@
 class MyGraphicsView;
 class PolylineShape;
 
-class LineDrawingTool : public QObject, public BaseDrawingTool
+class PolylineDrawingTool : public BaseDrawingTool
 {
     Q_OBJECT
 public:
-    explicit LineDrawingTool(MyGraphicsView* pView);
-    virtual ~LineDrawingTool() override;
+    explicit PolylineDrawingTool(MyGraphicsView* pView);
+    virtual ~PolylineDrawingTool() override;
 
     virtual void mousePressEvent(QMouseEvent* event) override;
     virtual void mouseMoveEvent(QMouseEvent* event) override;
     virtual void mouseReleaseEvent(QMouseEvent* event) override;
     virtual int  ToolType() override;
 
+protected:
+    void CancelDrawing() override;
+
 private:
     PolylineShape* m_pDrawingItem;
     QPointF m_startPos;
-    bool m_bDrawing;
     QVector<QPointF> m_points;
 };
 

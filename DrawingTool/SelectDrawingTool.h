@@ -10,7 +10,7 @@ class QGraphicsRectItem;
 class QGraphicsPathItem;
 class Shape;
 
-class SelectDrawingTool : public QObject, public BaseDrawingTool
+class SelectDrawingTool : public BaseDrawingTool
 {
     Q_OBJECT
 public:

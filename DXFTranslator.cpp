@@ -1,8 +1,8 @@
 #include "DXFTranslator.h"
-#include "EllipseShape.h"
+#include "Shape/EllipseShape.h"
 #include "Global.h"
-#include "PolylineShape.h"
-#include "Shapes.h"
+#include "Shape/PolylineShape.h"
+#include "Shape/Shapes.h"
 
 DXFTranslator::DXFTranslator() : m_pShapes(nullptr)
 {

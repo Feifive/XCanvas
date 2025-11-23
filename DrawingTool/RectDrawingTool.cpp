@@ -1,11 +1,11 @@
 #include "RectDrawingTool.h"
 #include "Global.h"
-#include "MyGraphicsView.h"
+#include "../MyGraphicsView.h"
 #include "PolylineShape.h"
 #include <QDebug>
 #include <QMouseEvent>
 
-RectDrawingTool::RectDrawingTool(MyGraphicsView* pView) : BaseDrawingTool(pView), m_pTempPolylineItem(nullptr), m_bDrawing(false), m_startPos(-1, -1)
+RectDrawingTool::RectDrawingTool(MyGraphicsView* pView) : BaseDrawingTool(pView), m_pTempPolylineItem(nullptr), m_startPos(-1, -1)
 {
 }
 
@@ -17,20 +17,26 @@ void RectDrawingTool::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        m_startPos          = m_pView->mapToScene(event->pos());
-        m_pTempPolylineItem = new QGraphicsPathItem;
-        QPen pen            = GetDrawedLinePen(m_pView->GetScaleFactory());
-        m_pTempPolylineItem->setPen(pen);
-        m_pView->scene()->addItem(m_pTempPolylineItem);
+        if(m_state == State::Idle)
+        {
+            m_startPos          = m_pView->mapToScene(event->pos());
+            m_pTempPolylineItem = new QGraphicsPathItem;
+            m_pTempPolylineItem->setPen(DRAWED_LINE_PEN(m_pView->GetScaleFactory()));
+            m_pView->scene()->addItem(m_pTempPolylineItem);
+
+            m_state = State::Drawing;
+        }
+    }
+    else if (event->button() == Qt::RightButton)
+    {
+        HandleRightButtonPress(event);
     }
 }
 
 void RectDrawingTool::mouseMoveEvent(QMouseEvent* event)
 {
-    if (m_pTempPolylineItem)
+    if (m_state == State::Drawing)
     {
-        m_bDrawing = true;
-
         QPointF currentPos = m_pView->mapToScene(event->pos());
 
         QPointF p1 = m_startPos;
@@ -43,15 +49,23 @@ void RectDrawingTool::mouseMoveEvent(QMouseEvent* event)
         path.lineTo(p2);
         path.lineTo(p3);
         path.lineTo(p4);
-        path.lineTo(p1);// 闭合
+        path.lineTo(p1);
 
         m_pTempPolylineItem->setPath(path);
     }
+
+    HandleRightButtonMove(event);
 }
 
 void RectDrawingTool::mouseReleaseEvent(QMouseEvent* event)
 {
-    if (m_bDrawing && m_pTempPolylineItem)
+    if (event->button() == Qt::RightButton)
+    {
+        HandleRightButtonRelease(event);
+        return;
+    }
+
+    if (m_state == State::Drawing)
     {
         m_pView->GetCurrentShapes()->SelectShapes(false);
 
@@ -75,10 +89,20 @@ void RectDrawingTool::mouseReleaseEvent(QMouseEvent* event)
         delete m_pTempPolylineItem;
         m_pTempPolylineItem = nullptr;
 
-        m_bDrawing = false;
         m_pView->UpdateCanvas();
+
+        m_state = State::Idle;
     }
-    else if (m_pTempPolylineItem && !m_bDrawing)
+}
+
+int RectDrawingTool::ToolType()
+{
+    return static_cast<int>(DrawingToolType::Rect);
+}
+
+void RectDrawingTool::CancelDrawing()
+{
+    if(m_pTempPolylineItem)
     {
         m_pView->scene()->removeItem(m_pTempPolylineItem);
         delete m_pTempPolylineItem;
@@ -87,9 +111,6 @@ void RectDrawingTool::mouseReleaseEvent(QMouseEvent* event)
         m_pView->GetCurrentShapes()->SelectShapes(false);
         m_pView->UpdateCanvas();
     }
-}
 
-int RectDrawingTool::ToolType()
-{
-    return static_cast<int>(DrawingToolType::Rect);
+    m_state = State::Idle;
 }

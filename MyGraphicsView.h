@@ -3,7 +3,7 @@
 
 #include <QGraphicsView>
 #include "Global.h"
-#include "Shapes.h"
+#include "Shape/Shapes.h"
 
 class QGraphicsScene;
 class QGraphicsRectItem;
@@ -23,6 +23,7 @@ public:
 
 signals:
     void mouseMovePos(QPointF pos);
+    void ToolFinished();
 
 protected:
     void mousePressEvent(QMouseEvent* event) override;
@@ -31,6 +32,9 @@ protected:
     void wheelEvent(QWheelEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
     void showEvent(QShowEvent* event) override;
+
+private:
+    void OnToolFinished();
 
 private:
     QGraphicsScene*  m_pScene;

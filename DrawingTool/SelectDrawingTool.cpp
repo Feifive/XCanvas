@@ -1,6 +1,6 @@
 #include "SelectDrawingTool.h"
 #include "Global.h"
-#include "MyGraphicsView.h"
+#include "../MyGraphicsView.h"
 #include "Shapes.h"
 #include <QGraphicsItem>
 #include <QGraphicsPathItem>

@@ -12,6 +12,7 @@ class EllipseShape : public Shape
     QRectF       boundingRect() const override;
     QPainterPath shape() const override;
     void         SetEllipse(const QPointF& center, double rx, double ry, double rotationDeg = 0.0);
+    void         SetEllipse(const QRectF& rect);
     void         SetEllipseArc(const QPointF& center, double rx, double ry, double rotationDeg, double startDeg, double endDeg);
     bool         IsCircle() const;
 
