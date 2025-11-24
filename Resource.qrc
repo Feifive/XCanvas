@@ -2,5 +2,8 @@
     <qresource prefix="/">
         <file>Resource/Icons/Select.svg</file>
         <file>Resource/Icons/MainMenu.svg</file>
+        <file>Resource/Icons/Ellipse.svg</file>
+        <file>Resource/Icons/Polyline.svg</file>
+        <file>Resource/Icons/Rect.svg</file>
     </qresource>
 </RCC>
