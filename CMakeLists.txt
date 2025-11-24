@@ -79,7 +79,7 @@ target_include_directories(XCanvas PRIVATE
 
 if (WIN32)
     set(LIBDXFRW_PATH
-        ${PROJECT_SOURCE_DIR}/SDK/lib/x86_64/libdxfrw.lib
+        ${PROJECT_SOURCE_DIR}/SDK/lib/x86_64/dxfrw.lib
     )
 
 elseif (APPLE)

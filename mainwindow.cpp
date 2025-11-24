@@ -17,15 +17,17 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
 {
     ui->setupUi(this);
 
+    ui->widget_toolbar->setStyleSheet("background-color: white");
+
     // 左侧工具栏
     m_pDrawingToolsBar = new DrawingToolsBar(this);
     ui->verticalLayout_toolbar->addWidget(m_pDrawingToolsBar);
 
     // 标尺、画布
-    RulerWidget*    pRulerHorizontal = new RulerWidget(Qt::Horizontal, ui->centralwidget);
-    RulerWidget*    pRulerVertical   = new RulerWidget(Qt::Vertical, ui->centralwidget);
-    MyGraphicsView* pGraphicsView    = new MyGraphicsView(ui->centralwidget);
-    QWidget*        pCornerWidget    = new QWidget(ui->centralwidget);
+    RulerWidget*    pRulerHorizontal = new RulerWidget(Qt::Horizontal, ui->widget_canvas);
+    RulerWidget*    pRulerVertical   = new RulerWidget(Qt::Vertical, ui->widget_canvas);
+    MyGraphicsView* pGraphicsView    = new MyGraphicsView(ui->widget_canvas);
+    QWidget*        pCornerWidget    = new QWidget(ui->widget_canvas);
     pRulerHorizontal->AttachView(pGraphicsView);
     pRulerVertical->AttachView(pGraphicsView);
     pCornerWidget->setFixedSize(pRulerVertical->width(), pRulerHorizontal->height());

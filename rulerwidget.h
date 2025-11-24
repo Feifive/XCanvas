@@ -9,10 +9,13 @@ class RulerWidget : public QWidget
 {
     Q_OBJECT
 
-public:
-    RulerWidget(Qt::Orientation orientation, QWidget *parent = nullptr);
-    ~RulerWidget()override;
-    void AttachView(QGraphicsView* pView) { m_pAttachView = pView; }
+  public:
+    RulerWidget(Qt::Orientation orientation, QWidget* parent = nullptr);
+    ~RulerWidget() override;
+    void AttachView(QGraphicsView* pView)
+    {
+        m_pAttachView = pView;
+    }
     void setOffset(int value)
     {
         offset = value;
@@ -24,18 +27,18 @@ public:
         update();
     }
 
-protected:
-    void paintEvent(QPaintEvent *event)override;
+  protected:
+    void paintEvent(QPaintEvent* event) override;
 
-private:
-    QColor backgroundColor{Qt::white};//背景色
-    QColor textAndLineColor{"#606060"};//文本和刻度颜色
-    QColor slidingLineColor{"#D56161"};//游标颜色
+  private:
+    QColor           backgroundColor{Qt::transparent};//背景色
+    QColor           textAndLineColor{"#606060"};//文本和刻度颜色
+    QColor           slidingLineColor{"#D56161"};//游标颜色
     Qt::Orientations orientation;
-    int slidingLinePos{0};
-    int offset{0};
-    QFont font{"PingFang SC",16};
-    QGraphicsView* m_pAttachView;
+    int              slidingLinePos{0};
+    int              offset{0};
+    QFont            font{"PingFang SC", 8};
+    QGraphicsView*   m_pAttachView;
 };
 
-#endif // RULERWIDGET_H
+#endif// RULERWIDGET_H
