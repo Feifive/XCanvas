@@ -6,7 +6,7 @@
 
 RulerWidget::RulerWidget(Qt::Orientation orientation, QWidget* parent) : QWidget(parent), orientation(orientation), m_pAttachView(nullptr)
 {
-    orientation == Qt::Horizontal ? setFixedHeight(30) : setFixedWidth(50);
+    orientation == Qt::Horizontal ? setFixedHeight(24) : setFixedWidth(24);
     slidingLineColor.setAlphaF(0.7);
 }
 
@@ -29,7 +29,7 @@ void RulerWidget::paintEvent(QPaintEvent* event)
     painter.save();
     auto length = (orientation == Qt::Horizontal ? rect.width() : rect.height()) + offset;
     painter.setPen(QPen(textAndLineColor, 1));
-    painter.setFont(font);
+    painter.setFont(QFont("", 8));
     if (orientation == Qt::Horizontal)
     {
         auto shortLine_y  = height * 0.75;
@@ -64,19 +64,29 @@ void RulerWidget::paintEvent(QPaintEvent* event)
         int  temp            = 0;
         for (int i = 0; i < length; i += 10)
         {
-            if (temp % 10 == 0)//画长线
+            QPointF p0(width, i);
+
+            if (temp % 10 == 0)
             {
-                painter.drawLine(QPointF(middleLineWidth, i), QPointF(0, i));
+                painter.drawLine(p0, QPointF(width - middleLineWidth, i));
             }
             else if (temp % 5 == 0)
             {
-                painter.drawLine(QPointF(longLineWidth, i), QPointF(0, i));
-                painter.drawText(QRectF(harfWidth, i - 50, harfWidth, 100), Qt::AlignCenter | Qt::TextWordWrap, QString::number(i));
+                painter.drawLine(p0, QPointF(width - longLineWidth, i));
+
+                painter.save();
+
+                painter.translate(harfWidth, i);
+                painter.rotate(-90);
+                painter.drawText(QRectF(-50, -harfWidth, 100, harfWidth),Qt::AlignCenter,QString::number(i));
+
+                painter.restore();
             }
             else
             {
-                painter.drawLine(QPointF(shortLineWidth, i), QPointF(0, i));
+                painter.drawLine(p0, QPointF(width - shortLineWidth, i));
             }
+
             ++temp;
         }
     }
@@ -86,11 +96,11 @@ void RulerWidget::paintEvent(QPaintEvent* event)
     painter.setBrush(slidingLineColor);
     if (orientation == Qt::Horizontal)
     {
-        painter.drawRect(slidingLinePos, 0, 3, height);
+        painter.drawRect(slidingLinePos, 0, 1, height);
     }
     else
     {
-        painter.drawRect(0, slidingLinePos, width, 3);
+        painter.drawRect(0, slidingLinePos, width, 1);
     }
 
     QWidget::paintEvent(event);

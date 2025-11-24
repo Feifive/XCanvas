@@ -37,7 +37,6 @@ class RulerWidget : public QWidget
     Qt::Orientations orientation;
     int              slidingLinePos{0};
     int              offset{0};
-    QFont            font{"PingFang SC", 8};
     QGraphicsView*   m_pAttachView;
 };
 
