@@ -15,7 +15,7 @@
 #define MAX_ZOOM 10.0
 
 MyGraphicsView::MyGraphicsView(QWidget* parent)
-    : m_dScaleFactor(1.0), m_eToolType(DrawingToolType::None), m_startPos(-1, -1), m_bDragging(false), m_pBaseDrawingTool(nullptr), m_pShapes(new Shapes), m_bInitPosition(false), QGraphicsView{parent}
+    : m_dScaleFactor(1.0), m_eToolType(DrawingToolType::None), m_startPos(-1, -1), m_bDragging(false), m_pBaseDrawingTool(nullptr), m_pShapes(new Shapes), QGraphicsView{parent}
 {
     m_pScene = new QGraphicsScene;
     m_pScene->setBackgroundBrush(QBrush(QColor(240, 240, 240)));
@@ -26,6 +26,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     setAlignment(Qt::AlignLeft | Qt::AlignTop);
     setMouseTracking(true);
     SetTool(DrawingToolType::Select);
+    centerOn(0, 0);
 }
 
 MyGraphicsView::~MyGraphicsView()
@@ -192,18 +193,6 @@ void MyGraphicsView::resizeEvent(QResizeEvent* event)
     //     m_pScene->setSceneRect(0, 0, event->size().width(), event->size().height());
     // }
     return QGraphicsView::resizeEvent(event);
-}
-
-void MyGraphicsView::showEvent(QShowEvent* event)
-{
-    QGraphicsView::showEvent(event);
-
-    if (!m_bInitPosition)
-    {
-        horizontalScrollBar()->setSliderPosition(0);
-        verticalScrollBar()->setSliderPosition(0);
-        m_bInitPosition = true;
-    }
 }
 
 void MyGraphicsView::OnToolFinished()

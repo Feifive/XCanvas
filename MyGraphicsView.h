@@ -31,7 +31,6 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
-    void showEvent(QShowEvent* event) override;
 
 private:
     void OnToolFinished();
@@ -44,7 +43,6 @@ private:
     DrawingToolType  m_eToolType;
     BaseDrawingTool* m_pBaseDrawingTool;
     Shapes*          m_pShapes;
-    bool             m_bInitPosition;
 };
 
 #endif // MYGRAPHICSVIEW_H
