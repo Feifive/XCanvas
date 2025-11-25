@@ -1,19 +1,18 @@
 #ifndef MYGRAPHICSVIEW_H
 #define MYGRAPHICSVIEW_H
 
-#include <QGraphicsView>
 #include "Global.h"
 #include "Shape/Shapes.h"
+#include <QGraphicsView>
 
-class QGraphicsScene;
 class QGraphicsRectItem;
 class BaseDrawingTool;
 
 class MyGraphicsView : public QGraphicsView
 {
     Q_OBJECT
-public:
-    explicit MyGraphicsView(QWidget *parent = nullptr);
+  public:
+    explicit MyGraphicsView(QWidget* parent = nullptr);
     ~MyGraphicsView();
 
     void    SetTool(DrawingToolType type);
@@ -21,22 +20,21 @@ public:
     double  GetScaleFactory();
     void    UpdateCanvas();
 
-signals:
+  signals:
     void mouseMovePos(QPointF pos);
     void ToolFinished();
 
-protected:
+  protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
 
-private:
+  private:
     void OnToolFinished();
 
-private:
-    QGraphicsScene*  m_pScene;
+  private:
     QPointF          m_startPos;
     bool             m_bDragging;
     double           m_dScaleFactor;
@@ -45,4 +43,4 @@ private:
     Shapes*          m_pShapes;
 };
 
-#endif // MYGRAPHICSVIEW_H
+#endif// MYGRAPHICSVIEW_H

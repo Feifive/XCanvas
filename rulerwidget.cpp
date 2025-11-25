@@ -29,7 +29,7 @@ void RulerWidget::paintEvent(QPaintEvent* event)
     painter.save();
     auto length = (orientation == Qt::Horizontal ? rect.width() : rect.height()) + offset;
     painter.setPen(QPen(textAndLineColor, 1));
-    painter.setFont(QFont("", 8));
+    painter.setFont(QFont("Microsoft YaHei UI", 8));
     if (orientation == Qt::Horizontal)
     {
         auto shortLine_y  = height * 0.75;
@@ -41,12 +41,12 @@ void RulerWidget::paintEvent(QPaintEvent* event)
         {
             if (temp % 10 == 0)//画长线
             {
-                painter.drawLine(QPointF(i, middleLine_y), QPointF(i, height));
+                painter.drawLine(QPointF(i, longLine_y), QPointF(i, height));
+                painter.drawText(QRectF(i - 50, 0, 100, halfHeight), Qt::AlignCenter | Qt::TextWordWrap, QString::number(i));
             }
             else if (temp % 5 == 0)
             {
-                painter.drawLine(QPointF(i, longLine_y), QPointF(i, height));
-                painter.drawText(QRectF(i - 50, 0, 100, halfHeight), Qt::AlignCenter | Qt::TextWordWrap, QString::number(i));
+                painter.drawLine(QPointF(i, middleLine_y), QPointF(i, height));
             }
             else
             {
@@ -60,7 +60,7 @@ void RulerWidget::paintEvent(QPaintEvent* event)
         auto shortLineWidth  = width * 0.25;
         auto longLineWidth   = width * 0.5;
         auto middleLineWidth = width * 0.375;
-        auto harfWidth       = width / 2;
+        auto halfWidth       = width / 2;
         int  temp            = 0;
         for (int i = 0; i < length; i += 10)
         {
@@ -68,19 +68,19 @@ void RulerWidget::paintEvent(QPaintEvent* event)
 
             if (temp % 10 == 0)
             {
-                painter.drawLine(p0, QPointF(width - middleLineWidth, i));
-            }
-            else if (temp % 5 == 0)
-            {
                 painter.drawLine(p0, QPointF(width - longLineWidth, i));
 
                 painter.save();
 
-                painter.translate(harfWidth, i);
+                painter.translate(halfWidth, i);
                 painter.rotate(-90);
-                painter.drawText(QRectF(-50, -harfWidth, 100, harfWidth),Qt::AlignCenter,QString::number(i));
+                painter.drawText(QRectF(-50, -halfWidth, 100, halfWidth), Qt::AlignCenter, QString::number(i));
 
                 painter.restore();
+            }
+            else if (temp % 5 == 0)
+            {
+                painter.drawLine(p0, QPointF(width - middleLineWidth, i));
             }
             else
             {

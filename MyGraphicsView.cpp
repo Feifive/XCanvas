@@ -17,16 +17,6 @@
 MyGraphicsView::MyGraphicsView(QWidget* parent)
     : m_dScaleFactor(1.0), m_eToolType(DrawingToolType::None), m_startPos(-1, -1), m_bDragging(false), m_pBaseDrawingTool(nullptr), m_pShapes(new Shapes), QGraphicsView{parent}
 {
-    m_pScene = new QGraphicsScene;
-    m_pScene->setBackgroundBrush(QBrush(QColor(240, 240, 240)));
-    m_pScene->setSceneRect(0, 0, 20000, 20000);
-
-    setScene(m_pScene);
-    setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
-    setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    setMouseTracking(true);
-    SetTool(DrawingToolType::Select);
-    centerOn(0, 0);
 }
 
 MyGraphicsView::~MyGraphicsView()

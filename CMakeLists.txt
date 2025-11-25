@@ -33,6 +33,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         DXFTranslator.cpp DXFTranslator.h
         DrawingTool/BaseDrawingTool.cpp DrawingTool/BaseDrawingTool.h DrawingTool/EllipseDrawingTool.cpp DrawingTool/EllipseDrawingTool.h DrawingTool/PolylineDrawingTool.cpp DrawingTool/PolylineDrawingTool.h DrawingTool/RectDrawingTool.cpp DrawingTool/RectDrawingTool.h DrawingTool/SelectDrawingTool.cpp DrawingTool/SelectDrawingTool.h Shape/BaseShape.cpp Shape/BaseShape.h Shape/EllipseShape.cpp Shape/EllipseShape.h Shape/PolylineShape.cpp Shape/PolylineShape.h Shape/Shapes.cpp Shape/Shapes.h
         Resource.qrc
+        CanvasWidget.h CanvasWidget.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET XCanvas APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
