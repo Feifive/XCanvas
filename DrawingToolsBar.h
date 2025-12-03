@@ -16,7 +16,7 @@ class DrawingToolsBar : public QToolBar
 
 
 private:
-	void onSwitchTool(DrawingToolType toolType);
+	void onFinishDrawing();
 
 private:
     QToolButton* m_pMainMenu;

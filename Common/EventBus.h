@@ -13,6 +13,7 @@ public:
 
 signals:
     void switchTool(DrawingToolType);
+    void finishDrawing();
 
 private:
     EventBus() {}

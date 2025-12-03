@@ -49,6 +49,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         DrawingTool/RectTool.cpp DrawingTool/RectTool.h 
         DrawingTool/SelectTool.cpp DrawingTool/SelectTool.h
         DrawingTool/TextTool.h DrawingTool/TextTool.cpp
+        DrawingTool/CurveTool.cpp DrawingTool/CurveTool.h
         Shape/Shape.cpp Shape/Shape.h 
         Shape/Ellipse.cpp Shape/Ellipse.h 
         Shape/Polyline.cpp Shape/Polyline.h 

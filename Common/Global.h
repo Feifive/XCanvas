@@ -12,7 +12,6 @@
 
 #define Z_VALUE_HIGHLIGHT 99999
 
-// shapeÕ‚Ω”æÿ–Œ»›≤Ó
 const double BOUNDING_BOX_TOLERANCE = 0.001;
 
 enum class DrawingToolType : uint8_t
@@ -20,10 +19,11 @@ enum class DrawingToolType : uint8_t
     None = 0,
     Select,
     Import,
-    Text,
-    Rect,
     Polyline,
-    Ellipse
+    Curve,
+    Rect,
+    Ellipse,
+    Text
 };
 
 enum ERECT_POS

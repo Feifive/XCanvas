@@ -8,8 +8,8 @@ namespace PolylineOptimizer
 {
 
     // 精度设置
-    const double TOLERANCE_DUPLICATE = 0.001; // 去重阈值 (比精度要求低一个数量级)
-    const double TOLERANCE_RDP = 0.01;        // RDP 简化阈值 (用户要求的精度)
+    constexpr double TOLERANCE_DUPLICATE = 0.001; // 去重阈值
+    constexpr double TOLERANCE_RDP = 0.01;        // RDP 简化阈值
 
     // 计算点到线段的垂直距离
     double PerpendicularDistance(const QPointF& p, const QPointF& lineStart, const QPointF& lineEnd)
@@ -401,7 +401,7 @@ QPointF DXFTranslator::ConvertDXFPoint(double x, double y)
     return QPointF(x, -y);
 }
 
-QColor DXFTranslator::color(const DRW_Entity& data)
+QColor DXFTranslator::color(const DRW_Entity& data) const
 {
     if (data.color24 != -1)
     {
@@ -422,10 +422,10 @@ QColor DXFTranslator::color(const DRW_Entity& data)
 QColor DXFTranslator::convertTrueColorToQColor(int trueColorCode) const
 {
     // BGR字节序
-    quint32 color = static_cast<quint32>(trueColorCode);
-    int red       = color & 0xFF;
-    int green     = (color >> 8) & 0xFF;
-    int blue      = (color >> 16) & 0xFF;
+    const quint32 color = static_cast<quint32>(trueColorCode);
+    const int red       = color & 0xFF;
+    const int green     = (color >> 8) & 0xFF;
+    const int blue      = (color >> 16) & 0xFF;
 
     return QColor(red, green, blue);
 }

@@ -1,6 +1,7 @@
 #ifndef BASEDRAWINGTOOL_H
 #define BASEDRAWINGTOOL_H
 
+#include <qevent.h>
 #include <QObject>
 #include <QPainterPath>
 #include "Global.h"
@@ -33,6 +34,7 @@ namespace xcanvas
         virtual void mousePressEvent(QMouseEvent* event) {};
         virtual void mouseMoveEvent(QMouseEvent* event) {};
         virtual void mouseReleaseEvent(QMouseEvent* event) {};
+        virtual void keyPressEvent(QKeyEvent* event);
         virtual void drawPreview(QPainter* painter);
         virtual DrawingToolType toolType() = 0;
 

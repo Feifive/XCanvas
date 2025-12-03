@@ -15,7 +15,7 @@ namespace xcanvas
         Q_OBJECT
     public:
         explicit RectTool(MyGraphicsView* pView);
-        virtual ~RectTool() override;
+        ~RectTool() override;
 
         virtual void mousePressEvent(QMouseEvent* event) override;
         virtual void mouseMoveEvent(QMouseEvent* event) override;

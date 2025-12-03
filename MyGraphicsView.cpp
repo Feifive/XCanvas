@@ -6,6 +6,7 @@
 #include "DrawingTool/RectTool.h"
 #include "DrawingTool/SelectTool.h"
 #include "DrawingTool/TextTool.h"
+#include "DrawingTool/CurveTool.h"
 #include "Shape/Shape.h"
 #include "Shape/Shapes.h"
 #include "EventBus.h"
@@ -82,6 +83,11 @@ void MyGraphicsView::setTool(DrawingToolType type)
     case DrawingToolType::Polyline:
     {
         m_pBaseDrawingTool = new xcanvas::PolylineTool(this);
+    }
+    break;
+    case DrawingToolType::Curve:
+    {
+        m_pBaseDrawingTool = new xcanvas::CurveTool(this);
     }
     break;
     default:
@@ -172,6 +178,16 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
     {
         m_pBaseDrawingTool->mouseReleaseEvent(event);
     }
+}
+
+void MyGraphicsView::keyPressEvent(QKeyEvent *event)
+{
+    if (m_pBaseDrawingTool)
+    {
+        m_pBaseDrawingTool->keyPressEvent(event);
+    }
+
+    QGraphicsView::keyPressEvent(event);
 }
 
 void MyGraphicsView::wheelEvent(QWheelEvent* event)

@@ -1,13 +1,11 @@
 #ifndef DXF_TRANSLATOR_H
 #define DXF_TRANSLATOR_H
 
-#include <QPointF>
-#include <QString>
-#include <QColor>
-
-#include "drw_base.h"
 #include "drw_interface.h"
 #include "libdxfrw.h"
+
+#include <QPointF>
+#include <QColor>
 
 namespace xcanvas
 {
@@ -166,7 +164,7 @@ class DXFTranslator : public DRW_Interface
 
   private:
     QPointF ConvertDXFPoint(double x, double y);
-    QColor  color(const DRW_Entity& data);
+    QColor  color(const DRW_Entity& data) const;
     QColor  convertTrueColorToQColor(int trueColorCode) const;
     QColor  convertAciToQColor(int aci) const;
 

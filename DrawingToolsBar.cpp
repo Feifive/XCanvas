@@ -58,12 +58,12 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
 
     m_pMainMenu     = MakeButton(":/Resource/Icons/MainMenu.svg", false);
     m_pImport       = MakeButton(":/Resource/Icons/Import.svg", false);
-    m_pText         = MakeButton(":/Resource/Icons/Text.svg");
     m_pPolylineTool = MakeButton(":/Resource/Icons/Polyline.svg");
     m_pCurveTool    = MakeButton(":/Resource/Icons/Curve.svg");
     m_pRectTool     = MakeButton(":/Resource/Icons/Rect.svg");
     m_pEllipseTool  = MakeButton(":/Resource/Icons/Ellipse.svg");
     m_pPolygonTool  = MakeButton(":/Resource/Icons/Polygon.svg");
+    m_pText         = MakeButton(":/Resource/Icons/Text.svg");
     // 垂直弹簧
     QWidget* pSpring = new QWidget(this);
     pSpring->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -76,7 +76,7 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
     connect(m_pRectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Rect); });
     connect(m_pPolylineTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Polyline); });
     connect(m_pEllipseTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Ellipse); });
-    connect(&EventBus::instance(), &EventBus::switchTool, this, &DrawingToolsBar::onSwitchTool);
+    connect(&EventBus::instance(), &EventBus::finishDrawing, this, &DrawingToolsBar::onFinishDrawing);
 
     m_pSelectTool->setChecked(true);
 }
@@ -85,10 +85,8 @@ DrawingToolsBar::~DrawingToolsBar()
 {
 }
 
-void DrawingToolsBar::onSwitchTool(DrawingToolType toolType)
+void DrawingToolsBar::onFinishDrawing()
 {
-    if (toolType == DrawingToolType::Select)
-    {
-		m_pSelectTool->setChecked(true);
-    }
+    m_pSelectTool->setChecked(true);
+    emit EventBus::instance().switchTool(DrawingToolType::Select);
 }
