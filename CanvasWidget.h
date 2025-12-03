@@ -13,9 +13,6 @@ class CanvasWidget : public QWidget
     Q_OBJECT
   public:
     explicit CanvasWidget(QWidget* parent = nullptr);
-    void SetTool(DrawingToolType toolType);
-
-  signals:
 
   private:
     QGraphicsScene* m_pGraphicsScene;

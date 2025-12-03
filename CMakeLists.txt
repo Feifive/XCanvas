@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.16)
 
 project(XCanvas VERSION 0.1 LANGUAGES CXX)
 
+FILE(GLOB ORIGIN *.cpp *.h)
+FILE(GLOB DRAWINGTOOL DrawingTool/*.h DrawingTool/*.cpp)
+FILE(GLOB SHAPE Shape/*.h Shape/*.cpp)
+FILE(GLOB COMMON Common/*.h Common/*.cpp)
+
+source_group("DrawingTool"  FILES ${DRAWINGTOOL})
+source_group("Shape"        FILES ${SHAPE})
+source_group("Common"       FILES ${COMMON})
+
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -15,6 +24,9 @@ list(APPEND CMAKE_PREFIX_PATH ${QT_SDK_DIR})
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -29,11 +41,24 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         MyGraphicsView.cpp MyGraphicsView.h
         DrawingToolsBar.h DrawingToolsBar.cpp
-        rulerwidget.h rulerwidget.cpp
+        RulerWidget.h RulerWidget.cpp
         DXFTranslator.cpp DXFTranslator.h
-        DrawingTool/BaseDrawingTool.cpp DrawingTool/BaseDrawingTool.h DrawingTool/EllipseDrawingTool.cpp DrawingTool/EllipseDrawingTool.h DrawingTool/PolylineDrawingTool.cpp DrawingTool/PolylineDrawingTool.h DrawingTool/RectDrawingTool.cpp DrawingTool/RectDrawingTool.h DrawingTool/SelectDrawingTool.cpp DrawingTool/SelectDrawingTool.h Shape/BaseShape.cpp Shape/BaseShape.h Shape/EllipseShape.cpp Shape/EllipseShape.h Shape/PolylineShape.cpp Shape/PolylineShape.h Shape/Shapes.cpp Shape/Shapes.h
+        DrawingTool/DrawingTool.cpp DrawingTool/DrawingTool.h 
+        DrawingTool/EllipseTool.cpp DrawingTool/EllipseTool.h 
+        DrawingTool/PolylineTool.cpp DrawingTool/PolylineTool.h 
+        DrawingTool/RectTool.cpp DrawingTool/RectTool.h 
+        DrawingTool/SelectTool.cpp DrawingTool/SelectTool.h
+        DrawingTool/TextTool.h DrawingTool/TextTool.cpp
+        Shape/Shape.cpp Shape/Shape.h 
+        Shape/Ellipse.cpp Shape/Ellipse.h 
+        Shape/Polyline.cpp Shape/Polyline.h 
+        Shape/Shapes.cpp Shape/Shapes.h
         Resource.qrc
         CanvasWidget.h CanvasWidget.cpp
+        Common/EventBus.h Common/EventBus.cpp
+        Shape/Text.h Shape/Text.cpp
+        Shape/Curve.h Shape/Curve.cpp
+        Shape/Image.h Shape/Image.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET XCanvas APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -100,6 +125,9 @@ target_link_libraries(XCanvas PRIVATE "${LIBDXFRW_PATH}")
 
 target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Core)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

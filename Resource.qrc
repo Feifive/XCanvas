@@ -5,5 +5,9 @@
         <file>Resource/Icons/Ellipse.svg</file>
         <file>Resource/Icons/Polyline.svg</file>
         <file>Resource/Icons/Rect.svg</file>
+        <file>Resource/Icons/Import.svg</file>
+        <file>Resource/Icons/Text.svg</file>
+        <file>Resource/Icons/Curve.svg</file>
+        <file>Resource/Icons/Polygon.svg</file>
     </qresource>
 </RCC>

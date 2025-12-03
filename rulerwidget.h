@@ -3,41 +3,30 @@
 
 #include <QWidget>
 
-class QGraphicsView;
+class MyGraphicsView;
 
 class RulerWidget : public QWidget
 {
     Q_OBJECT
+public:
+    explicit RulerWidget(Qt::Orientation orientation, QWidget* parent = nullptr);
+    void attachView(MyGraphicsView* view);
 
-  public:
-    RulerWidget(Qt::Orientation orientation, QWidget* parent = nullptr);
-    ~RulerWidget() override;
-    void AttachView(QGraphicsView* pView)
-    {
-        m_pAttachView = pView;
-    }
-    void setOffset(int value)
-    {
-        offset = value;
-        update();
-    }
-    void setSlidingLinePos(int pos)
-    {
-        slidingLinePos = pos + offset;
-        update();
-    }
-
-  protected:
+protected:
     void paintEvent(QPaintEvent* event) override;
 
-  private:
-    QColor           backgroundColor{Qt::transparent};//背景色
-    QColor           textAndLineColor{"#606060"};//文本和刻度颜色
-    QColor           slidingLineColor{"#D56161"};//游标颜色
-    Qt::Orientations orientation;
-    int              slidingLinePos{0};
-    int              offset{0};
-    QGraphicsView*   m_pAttachView;
+private:
+    void   drawHorizontal(QPainter& painter);
+    void   drawVertical(QPainter& painter);
+    double tickStep(double scale) const;
+
+private:
+    MyGraphicsView*  m_view = nullptr;
+    Qt::Orientation m_orientation;
+
+    QColor m_backgroundColor { Qt::transparent };   // 背景色
+    QColor m_textAndLineColor { "#606060" };        // 文本和刻度颜色
+    QFont  m_font;
 };
 
-#endif// RULERWIDGET_H
+#endif // RULERWIDGET_H

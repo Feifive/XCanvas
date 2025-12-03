@@ -3,23 +3,27 @@
 
 #include <QDateTime>
 #include <QPen>
+#include <QFontDatabase>
 
 #define qDebugTime() qDebug().noquote() << QDateTime::currentDateTime().toString("hh:mm:ss.zzz")
 
 #define DRAWING_LINE_PEN          GetDrawingLinePen()
-#define DRAWED_LINE_PEN(scale)    GetDrawedLinePen(scale)
-#define SELECTED_LINE_PEN(scale)  GetSelectedLinePen(scale)
 #define HIGHLIGHT_LINE_PEN(scale) GetHighlightPen(scale)
 
-#define Z_VALUE_HIGHLIGHT 10000
+#define Z_VALUE_HIGHLIGHT 99999
+
+// shapeÍâ½Ó¾ØÐÎÈÝ²î
+const double BOUNDING_BOX_TOLERANCE = 0.001;
 
 enum class DrawingToolType : uint8_t
 {
-    None     = 0,
-    Select   = 1,
-    Rect     = 2,
-    Polyline = 3,
-    Ellipse  = 4
+    None = 0,
+    Select,
+    Import,
+    Text,
+    Rect,
+    Polyline,
+    Ellipse
 };
 
 enum ERECT_POS
@@ -36,34 +40,38 @@ enum ERECT_POS
     ERECT_POS_COUNT
 };
 
-inline QPen GetDrawingLinePen()
+inline QPen dotLinePen()
 {
     QPen pen(Qt::black);
+    pen.setWidth(1);
     pen.setCosmetic(true);
     pen.setStyle(Qt::DotLine);
     return pen;
 }
 
-inline QPen GetDrawedLinePen(qreal scale)
+inline QPen normalPen(QColor color = QColor(Qt::black))
 {
-    QPen pen(Qt::black);
-    pen.setWidthF(1.0 / scale);
+    QPen pen(color);
+    pen.setWidth(1);
+    pen.setCosmetic(true);
     pen.setStyle(Qt::SolidLine);
     return pen;
 }
 
-inline QPen GetSelectedLinePen(qreal scale)
+inline QPen selectedPen()
 {
     QPen pen(QColor(244, 155, 33));
-    pen.setWidthF(1.0 / scale);
+    pen.setWidth(1);
+    pen.setCosmetic(true);
     pen.setStyle(Qt::DashLine);
     return pen;
 }
 
-inline QPen GetHighlightPen(qreal scale)
+inline QPen highlightPen()
 {
     QPen pen(QColor(244, 155, 33));
-    pen.setWidthF(1.0 / scale);
+    pen.setWidth(1);
+    pen.setCosmetic(true);
     pen.setStyle(Qt::SolidLine);
     return pen;
 }

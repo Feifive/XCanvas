@@ -1,27 +1,74 @@
 #ifndef SHAPES_H
 #define SHAPES_H
 
-#include "BaseShape.h"
-#include <QVector>
 #include <QPointF>
+#include <QRectF>
+#include <QVector>
 
+namespace xcanvas
+{
+    class Shape;
+}
+
+namespace xcanvas
+{
 class Shapes
 {
-public:
+  public:
     Shapes();
     ~Shapes();
-    int Count();
-    void AddShape(Shape* pShape);
-    Shape* GetShape(int index);
-    void SelectShapes(bool selected);
-    void SelectShapes(const QRectF& rect);
-    Shape* GetShapeByPoint(const QPointF& pt);
-    Shapes* GetSelectedShapes();
-    QRectF GetSelectedShapeRect();
-    void Offset(const QPointF& offset);
 
-private:
+    // 禁止拷贝（因为涉及指针管理）
+    Shapes(const Shapes&)            = delete;
+    Shapes& operator=(const Shapes&) = delete;
+
+    void addShape(Shape* shape);
+    void removeShape(Shape* shape);
+    void deleteShape(Shape* shape);
+    void clear();
+    void append(const QVector<Shape*>& shapes);
+
+    int count() const;
+    int shapeCount() const
+    {
+        return count();
+    }
+    bool isEmpty() const;
+
+    Shape* shapeAt(int index) const;
+    Shape* operator[](int index) const
+    {
+        return shapeAt(index);
+    }
+
+    Shape* shapeAt(const QPointF& point) const;
+
+    const QVector<Shape*>& shapes() const
+    {
+        return m_shapes;
+    }
+
+    QRectF boundingRect() const;
+
+    void            selectAll();
+    void            deselectAll();
+    void            setAllSelected(bool selected);
+    void            selectInRect(const QRectF& rect);
+    void            invertSelection();
+    QVector<Shape*> selectedShapes() const;
+    bool            hasSelection() const;
+    int             selectedCount() const;
+    QRectF          selectedBoundingRect() const;
+
+    void translate(const QPointF& offset);
+
+  private:
+    void deleteAllShapes();
+
+  private:
     QVector<Shape*> m_shapes;
 };
 
-#endif // SHAPES_H
+}// namespace xcanvas
+
+#endif// SHAPES_H

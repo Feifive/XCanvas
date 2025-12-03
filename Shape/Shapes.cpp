@@ -1,59 +1,83 @@
 #include "Shapes.h"
+#include "Shape.h"
+#include <QDebug>
 #include <QGraphicsItem>
 #include <QPainterPath>
-#include <QDebug>
 
-Shapes::Shapes() {}
-
-Shapes::~Shapes()
+xcanvas::Shapes::Shapes()
 {
 }
 
-int Shapes::Count()
+xcanvas::Shapes::~Shapes()
+{
+}
+
+void xcanvas::Shapes::addShape(Shape* shape)
+{
+    if (shape)
+    {
+        m_shapes.append(shape);
+    }
+}
+
+void xcanvas::Shapes::removeShape(Shape* shape)
+{
+    m_shapes.removeOne(shape);
+}
+
+void xcanvas::Shapes::deleteShape(Shape* shape)
+{
+    if (m_shapes.removeOne(shape))
+    {
+        delete shape;
+    }
+}
+
+void xcanvas::Shapes::clear()
+{
+    deleteAllShapes();
+    m_shapes.clear();
+}
+
+void xcanvas::Shapes::append(const QVector<Shape*>& shapes)
+{
+    m_shapes.append(shapes);
+}
+
+void xcanvas::Shapes::deleteAllShapes()
+{
+    for (Shape* shape : m_shapes)
+    {
+        delete shape;
+    }
+}
+
+int xcanvas::Shapes::count() const
 {
     return m_shapes.count();
 }
 
-void Shapes::AddShape(Shape *pShape)
+bool xcanvas::Shapes::isEmpty() const
 {
-    m_shapes.append(pShape);
+    return m_shapes.isEmpty();
 }
 
-Shape *Shapes::GetShape(int index)
+xcanvas::Shape* xcanvas::Shapes::shapeAt(int index) const
 {
-    if(index >= m_shapes.size() || index < 0)
+    if (index >= 0 && index < m_shapes.count())
     {
-        return nullptr;
+        return m_shapes.at(index);
     }
-    return m_shapes.at(index);
+    return nullptr;
 }
 
-void Shapes::SelectShapes(bool selected)
+xcanvas::Shape* xcanvas::Shapes::shapeAt(const QPointF& point) const
 {
-    for(auto shape : m_shapes)
+    for (int i = m_shapes.count() - 1; i >= 0; --i)
     {
-        shape->Select(selected);
-    }
-}
-
-void Shapes::SelectShapes(const QRectF& rect)
-{
-    SelectShapes(false);
-    for(auto shape : m_shapes)
-    {
-        if(rect.contains(shape->boundingRect()))
-        {
-            shape->Select(true);
-        }
-    }
-}
-
-Shape *Shapes::GetShapeByPoint(const QPointF &pt)
-{
-    for(auto shape : m_shapes)
-    {
-        QRectF rect = shape->boundingRect();
-        if(rect.contains(pt))
+        Shape* shape = m_shapes.at(i);
+        QRectF rect  = shape->boundingRect();
+        if (rect.contains(point))
         {
             return shape;
         }
@@ -62,40 +86,131 @@ Shape *Shapes::GetShapeByPoint(const QPointF &pt)
     return nullptr;
 }
 
-Shapes* Shapes::GetSelectedShapes()
+QRectF xcanvas::Shapes::boundingRect() const
 {
-    Shapes* pShapes = new Shapes();
-
-    for (int i = 0; i < m_shapes.count(); i++)
+    if (m_shapes.isEmpty())
     {
-        Shape* pShape = m_shapes[i];
-        if (pShape->IsSelected())
+        return QRectF();
+    }
+
+    QRectF rect = m_shapes.first()->boundingRect();
+    for (int i = 1; i < m_shapes.count(); ++i)
+    {
+        rect = rect.united(m_shapes.at(i)->boundingRect());
+    }
+    return rect;
+}
+
+void xcanvas::Shapes::selectAll()
+{
+    setAllSelected(true);
+}
+
+void xcanvas::Shapes::deselectAll()
+{
+    setAllSelected(false);
+}
+
+void xcanvas::Shapes::setAllSelected(bool selected)
+{
+    for (Shape* shape : m_shapes)
+    {
+        shape->setSelected(selected);
+    }
+}
+
+void xcanvas::Shapes::selectInRect(const QRectF& rect)
+{
+    deselectAll();
+
+    for (Shape* shape : m_shapes)
+    {
+        if (rect.contains(shape->boundingRect()))
         {
-            pShapes->AddShape(pShape);
+            shape->setSelected(true);
+        }
+    }
+}
+
+void xcanvas::Shapes::invertSelection()
+{
+    for (Shape* shape : m_shapes)
+    {
+        shape->setSelected(!shape->isSelected());
+    }
+}
+
+QVector<xcanvas::Shape*> xcanvas::Shapes::selectedShapes() const
+{
+    QVector<Shape*> selected;
+
+    for (Shape* shape : m_shapes)
+    {
+        if (shape->isSelected())
+        {
+            selected.append(shape);
         }
     }
 
-    return pShapes;
+    return selected;
 }
 
-QRectF Shapes::GetSelectedShapeRect()
+bool xcanvas::Shapes::hasSelection() const
 {
-    QRectF rect(0, 0, 0, 0);
-    for(auto shape : m_shapes)
+    for (Shape* shape : m_shapes)
     {
-        if(shape->IsSelected())
+        if (shape->isSelected())
         {
-            rect = rect.united(shape->boundingRect());
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int xcanvas::Shapes::selectedCount() const
+{
+    int count = 0;
+
+    for (Shape* shape : m_shapes)
+    {
+        if (shape->isSelected())
+        {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
+QRectF xcanvas::Shapes::selectedBoundingRect() const
+{
+    QRectF rect;
+    bool   first = true;
+
+    for (Shape* shape : m_shapes)
+    {
+        if (shape->isSelected())
+        {
+            if (first)
+            {
+                rect  = shape->boundingRect();
+                first = false;
+            }
+            else
+            {
+                rect = rect.united(shape->boundingRect());
+            }
         }
     }
 
     return rect;
 }
 
-void Shapes::Offset(const QPointF& offset)
+void xcanvas::Shapes::translate(const QPointF& offset)
 {
-    for (int i = 0; i < m_shapes.count(); i++)
+    for (Shape* shape : m_shapes)
     {
-        m_shapes[i]->Offset(offset);
+        shape->translate(offset);
     }
 }

@@ -1,7 +1,7 @@
 #include "CanvasWidget.h"
 #include "Global.h"
 #include "MyGraphicsView.h"
-#include "rulerwidget.h"
+#include "RulerWidget.h"
 #include <QGraphicsScene>
 #include <QGridLayout>
 #include <QScrollBar>
@@ -15,18 +15,17 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
     m_pGraphicsScene->setBackgroundBrush(QBrush(QColor(240, 240, 240)));
     m_pGraphicsScene->setSceneRect(0, 0, 20000, 20000);
     m_pGraphicsView->setScene(m_pGraphicsScene);
-    m_pGraphicsView->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
     m_pGraphicsView->setAlignment(Qt::AlignLeft | Qt::AlignTop);
     m_pGraphicsView->setMouseTracking(true);
-    m_pGraphicsView->SetTool(DrawingToolType::Select);
-    m_pGraphicsView->centerOn(0, 0);
+    m_pGraphicsView->setTool(DrawingToolType::Select);
+    m_pGraphicsView->centerOn(10000, 10000);
 
     m_pRulerHorizontal     = new RulerWidget(Qt::Horizontal, this);
     m_pRulerVertical       = new RulerWidget(Qt::Vertical, this);
     QWidget* pCornerWidget = new QWidget(this);
 
-    m_pRulerHorizontal->AttachView(m_pGraphicsView);
-    m_pRulerVertical->AttachView(m_pGraphicsView);
+    m_pRulerHorizontal->attachView(m_pGraphicsView);
+    m_pRulerVertical->attachView(m_pGraphicsView);
     pCornerWidget->setFixedSize(m_pRulerVertical->width(), m_pRulerHorizontal->height());
 
     pGridLayout->addWidget(pCornerWidget, 0, 0);
@@ -38,20 +37,14 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
     pGridLayout->setSpacing(0);
     pGridLayout->setContentsMargins(0, 0, 0, 0);
 
-    connect(m_pGraphicsView, &MyGraphicsView::mouseMovePos,
-            [this](QPointF pos)
-            {
-                m_pRulerHorizontal->setSlidingLinePos(pos.x());
-                m_pRulerVertical->setSlidingLinePos(pos.y());
-            });
-    connect(m_pGraphicsView->horizontalScrollBar(), &QScrollBar::valueChanged, [this] { m_pRulerHorizontal->setOffset(m_pGraphicsView->mapToScene(0, 0).x()); });
-    connect(m_pGraphicsView->verticalScrollBar(), &QScrollBar::valueChanged, [this] { m_pRulerVertical->setOffset(m_pGraphicsView->mapToScene(0, 0).y()); });
-}
+    // 滚动或缩放后，标尺会在 paintEvent 里自动通过 mapToScene / transform() 重新计算
+    connect(m_pGraphicsView->horizontalScrollBar(), &QScrollBar::valueChanged,
+            m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
+    connect(m_pGraphicsView->verticalScrollBar(), &QScrollBar::valueChanged,
+            m_pRulerVertical,   QOverload<>::of(&RulerWidget::update));
 
-void CanvasWidget::SetTool(DrawingToolType toolType)
-{
-    if (m_pGraphicsView)
-    {
-        m_pGraphicsView->SetTool(toolType);
-    }
+    connect(m_pGraphicsView, &MyGraphicsView::transformChanged,   // Qt6 才有；没有的话你在 zoom 那里手动调用
+            m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
+    connect(m_pGraphicsView, &MyGraphicsView::transformChanged,
+            m_pRulerVertical,   QOverload<>::of(&RulerWidget::update));
 }

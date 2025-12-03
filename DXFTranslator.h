@@ -3,12 +3,16 @@
 
 #include <QPointF>
 #include <QString>
+#include <QColor>
 
 #include "drw_base.h"
 #include "drw_interface.h"
 #include "libdxfrw.h"
 
-class Shapes;
+namespace xcanvas
+{
+    class Shapes;
+}
 
 class DXFTranslator : public DRW_Interface
 {
@@ -16,7 +20,7 @@ class DXFTranslator : public DRW_Interface
     DXFTranslator();
     ~DXFTranslator();
 
-    bool Load(const QString& filePath, Shapes* pShapes);
+    bool Load(const QString& filePath, xcanvas::Shapes* pShapes);
 
     // READ FUNCTIONALITY
     void addHeader(const DRW_Header* data) override
@@ -162,9 +166,12 @@ class DXFTranslator : public DRW_Interface
 
   private:
     QPointF ConvertDXFPoint(double x, double y);
+    QColor  color(const DRW_Entity& data);
+    QColor  convertTrueColorToQColor(int trueColorCode) const;
+    QColor  convertAciToQColor(int aci) const;
 
   private:
-    Shapes* m_pShapes;
+    xcanvas::Shapes* m_pShapes;
 };
 
 #endif// !DXF_TRANSLATOR_H

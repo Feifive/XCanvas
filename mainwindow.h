@@ -21,6 +21,9 @@ public:
     ~MainWindow();
 
 private:
+    void init();
+
+private:
     Ui::MainWindow *ui;
     DrawingToolsBar* m_pDrawingToolsBar;
 };

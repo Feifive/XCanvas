@@ -1,4 +1,5 @@
 #include "DrawingToolsBar.h"
+#include "EventBus.h"
 #include <QButtonGroup>
 #include <QDebug>
 #include <QFileDialog>
@@ -57,20 +58,25 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
 
     m_pMainMenu     = MakeButton(":/Resource/Icons/MainMenu.svg", false);
     m_pImport       = MakeButton(":/Resource/Icons/Import.svg", false);
-    m_pRectTool     = MakeButton(":/Resource/Icons/Rect.svg");
+    m_pText         = MakeButton(":/Resource/Icons/Text.svg");
     m_pPolylineTool = MakeButton(":/Resource/Icons/Polyline.svg");
+    m_pCurveTool    = MakeButton(":/Resource/Icons/Curve.svg");
+    m_pRectTool     = MakeButton(":/Resource/Icons/Rect.svg");
     m_pEllipseTool  = MakeButton(":/Resource/Icons/Ellipse.svg");
+    m_pPolygonTool  = MakeButton(":/Resource/Icons/Polygon.svg");
     // 垂直弹簧
     QWidget* pSpring = new QWidget(this);
     pSpring->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     addWidget(pSpring);
     m_pSelectTool = MakeButton(":/Resource/Icons/Select.svg");
 
-    connect(m_pSelectTool, &QToolButton::clicked, this, [=] { emit DrawingToolRequest(DrawingToolType::Select); });
-    connect(m_pImport, &QToolButton::clicked, this, &DrawingToolsBar::onImport);
-    connect(m_pRectTool, &QToolButton::clicked, this, [=] { emit DrawingToolRequest(DrawingToolType::Rect); });
-    connect(m_pPolylineTool, &QToolButton::clicked, this, [=] { emit DrawingToolRequest(DrawingToolType::Polyline); });
-    connect(m_pEllipseTool, &QToolButton::clicked, this, [=] { emit DrawingToolRequest(DrawingToolType::Ellipse); });
+    connect(m_pSelectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Select); });
+    connect(m_pImport, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Import); });
+    connect(m_pText, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Text); });
+    connect(m_pRectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Rect); });
+    connect(m_pPolylineTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Polyline); });
+    connect(m_pEllipseTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Ellipse); });
+    connect(&EventBus::instance(), &EventBus::switchTool, this, &DrawingToolsBar::onSwitchTool);
 
     m_pSelectTool->setChecked(true);
 }
@@ -79,21 +85,10 @@ DrawingToolsBar::~DrawingToolsBar()
 {
 }
 
-void DrawingToolsBar::OnToolFinished()
+void DrawingToolsBar::onSwitchTool(DrawingToolType toolType)
 {
-    if (m_pSelectTool)
+    if (toolType == DrawingToolType::Select)
     {
-        m_pSelectTool->click();
+		m_pSelectTool->setChecked(true);
     }
-}
-
-void DrawingToolsBar::onImport()
-{
-    const QString filePath = QFileDialog::getOpenFileName(this, tr("Import File"), "/home", tr("All supported (*.dxf)"));
-    if (filePath.isEmpty())
-    {
-        return;
-    }
-
-    emit Imported(filePath);
 }

@@ -1,0 +1,96 @@
+#include "RectTool.h"
+#include "Global.h"
+#include "../MyGraphicsView.h"
+#include "Polyline.h"
+#include "Shapes.h"
+#include <QDebug>
+#include <QMouseEvent>
+#include <QGraphicsPathItem>
+
+xcanvas::RectTool::RectTool(MyGraphicsView* pView) : DrawingTool(pView)
+{
+}
+
+xcanvas::RectTool::~RectTool()
+{
+}
+
+void xcanvas::RectTool::mousePressEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::LeftButton)
+    {
+        if(m_state == State::Idle)
+        {
+            m_startPos = m_pView->mapToScene(event->pos());
+
+            m_state = State::Drawing;
+
+            m_previewPath = QPainterPath(m_startPos);
+        }
+    }
+    else if (event->button() == Qt::RightButton)
+    {
+        handleRightButtonPress(event);
+    }
+}
+
+void xcanvas::RectTool::mouseMoveEvent(QMouseEvent* event)
+{
+    if (m_state == State::Drawing)
+    {
+        QPointF currentPos = m_pView->mapToScene(event->pos());
+
+        QPointF p1 = m_startPos;
+        QPointF p2(currentPos.x(), m_startPos.y());
+        QPointF p3 = currentPos;
+        QPointF p4(m_startPos.x(), currentPos.y());
+
+        m_previewPath = QPainterPath(p1);
+        m_previewPath.lineTo(p2);
+        m_previewPath.lineTo(p3);
+        m_previewPath.lineTo(p4);
+        m_previewPath.closeSubpath();
+
+        m_pView->updateCanvas();
+    }
+
+    handleRightButtonMove(event);
+}
+
+void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::RightButton)
+    {
+        handleRightButtonRelease(event);
+        return;
+    }
+
+    if (m_state == State::Drawing)
+    {
+        QPointF endPos = m_pView->mapToScene(event->pos());
+
+        QVector<QPointF> points {
+            m_startPos,
+            QPointF(endPos.x(), m_startPos.y()),
+            endPos,
+            QPointF(m_startPos.x(), endPos.y()),
+            m_startPos
+        };
+
+        Polyline* pShape = new Polyline;
+        pShape->SetPoints(points);
+        pShape->setSelected(true);
+
+        m_pView->GetCurrentShapes()->deselectAll();
+        m_pView->GetCurrentShapes()->addShape(pShape);
+
+        m_state = State::Idle;
+
+        m_pView->updateCanvas();
+    }
+}
+
+DrawingToolType xcanvas::RectTool::toolType()
+{
+    return DrawingToolType::Rect;
+}

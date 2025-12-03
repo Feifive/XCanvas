@@ -13,22 +13,21 @@ class DrawingToolsBar : public QToolBar
   public:
     explicit DrawingToolsBar(QWidget* parent = nullptr);
     ~DrawingToolsBar();
-    void OnToolFinished();
 
-  private:
-    void onImport();
 
-  signals:
-    void DrawingToolRequest(DrawingToolType);
-    void Imported(QString filePath);
+private:
+	void onSwitchTool(DrawingToolType toolType);
 
 private:
     QToolButton* m_pMainMenu;
     QToolButton* m_pSelectTool;
     QToolButton* m_pImport;
-    QToolButton* m_pRectTool;
+    QToolButton* m_pText;
     QToolButton* m_pPolylineTool;
+    QToolButton* m_pCurveTool;
+    QToolButton* m_pRectTool;
     QToolButton* m_pEllipseTool;
+    QToolButton* m_pPolygonTool;
 
     QButtonGroup* m_pGroup;
 };
