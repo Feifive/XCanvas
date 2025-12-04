@@ -17,7 +17,7 @@ xcanvas::EllipseTool::~EllipseTool()
 
 void xcanvas::EllipseTool::mousePressEvent(QMouseEvent *event)
 {
-    m_startPos = m_pView->mapToScene(event->pos());
+    m_mousePos = m_pView->mapToScene(event->pos());
 
     if(event->button() == Qt::LeftButton)
     {
@@ -41,10 +41,10 @@ void xcanvas::EllipseTool::mouseMoveEvent(QMouseEvent *event)
         QPointF currentPos = m_pView->mapToScene(event->pos());
 
         QRectF rect(
-            qMin(m_startPos.x(), currentPos.x()),
-            qMin(m_startPos.y(), currentPos.y()),
-            qAbs(currentPos.x() - m_startPos.x()),
-            qAbs(currentPos.y() - m_startPos.y())
+            qMin(m_mousePos.x(), currentPos.x()),
+            qMin(m_mousePos.y(), currentPos.y()),
+            qAbs(currentPos.x() - m_mousePos.x()),
+            qAbs(currentPos.y() - m_mousePos.y())
         );
 
         m_previewPath = QPainterPath();

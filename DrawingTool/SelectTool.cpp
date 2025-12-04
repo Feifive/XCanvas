@@ -22,7 +22,7 @@ void xcanvas::SelectTool::mousePressEvent(QMouseEvent* event)
         return;
     }
 
-    m_startPos = m_pView->mapToScene(event->pos());
+    m_mousePos = m_pView->mapToScene(event->pos());
     if (event->button() == Qt::LeftButton && m_pView->cursor().shape() == Qt::ArrowCursor)
     {
         if(m_state == State::Idle)
@@ -43,7 +43,7 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
 
     if (m_state == State::Drawing)
     {
-        QRectF rect(qMin(m_startPos.x(), scenePos.x()), qMin(m_startPos.y(), scenePos.y()), qAbs(scenePos.x() - m_startPos.x()), qAbs(scenePos.y() - m_startPos.y()));
+        QRectF rect(qMin(m_mousePos.x(), scenePos.x()), qMin(m_mousePos.y(), scenePos.y()), qAbs(scenePos.x() - m_mousePos.x()), qAbs(scenePos.y() - m_mousePos.y()));
 
         updateSelectionRect(rect);
 
@@ -55,9 +55,9 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
         {
             Shapes* pShapes = new Shapes;
             pShapes->append(m_pView->GetCurrentShapes()->selectedShapes());
-            pShapes->translate(scenePos - m_startPos);
+            pShapes->translate(scenePos - m_mousePos);
             delete pShapes;
-            m_startPos = scenePos;
+            m_mousePos = scenePos;
 
             m_pView->updateCanvas();
         }

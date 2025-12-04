@@ -18,6 +18,18 @@ namespace xcanvas
         void mouseMoveEvent(QMouseEvent* event) override;
         void mouseReleaseEvent(QMouseEvent* event) override;
         DrawingToolType toolType() override;
+
+    protected:
+        void cancelDrawing();
+
+
+    private:
+        QVector<QPointF> computeBezierPoints(const QVector<QPointF>& anchorPoints) const;
+        QPainterPath     buildCurvePath(const QVector<QPointF>& bezierPoints) const;
+        void             rebuildPreviewPath();
+
+    private:
+        QVector<QPointF> m_points;
     };
 
 } // xcanvas

@@ -76,6 +76,7 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
     connect(m_pRectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Rect); });
     connect(m_pPolylineTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Polyline); });
     connect(m_pEllipseTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Ellipse); });
+    connect(m_pCurveTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Curve); });
     connect(&EventBus::instance(), &EventBus::finishDrawing, this, &DrawingToolsBar::onFinishDrawing);
 
     m_pSelectTool->setChecked(true);

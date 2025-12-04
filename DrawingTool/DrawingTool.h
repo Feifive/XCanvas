@@ -50,7 +50,7 @@ namespace xcanvas
 
     protected:
         MyGraphicsView* m_pView;
-        QPointF m_startPos;
+        QPointF m_mousePos;
         QPainterPath m_previewPath;
         State m_state;
 

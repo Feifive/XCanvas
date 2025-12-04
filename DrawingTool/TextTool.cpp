@@ -23,7 +23,7 @@ xcanvas::TextTool::~TextTool()
 
 void xcanvas::TextTool::mousePressEvent(QMouseEvent *event)
 {
-    m_startPos = m_pView->mapToScene(event->pos());
+    m_mousePos = m_pView->mapToScene(event->pos());
 
     if(event->button() == Qt::LeftButton)
     {
@@ -33,7 +33,7 @@ void xcanvas::TextTool::mousePressEvent(QMouseEvent *event)
         }
         else if (m_state == State::Drawing && m_pTextItem)
         {
-            QPointF localPos = m_pTextItem->mapFromScene(m_startPos);
+            QPointF localPos = m_pTextItem->mapFromScene(m_mousePos);
             QAbstractTextDocumentLayout* pLayout = m_pTextItem->document()->documentLayout();
             int nPos = pLayout->hitTest(localPos, Qt::ExactHit);
 
@@ -84,7 +84,7 @@ void xcanvas::TextTool::startEdit()
 {
     m_pTextItem = new QGraphicsTextItem("HELLO");
     m_pTextItem->setTextInteractionFlags(Qt::TextEditorInteraction);
-    m_pTextItem->setPos(m_startPos);
+    m_pTextItem->setPos(m_mousePos);
     m_pTextItem->setFont(m_font);
     m_pTextItem->setDefaultTextColor(Qt::black);
     m_pTextItem->setFocus();
