@@ -118,7 +118,7 @@ QVector<QPointF> CurveTool::computeBezierPoints(const QVector<QPointF>& anchorPo
 
     QVector<Segment> segments;
 
-    // ³õÊ¼¿ØÖÆµã£¨1/3¹«Ê½£©
+    // åˆå§‹æ§åˆ¶ç‚¹ï¼ˆ1/3å…¬å¼ï¼‰
     for (int i = 0; i < nSize - 1; ++i)
     {
         QPointF P0 = anchorPoints[i];
@@ -130,7 +130,7 @@ QVector<QPointF> CurveTool::computeBezierPoints(const QVector<QPointF>& anchorPo
         segments.append({ P0, P1, C1, C2 });
     }
 
-    // Á½¶ÎÖ®¼äÁª¶¯¿ØÖÆµã
+    // ä¸¤æ®µä¹‹é—´è”åŠ¨æ§åˆ¶ç‚¹
     for (int i = 1; i < segments.size(); ++i)
     {
         Segment& prev = segments[i - 1];
@@ -147,7 +147,7 @@ QVector<QPointF> CurveTool::computeBezierPoints(const QVector<QPointF>& anchorPo
         curr.C1 += delta;
     }
 
-    // Õ¹¿ª³É [P, C1, C2, P]
+    // å±•å¼€æˆ [P, C1, C2, P]
     result.push_back(segments[0].P0);
     for (auto& segment : segments)
     {
@@ -164,7 +164,7 @@ QPainterPath CurveTool::buildCurvePath(const QVector<QPointF>& points) const
     QPainterPath path;
     if (points.size() < 4)
     {
-        // ²»×ãÒ»¶Î±´Èû¶û£ºÓÃÕÛÏß´úÌæ
+        // ä¸è¶³ä¸€æ®µè´å¡å°”ï¼šç”¨æŠ˜çº¿ä»£æ›¿
         if (!points.isEmpty())
         {
             path.moveTo(points[0]);
@@ -197,14 +197,14 @@ void CurveTool::rebuildPreviewPath()
         return;
     }
 
-    // ÕÛÏß + Êó±êµã µÄ anchor ÁĞ±í
+    // æŠ˜çº¿ + é¼ æ ‡ç‚¹ çš„ anchor åˆ—è¡¨
     QVector<QPointF> anchors = m_points;
     anchors.append(m_mousePos);
 
-    // ¼ÆËã±´Èû¶û¿ØÖÆµã
+    // è®¡ç®—è´å¡å°”æ§åˆ¶ç‚¹
     QVector<QPointF> bezierPoints = computeBezierPoints(anchors);
 
-    // µÃµ½ÇúÏß
+    // å¾—åˆ°æ›²çº¿
     m_previewPath = buildCurvePath(bezierPoints);
 }
 

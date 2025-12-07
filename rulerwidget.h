@@ -24,7 +24,7 @@ private:
     MyGraphicsView*  m_view = nullptr;
     Qt::Orientation m_orientation;
 
-    QColor m_backgroundColor { Qt::transparent };   // 背景色
+    QColor m_backgroundColor { "#E7E9ED" };   // 背景色
     QColor m_textAndLineColor { "#606060" };        // 文本和刻度颜色
     QFont  m_font;
 };

@@ -2,6 +2,7 @@
 #include "Global.h"
 #include "MyGraphicsView.h"
 #include "RulerWidget.h"
+#include "EventBus.h"
 #include <QGraphicsScene>
 #include <QGridLayout>
 #include <QScrollBar>
@@ -12,7 +13,6 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
 
     m_pGraphicsView  = new MyGraphicsView(this);
     m_pGraphicsScene = new QGraphicsScene(this);
-    m_pGraphicsScene->setBackgroundBrush(QBrush(QColor(240, 240, 240)));
     m_pGraphicsScene->setSceneRect(0, 0, 20000, 20000);
     m_pGraphicsView->setScene(m_pGraphicsScene);
     m_pGraphicsView->setAlignment(Qt::AlignLeft | Qt::AlignTop);
@@ -23,6 +23,7 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
     m_pRulerHorizontal     = new RulerWidget(Qt::Horizontal, this);
     m_pRulerVertical       = new RulerWidget(Qt::Vertical, this);
     QWidget* pCornerWidget = new QWidget(this);
+    pCornerWidget->setStyleSheet("background-color: #E7E9ED");
 
     m_pRulerHorizontal->attachView(m_pGraphicsView);
     m_pRulerVertical->attachView(m_pGraphicsView);
@@ -43,8 +44,8 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
     connect(m_pGraphicsView->verticalScrollBar(), &QScrollBar::valueChanged,
             m_pRulerVertical,   QOverload<>::of(&RulerWidget::update));
 
-    connect(m_pGraphicsView, &MyGraphicsView::transformChanged,   // Qt6 才有；没有的话你在 zoom 那里手动调用
+    connect(&EventBus::instance(), &EventBus::zoomChanged,   // Qt6 才有；没有的话你在 zoom 那里手动调用
             m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
-    connect(m_pGraphicsView, &MyGraphicsView::transformChanged,
+    connect(&EventBus::instance(), &EventBus::zoomChanged,
             m_pRulerVertical,   QOverload<>::of(&RulerWidget::update));
 }

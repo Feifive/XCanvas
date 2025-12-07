@@ -10,13 +10,14 @@
 #include "Shape/Shape.h"
 #include "Shape/Shapes.h"
 #include "EventBus.h"
+#include "BottomFloatingToolBar.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
 #include <QMouseEvent>
 #include <QScrollBar>
-#include <QWheelEvent>
+#include <QTimer>
 
 #define MIN_ZOOM 0.05
 #define MAX_ZOOM 100.0
@@ -24,12 +25,30 @@
 MyGraphicsView::MyGraphicsView(QWidget* parent)
     : m_dScaleFactor(1.0), m_eToolType(DrawingToolType::None), 
     m_startPos(-1, -1), m_bDragging(false), m_pBaseDrawingTool(nullptr), m_pShapes(new xcanvas::Shapes), QGraphicsView{parent}
+    ,m_pFloatingToolBar(nullptr), m_CanvasRect(QRectF(10000, 10000, 1280, 720))
 {
     setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
     setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
+    // 工具栏挂在 viewport 上，这样就是画布上的浮动控件
+    m_pFloatingToolBar = new BottomFloatingToolBar(viewport());
+    m_pFloatingToolBar->adjustSize();  // 先根据布局算下自己的尺寸
+
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomIn, this, &MyGraphicsView::zoomIn);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomOut, this, &MyGraphicsView::zoomOut);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomTo, this, &MyGraphicsView::zoomTo);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitWidth, this, &MyGraphicsView::fitWidth);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitHeight, this, &MyGraphicsView::fitHeight);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitCanvas, this, &MyGraphicsView::fitCanvas);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitShapes, this, &MyGraphicsView::fitShapes);
     connect(&EventBus::instance(), &EventBus::switchTool, this, &MyGraphicsView::setTool);
+
+    QTimer::singleShot(0, this, [this](){ fitCanvas();});
+    updateBottomFloatingToolBarPos();
+    m_pFloatingToolBar->show();
 }
 
 MyGraphicsView::~MyGraphicsView()
@@ -192,40 +211,28 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
 
 void MyGraphicsView::wheelEvent(QWheelEvent* event)
 {
-    // 获取当前光标在视图中的坐标
-    const QPointF cursorViewPos             = event->position();
-    const QPointF cursorScenePosBeforeScale = mapToScene(cursorViewPos.toPoint());
-
-    // 计算缩放因子（根据滚轮方向调整）
-    const double dScale = event->angleDelta().y() > 0 ? 1.1 : 1 / 1.1;
-
-    // 计算新缩放因子并应用缩放
-    if ((m_dScaleFactor == MAX_ZOOM && dScale == 1.1) || (m_dScaleFactor == MIN_ZOOM && dScale == 1 / 1.1))
-    {
-        return;
+    if (event->angleDelta().y() > 0) {
+        zoomIn();
     }
-    m_dScaleFactor *= dScale;
-    m_dScaleFactor = qBound(MIN_ZOOM, m_dScaleFactor, MAX_ZOOM);
-    QTransform transform;
-    transform.scale(m_dScaleFactor, m_dScaleFactor);
-    setTransform(transform);
+    else {
+        zoomOut();
+    }
+}
 
-    // 计算缩放后的视图中心调整
-    const QPointF cursorScenePos = mapToScene(cursorViewPos.toPoint());
-    const QPointF viewCenter     = mapToScene(viewport()->rect().center());
-    const QPointF adjustedCenter = viewCenter + (cursorScenePosBeforeScale - cursorScenePos);
+void MyGraphicsView::resizeEvent(QResizeEvent *event) {
+    QGraphicsView::resizeEvent(event);
+    updateBottomFloatingToolBarPos();
+}
+void MyGraphicsView::scrollContentsBy(int dx, int dy) {
+    QGraphicsView::scrollContentsBy(dx, dy);
 
-    // 更新视图中心
-    centerOn(adjustedCenter);
-
-    updateCanvas();
-    emit transformChanged();
+    updateBottomFloatingToolBarPos();
 }
 
 void MyGraphicsView::drawBackground(QPainter* painter, const QRectF& rect)
 {
+    drawCanvas(painter);
     drawGrid(painter);
-
     drawNormalShapes(painter, rect);
 }
 
@@ -302,73 +309,92 @@ void MyGraphicsView::drawGrid(QPainter *p)
         return;
     }
 
-    const QRect  viewRect   = viewport()->rect();
-    const QRectF sceneRect  = mapToScene(viewRect).boundingRect();
+    // 计算画布在场景坐标中的可见部分
+    const QRectF canvasSceneRect   = m_CanvasRect;                                   // 画布本身（场景坐标）
+    const QRectF viewSceneRect     = mapToScene(viewport()->rect()).boundingRect();  // 视口对应的场景区域
+    const QRectF visibleSceneRect  = canvasSceneRect.intersected(viewSceneRect);     // 画布中可见的部分
+
+    if (!visibleSceneRect.isValid() || visibleSceneRect.isEmpty())
+    {
+        return;
+    }
+
     const double scale      = this->scale();
-    const double step       = gridStep(scale);
+    const double step       = gridStep(scale);   // 网格步长（场景单位）
     const int    majorCount = 10;
 
     const QColor minorColor(230, 230, 230);
     const QColor majorColor(200, 200, 200);
-    const QColor bgColor(Qt::white);
 
     p->save();
     p->setRenderHint(QPainter::Antialiasing, false);
 
-    QTransform oldWorldTransform = p->worldTransform();
-    p->setWorldTransform(QTransform());
+    // 使用视口坐标绘制网格线
+    const QTransform oldWorldTransform = p->worldTransform();
+    p->setWorldTransform(QTransform()); // 切换到视口坐标
 
-    p->fillRect(viewRect, bgColor);
+    // 画布在视口中的矩形（只画这里）
+    const QRect canvasViewRect = mapFromScene(visibleSceneRect).boundingRect();
 
-    double s0 = sceneRect.left();
-    double s1 = sceneRect.right();
+    // 限制绘制范围到画布区域
+    p->setClipRect(canvasViewRect);
 
-    qint64 firstIndex = qFloor((s0 + 1e-12) / step);
-    double x0         = firstIndex * step;
+    // 竖直方向网格线（X）
+    const double s0x = visibleSceneRect.left();
+    const double s1x = visibleSceneRect.right();
 
-    QVector<QLineF> minorLines, majorLines;
+    qint64 firstIndexX = qFloor((s0x + 1e-12) / step);
+    double x0          = firstIndexX * step;
 
-    // 竖线
-    for (double x = x0; x <= s1 + step; x += step, firstIndex++)
+    QVector<QLineF> minorLines;
+    QVector<QLineF> majorLines;
+
+    for (double x = x0; x <= s1x + step; x += step, ++firstIndexX)
     {
-        QPointF v = mapFromScene(QPointF(x, 0));
+        // 把场景中的 (x, 任意y) 映射到视口
+        QPointF v = mapFromScene(QPointF(x, visibleSceneRect.top()));
         double vx = std::round(v.x()) - 0.5;
 
-        if ((firstIndex % majorCount) == 0)
+        if ((firstIndexX % majorCount) == 0)
         {
-            majorLines.append(QLineF(vx, viewRect.top(), vx, viewRect.bottom()));
+            majorLines.append(QLineF(vx, canvasViewRect.top(), vx, canvasViewRect.bottom()));
         }
         else
         {
-            minorLines.append(QLineF(vx, viewRect.top(), vx, viewRect.bottom()));
+            minorLines.append(QLineF(vx, canvasViewRect.top(), vx, canvasViewRect.bottom()));
         }
     }
 
-    // 横线
-    firstIndex = qFloor((sceneRect.top() + 1e-12) / step);
-    double y0 = firstIndex * step;
+    // 水平方向网格线（Y）
+    const double s0y = visibleSceneRect.top();
+    const double s1y = visibleSceneRect.bottom();
 
-    for (double y = y0; y <= sceneRect.bottom() + step; y += step, firstIndex++)
+    qint64 firstIndexY = qFloor((s0y + 1e-12) / step);
+    double y0          = firstIndexY * step;
+
+    for (double y = y0; y <= s1y + step; y += step, ++firstIndexY)
     {
-        QPointF v = mapFromScene(QPointF(0, y));
+        QPointF v = mapFromScene(QPointF(visibleSceneRect.left(), y));
         double vy = std::round(v.y()) - 0.5;
 
-        if ((firstIndex % majorCount) == 0)
+        if ((firstIndexY % majorCount) == 0)
         {
-            majorLines.append(QLineF(viewRect.left(), vy, viewRect.right(), vy));
+            majorLines.append(QLineF(canvasViewRect.left(), vy, canvasViewRect.right(), vy));
         }
         else
         {
-            minorLines.append(QLineF(viewRect.left(), vy, viewRect.right(), vy));
+            minorLines.append(QLineF(canvasViewRect.left(), vy, canvasViewRect.right(), vy));
         }
     }
 
+    // 画线
     p->setPen(QPen(minorColor, 0));
     p->drawLines(minorLines);
 
     p->setPen(QPen(majorColor, 0));
     p->drawLines(majorLines);
 
+    // 还原状态
     p->setWorldTransform(oldWorldTransform);
     p->restore();
 }
@@ -455,6 +481,21 @@ void MyGraphicsView::drawTrace(QPainter* painter)
     painter->restore();
 }
 
+void MyGraphicsView::drawCanvas(QPainter *painter) {
+    painter->save();
+
+    const QTransform oldWorldTransform = painter->worldTransform();
+    painter->setWorldTransform(QTransform());
+    painter->fillRect(rect(), QColor("#E7E9ED"));
+    painter->setWorldTransform(oldWorldTransform);
+
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(Qt::white);
+    painter->drawRect(m_CanvasRect);
+
+    painter->restore();
+}
+
 void MyGraphicsView::ImportFile()
 {
     const QString filePath = QFileDialog::getOpenFileName(this, tr("Import File"), "", tr("All supported (*.dxf)"));
@@ -478,4 +519,148 @@ void MyGraphicsView::ImportFile()
     pShapes = nullptr;
 
     updateCanvas();
+}
+
+void MyGraphicsView::updateBottomFloatingToolBarPos() {
+    if (!m_pFloatingToolBar)
+        return;
+
+    constexpr int margin = 12; // 距离右下角的间距
+    const QSize vpSize = viewport()->size();
+    const QSize barSize = m_pFloatingToolBar->sizeHint();
+
+    int x = vpSize.width()  - barSize.width()  - margin;
+    int y = vpSize.height() - barSize.height() - margin;
+
+    m_pFloatingToolBar->move(x, y);
+}
+
+void MyGraphicsView::zoomIn()
+{
+    QPointF cursorViewPos = mapFromGlobal(QCursor::pos());
+
+    if (m_pFloatingToolBar) {
+        if (m_pFloatingToolBar->rect().contains(m_pFloatingToolBar->mapFromGlobal(QCursor::pos()))) {
+            cursorViewPos = rect().center();
+        }
+    }
+
+    const QPointF cursorScenePosBeforeScale = mapToScene(cursorViewPos.toPoint());
+    constexpr double dScale = 1.1;
+    if (m_dScaleFactor == MAX_ZOOM) {
+        return;
+    }
+
+    m_dScaleFactor *= dScale;
+    m_dScaleFactor = qBound(MIN_ZOOM, m_dScaleFactor, MAX_ZOOM);
+
+    QTransform transform;
+    transform.scale(m_dScaleFactor, m_dScaleFactor);
+    setTransform(transform);
+
+    const QPointF cursorScenePos = mapToScene(cursorViewPos.toPoint());
+    const QPointF viewCenter     = mapToScene(viewport()->rect().center());
+    const QPointF adjustedCenter = viewCenter + (cursorScenePosBeforeScale - cursorScenePos);
+
+    centerOn(adjustedCenter);
+    emit EventBus::instance().zoomChanged(m_dScaleFactor);
+}
+
+void MyGraphicsView::zoomOut()
+{
+    QPointF cursorViewPos = mapFromGlobal(QCursor::pos());
+
+    if (m_pFloatingToolBar) {
+        if (m_pFloatingToolBar->rect().contains(m_pFloatingToolBar->mapFromGlobal(QCursor::pos()))) {
+            cursorViewPos = rect().center();
+        }
+    }
+
+    const QPointF cursorScenePosBeforeScale = mapToScene(cursorViewPos.toPoint());
+    constexpr double dScale = 1.0 / 1.1;
+
+    if (m_dScaleFactor == MIN_ZOOM) {
+        return;
+    }
+
+    m_dScaleFactor *= dScale;
+    m_dScaleFactor = qBound(MIN_ZOOM, m_dScaleFactor, MAX_ZOOM);
+
+    QTransform transform;
+    transform.scale(m_dScaleFactor, m_dScaleFactor);
+    setTransform(transform);
+
+    const QPointF cursorScenePos = mapToScene(cursorViewPos.toPoint());
+    const QPointF viewCenter     = mapToScene(viewport()->rect().center());
+    const QPointF adjustedCenter = viewCenter + (cursorScenePosBeforeScale - cursorScenePos);
+
+    centerOn(adjustedCenter);
+    emit EventBus::instance().zoomChanged(m_dScaleFactor);
+}
+
+void MyGraphicsView::zoomTo(qreal zoomValue) {
+    if (zoomValue <= 0) {
+        return;
+    }
+
+    qreal targetScale = zoomValue;
+
+    targetScale = qBound(MIN_ZOOM, targetScale, MAX_ZOOM);
+
+    QPointF cursorViewPos = viewport()->rect().center();
+    QPointF scenePosBefore = mapToScene(cursorViewPos.toPoint());
+
+    m_dScaleFactor = targetScale;
+
+    QTransform transform;
+    transform.scale(m_dScaleFactor, m_dScaleFactor);
+    setTransform(transform);
+
+    QPointF scenePosAfter = mapToScene(cursorViewPos.toPoint());
+    QPointF viewCenter = mapToScene(viewport()->rect().center());
+    QPointF adjustedCenter = viewCenter + (scenePosBefore - scenePosAfter);
+
+    centerOn(adjustedCenter);
+    emit EventBus::instance().zoomChanged(m_dScaleFactor);
+}
+
+void MyGraphicsView::fitWidth()
+{
+    qreal scale = viewport()->width() / m_CanvasRect.width();
+    zoomTo(scale);
+    centerOn(m_CanvasRect.center());
+    emit EventBus::instance().zoomChanged(m_dScaleFactor);
+}
+
+void MyGraphicsView::fitHeight()
+{
+    qreal scale = viewport()->height() / m_CanvasRect.height();
+    zoomTo(scale);
+    centerOn(m_CanvasRect.center());
+    emit EventBus::instance().zoomChanged(m_dScaleFactor);
+}
+
+void MyGraphicsView::fitCanvas()
+{
+    qreal scaleW = viewport()->width()  / m_CanvasRect.width();
+    qreal scaleH = viewport()->height() / m_CanvasRect.height();
+    qreal scale  = qMin(scaleW, scaleH);
+    zoomTo(scale);
+    centerOn(m_CanvasRect.center());
+    emit EventBus::instance().zoomChanged(m_dScaleFactor);
+}
+
+void MyGraphicsView::fitShapes() {
+    if (!m_pShapes || m_pShapes->isEmpty()) {
+        return;
+    }
+
+    QRectF rect = m_pShapes->boundingRect();
+
+    qreal scaleW = viewport()->width() / rect.width();
+    qreal scaleH = viewport()->height() / rect.height();
+    qreal scale  = qMin(scaleW, scaleH);
+    zoomTo(scale);
+    centerOn(rect.center());
+    emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }

@@ -14,6 +14,7 @@ public:
 signals:
     void switchTool(DrawingToolType);
     void finishDrawing();
+    void zoomChanged(const qreal zoomValue);
 
 private:
     EventBus() {}

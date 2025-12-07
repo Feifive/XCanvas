@@ -3,9 +3,7 @@
 #include "../MyGraphicsView.h"
 #include "Polyline.h"
 #include "Shapes.h"
-#include <QDebug>
 #include <QMouseEvent>
-#include <QGraphicsPathItem>
 
 xcanvas::RectTool::RectTool(MyGraphicsView* pView) : DrawingTool(pView)
 {
@@ -76,6 +74,11 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
             QPointF(m_mousePos.x(), endPos.y()),
             m_mousePos
         };
+
+        if (points[0] == points[2]) {
+            m_state = State::Idle;
+            return;
+        }
 
         Polyline* pShape = new Polyline;
         pShape->SetPoints(points);

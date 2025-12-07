@@ -5,6 +5,7 @@
 #include <QGraphicsView>
 
 class QGraphicsRectItem;
+class BottomFloatingToolBar;
 
 namespace xcanvas
 {
@@ -30,7 +31,6 @@ class MyGraphicsView : public QGraphicsView
 
   signals:
     void mouseMovePos(QPointF pos);
-    void transformChanged();
 
   protected:
     void mousePressEvent(QMouseEvent* event) override;
@@ -38,9 +38,8 @@ class MyGraphicsView : public QGraphicsView
     void mouseReleaseEvent(QMouseEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
-
-protected:
-    // 重写绘制方法
+    void resizeEvent(QResizeEvent* event) override;
+    void scrollContentsBy(int dx, int dy) override;
     void drawBackground(QPainter* painter, const QRectF& rect) override;
     void drawForeground(QPainter* painter, const QRectF& rect) override;
 
@@ -49,20 +48,31 @@ private:
     void drawNormalShapes(QPainter* painter, const QRectF& visibleRect);
     void drawSelectedShapes(QPainter* painter, const QRectF& visibleRect);
     void drawGrid(QPainter* painter);
-    double gridStep(double scale) const;
     void drawTrace(QPainter* painter);
+    void drawCanvas(QPainter* painter);
+
 
   private:
+    double gridStep(double scale) const;
     void ImportFile();
-
+    void updateBottomFloatingToolBarPos();
+    void zoomIn();
+    void zoomOut();
+    void zoomTo(qreal zoomValue);
+    void fitWidth();
+    void fitHeight();
+    void fitCanvas();
+    void fitShapes();
 
   private:
     QPointF          m_startPos;
     bool             m_bDragging;
     double           m_dScaleFactor;
+    QRectF m_CanvasRect;
     DrawingToolType  m_eToolType;
     xcanvas::DrawingTool*     m_pBaseDrawingTool;
     xcanvas::Shapes* m_pShapes;
+    BottomFloatingToolBar* m_pFloatingToolBar;
 };
 
 #endif// MYGRAPHICSVIEW_H

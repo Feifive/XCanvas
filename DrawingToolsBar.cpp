@@ -30,11 +30,11 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
         }
 
         QToolButton:hover {
-            background: rgb(246,247,249);
+            background: #F6F6F9;
         }
 
         QToolButton:checked {
-            background: rgb(239,239,243);
+            background: #EEEEF3;
         }
     )");
 

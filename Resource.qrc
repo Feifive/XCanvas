@@ -9,5 +9,9 @@
         <file>Resource/Icons/Text.svg</file>
         <file>Resource/Icons/Curve.svg</file>
         <file>Resource/Icons/Polygon.svg</file>
+        <file>Resource/Icons/Redo.svg</file>
+        <file>Resource/Icons/Undo.svg</file>
+        <file>Resource/Icons/ZoomIn.svg</file>
+        <file>Resource/Icons/ZoomOut.svg</file>
     </qresource>
 </RCC>
