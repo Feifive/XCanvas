@@ -11,6 +11,8 @@
 #include "Shape/Shapes.h"
 #include "EventBus.h"
 #include "BottomFloatingToolBar.h"
+#include  "Shape/AddShapeCommand.h"
+#include "Shape/RemoveShapeCommand.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QGraphicsRectItem>
@@ -37,13 +39,15 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     m_pFloatingToolBar = new BottomFloatingToolBar(viewport());
     m_pFloatingToolBar->adjustSize();  // 先根据布局算下自己的尺寸
 
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomIn, this, &MyGraphicsView::zoomIn);
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomOut, this, &MyGraphicsView::zoomOut);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomIn, this, &MyGraphicsView::onZoomIn);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomOut, this, &MyGraphicsView::onZoomOut);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomTo, this, &MyGraphicsView::zoomTo);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitWidth, this, &MyGraphicsView::fitWidth);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitHeight, this, &MyGraphicsView::fitHeight);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitCanvas, this, &MyGraphicsView::fitCanvas);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitShapes, this, &MyGraphicsView::fitShapes);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::undo, this, &MyGraphicsView::onUndo);
+    connect(m_pFloatingToolBar, &BottomFloatingToolBar::redo, this, &MyGraphicsView::onRedo);
     connect(&EventBus::instance(), &EventBus::switchTool, this, &MyGraphicsView::setTool);
 
     QTimer::singleShot(0, this, [this](){ fitCanvas();});
@@ -123,6 +127,19 @@ xcanvas::Shapes* MyGraphicsView::GetCurrentShapes()
     return m_pShapes;
 }
 
+void MyGraphicsView::addShape(xcanvas::Shape *shape) {
+    if (m_pShapes) {
+        m_pShapes->deselectAll();
+        m_undoStack.push(new xcanvas::AddShapeCommand(m_pShapes, shape));
+    }
+}
+
+void MyGraphicsView::removeShape(xcanvas::Shape *shape) {
+    if (m_pShapes) {
+        m_undoStack.push(new xcanvas::RemoveShapeCommand(m_pShapes, shape));
+    }
+}
+
 double MyGraphicsView::scale()
 {
     return transform().m11();
@@ -131,14 +148,6 @@ double MyGraphicsView::scale()
 void MyGraphicsView::updateCanvas()
 {
     viewport()->update();
-}
-
-void MyGraphicsView::updateShape(xcanvas::Shape* shape)
-{
-}
-
-void MyGraphicsView::updateSelectedShapes()
-{
 }
 
 void MyGraphicsView::mousePressEvent(QMouseEvent* event)
@@ -211,11 +220,13 @@ void MyGraphicsView::keyPressEvent(QKeyEvent *event)
 
 void MyGraphicsView::wheelEvent(QWheelEvent* event)
 {
+    const QPointF cursorViewPos = mapFromGlobal(QCursor::pos());
+
     if (event->angleDelta().y() > 0) {
-        zoomIn();
+        zoomIn(cursorViewPos);
     }
     else {
-        zoomOut();
+        zoomOut(cursorViewPos);
     }
 }
 
@@ -243,6 +254,26 @@ void MyGraphicsView::drawForeground(QPainter* painter, const QRectF& rect)
     {
         m_pBaseDrawingTool->drawPreview(painter);
     }
+}
+
+void MyGraphicsView::onZoomIn() {
+    const QPoint zoomCenterPos = rect().center();
+    zoomIn(zoomCenterPos);
+}
+
+void MyGraphicsView::onZoomOut() {
+    const QPoint zoomCenterPos = rect().center();
+    zoomOut(zoomCenterPos);
+}
+
+void MyGraphicsView::onUndo() {
+    m_undoStack.undo();
+    updateCanvas();
+}
+
+void MyGraphicsView::onRedo() {
+    m_undoStack.redo();
+    updateCanvas();
 }
 
 void MyGraphicsView::drawShapes(QPainter* painter, const QRectF& visibleRect)
@@ -535,17 +566,9 @@ void MyGraphicsView::updateBottomFloatingToolBarPos() {
     m_pFloatingToolBar->move(x, y);
 }
 
-void MyGraphicsView::zoomIn()
+void MyGraphicsView::zoomIn(const QPointF& zoomCenterPoint)
 {
-    QPointF cursorViewPos = mapFromGlobal(QCursor::pos());
-
-    if (m_pFloatingToolBar) {
-        if (m_pFloatingToolBar->rect().contains(m_pFloatingToolBar->mapFromGlobal(QCursor::pos()))) {
-            cursorViewPos = rect().center();
-        }
-    }
-
-    const QPointF cursorScenePosBeforeScale = mapToScene(cursorViewPos.toPoint());
+    const QPointF scenePosBeforeScale = mapToScene(zoomCenterPoint.toPoint());
     constexpr double dScale = 1.1;
     if (m_dScaleFactor == MAX_ZOOM) {
         return;
@@ -558,25 +581,17 @@ void MyGraphicsView::zoomIn()
     transform.scale(m_dScaleFactor, m_dScaleFactor);
     setTransform(transform);
 
-    const QPointF cursorScenePos = mapToScene(cursorViewPos.toPoint());
+    const QPointF scenePos       = mapToScene(zoomCenterPoint.toPoint());
     const QPointF viewCenter     = mapToScene(viewport()->rect().center());
-    const QPointF adjustedCenter = viewCenter + (cursorScenePosBeforeScale - cursorScenePos);
+    const QPointF adjustedCenter = viewCenter + (scenePosBeforeScale - scenePos);
 
     centerOn(adjustedCenter);
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }
 
-void MyGraphicsView::zoomOut()
+void MyGraphicsView::zoomOut(const QPointF& zoomCenterPoint)
 {
-    QPointF cursorViewPos = mapFromGlobal(QCursor::pos());
-
-    if (m_pFloatingToolBar) {
-        if (m_pFloatingToolBar->rect().contains(m_pFloatingToolBar->mapFromGlobal(QCursor::pos()))) {
-            cursorViewPos = rect().center();
-        }
-    }
-
-    const QPointF cursorScenePosBeforeScale = mapToScene(cursorViewPos.toPoint());
+    const QPointF scenePosBeforeScale = mapToScene(zoomCenterPoint.toPoint());
     constexpr double dScale = 1.0 / 1.1;
 
     if (m_dScaleFactor == MIN_ZOOM) {
@@ -590,9 +605,9 @@ void MyGraphicsView::zoomOut()
     transform.scale(m_dScaleFactor, m_dScaleFactor);
     setTransform(transform);
 
-    const QPointF cursorScenePos = mapToScene(cursorViewPos.toPoint());
+    const QPointF scenePos = mapToScene(zoomCenterPoint.toPoint());
     const QPointF viewCenter     = mapToScene(viewport()->rect().center());
-    const QPointF adjustedCenter = viewCenter + (cursorScenePosBeforeScale - cursorScenePos);
+    const QPointF adjustedCenter = viewCenter + (scenePosBeforeScale - scenePos);
 
     centerOn(adjustedCenter);
     emit EventBus::instance().zoomChanged(m_dScaleFactor);

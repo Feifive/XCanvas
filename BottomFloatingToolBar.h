@@ -22,6 +22,8 @@ signals:
     void fitHeight();
     void fitCanvas();
     void fitShapes();
+    void redo();
+    void undo();
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;

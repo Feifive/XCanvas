@@ -54,6 +54,26 @@ void BottomFloatingToolBar::init() {
     m_pZoomTool = MakeButton("");
     m_pZoomIn   = MakeButton(":/Resource/Icons/ZoomIn.svg");
 
+    QAction* zoomInAction = new QAction(this);
+    zoomInAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Equal));  // Ctrl + =
+    addAction(zoomInAction);
+    connect(zoomInAction, &QAction::triggered, [this](){ emit zoomIn(); });
+
+    QAction* zoomOutAction = new QAction(this);
+    zoomOutAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Minus)); // Ctrl + -
+    addAction(zoomOutAction);
+    connect(zoomOutAction, &QAction::triggered, [this](){ emit zoomOut(); });
+
+    QAction* undoAction = new QAction(this);
+    undoAction->setShortcut(QKeySequence(QKeySequence::Undo));  // Ctrl + Z
+    addAction(undoAction);
+    connect(undoAction, &QAction::triggered, [this](){ emit undo(); });
+
+    QAction* redoAction = new QAction(this);
+    redoAction->setShortcut(QKeySequence(QKeySequence::Redo));  // Ctrl + Shift + Z / Ctrl + Y
+    addAction(redoAction);
+    connect(redoAction, &QAction::triggered, [this](){ emit redo(); });
+
     const QFontMetrics metrics(m_pZoomTool->font());
     const int textWidth = metrics.horizontalAdvance("10000%");
     m_pZoomTool->setMinimumWidth(textWidth);
@@ -61,6 +81,9 @@ void BottomFloatingToolBar::init() {
 
     connect(m_pZoomIn, &QToolButton::clicked, [this](){emit zoomIn();});
     connect(m_pZoomOut, &QToolButton::clicked, [this](){emit zoomOut();});
+    connect(m_pZoomTool, &QToolButton::clicked, [this](){emit fitCanvas();});
+    connect(m_pUndo, &QToolButton::clicked, [this](){emit undo();});
+    connect(m_pRedo, &QToolButton::clicked, [this](){emit redo();});
     connect(&EventBus::instance(), &EventBus::zoomChanged, [this](const qreal zoomValue){
         if(m_pZoomTool)
         {
@@ -127,8 +150,7 @@ bool BottomFloatingToolBar::eventFilter(QObject* obj, QEvent* event)
                 }
             }
         }
-        else if (event->type() == QEvent::Leave)
-        {
+        else if (event->type() == QEvent::Leave) {
             m_pCloseTimer->start(DELAY_TIME);
         }
     }
@@ -138,14 +160,10 @@ bool BottomFloatingToolBar::eventFilter(QObject* obj, QEvent* event)
             m_pCloseTimer->stop();
         }
 
-        if (event->type() == QEvent::Leave) {
-            m_pCloseTimer->start(DELAY_TIME);
-        }
-
         if (event->type() == QEvent::MouseMove) {
             if (!m_pZoomTool->rect().contains(m_pZoomTool->mapFromGlobal(QCursor::pos()))) {
-                QEvent ev(QEvent::Leave);
-                qApp->sendEvent(m_pZoomTool, &ev);
+                QEvent leaveEvent = QEvent(QEvent::Leave);
+                qApp->sendEvent(m_pZoomTool, &leaveEvent);
             }
         }
 

@@ -2,6 +2,7 @@
 #define MYGRAPHICSVIEW_H
 
 #include "Global.h"
+#include "UndoStack.h"
 #include <QGraphicsView>
 
 class QGraphicsRectItem;
@@ -9,9 +10,9 @@ class BottomFloatingToolBar;
 
 namespace xcanvas
 {
-	class Shape;
-    class Shapes;
-    class DrawingTool;
+  class Shape;
+  class Shapes;
+  class DrawingTool;
 }
 
 class MyGraphicsView : public QGraphicsView
@@ -22,12 +23,14 @@ class MyGraphicsView : public QGraphicsView
     ~MyGraphicsView();
 
     void    setTool(DrawingToolType type);
-    xcanvas::Shapes* GetCurrentShapes();
     double  scale();
     void    updateCanvas();
-    void    updateShape(xcanvas::Shape* shape);
-    void    updateSelectedShapes();
     void    traceRects(const QRectF& rect, QRectF rects[9]);
+
+    // 图元操作
+    xcanvas::Shapes* GetCurrentShapes();
+    void addShape(xcanvas::Shape* shape);
+    void removeShape(xcanvas::Shape* shape);
 
   signals:
     void mouseMovePos(QPointF pos);
@@ -43,6 +46,12 @@ class MyGraphicsView : public QGraphicsView
     void drawBackground(QPainter* painter, const QRectF& rect) override;
     void drawForeground(QPainter* painter, const QRectF& rect) override;
 
+private slots:
+  void onZoomIn();
+  void onZoomOut();
+  void onUndo();
+  void onRedo();
+
 private:
     void drawShapes(QPainter* painter, const QRectF& visibleRect);
     void drawNormalShapes(QPainter* painter, const QRectF& visibleRect);
@@ -51,13 +60,12 @@ private:
     void drawTrace(QPainter* painter);
     void drawCanvas(QPainter* painter);
 
-
   private:
     double gridStep(double scale) const;
     void ImportFile();
     void updateBottomFloatingToolBarPos();
-    void zoomIn();
-    void zoomOut();
+    void zoomIn(const QPointF& zoomCenterPoint);
+    void zoomOut(const QPointF& zoomCenterPoint);
     void zoomTo(qreal zoomValue);
     void fitWidth();
     void fitHeight();
@@ -65,14 +73,15 @@ private:
     void fitShapes();
 
   private:
-    QPointF          m_startPos;
-    bool             m_bDragging;
-    double           m_dScaleFactor;
-    QRectF m_CanvasRect;
-    DrawingToolType  m_eToolType;
-    xcanvas::DrawingTool*     m_pBaseDrawingTool;
-    xcanvas::Shapes* m_pShapes;
+    QPointF                m_startPos;
+    bool                   m_bDragging;
+    double                 m_dScaleFactor;
+    QRectF                 m_CanvasRect;
+    DrawingToolType        m_eToolType;
+    xcanvas::DrawingTool*  m_pBaseDrawingTool;
+    xcanvas::Shapes*       m_pShapes;
     BottomFloatingToolBar* m_pFloatingToolBar;
+    xcanvas::UndoStack     m_undoStack;
 };
 
 #endif// MYGRAPHICSVIEW_H

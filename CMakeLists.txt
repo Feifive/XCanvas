@@ -35,6 +35,10 @@ set(PROJECT_SOURCES
         mainwindow.ui
         BottomFloatingToolBar.cpp
         BottomFloatingToolBar.h
+        Shape/UndoCommand.h
+        Shape/UndoStack.h
+        Shape/AddShapeCommand.h
+        Shape/RemoveShapeCommand.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
