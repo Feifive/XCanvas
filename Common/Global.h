@@ -7,10 +7,10 @@
 
 #define qDebugTime() qDebug().noquote() << QDateTime::currentDateTime().toString("hh:mm:ss.zzz")
 
-#define DRAWING_LINE_PEN          GetDrawingLinePen()
-#define HIGHLIGHT_LINE_PEN(scale) GetHighlightPen(scale)
-
 #define Z_VALUE_HIGHLIGHT 99999
+
+#define MIN_ZOOM 0.05
+#define MAX_ZOOM 100.0
 
 const double BOUNDING_BOX_TOLERANCE = 0.001;
 

@@ -1,29 +1,44 @@
 #ifndef ADDSHAPECOMMAND_H
 #define ADDSHAPECOMMAND_H
 
-#include "UndoCommand.h"
+#include <QUndoCommand>
 #include "Shapes.h"
 
 namespace xcanvas {
 
-    class AddShapeCommand : public UndoCommand
+    class AddShapeCommand : public QUndoCommand
     {
     public:
-        AddShapeCommand(Shapes* shapes, Shape* shape) : m_shapes(shapes), m_shape(shape) {}
-
-        void undo() override
+        AddShapeCommand(xcanvas::Shapes* shapes, xcanvas::Shape* shape, QUndoCommand* parent = nullptr)
+            : QUndoCommand(parent), m_shapes(shapes), m_shape(shape)
         {
-            m_shapes->removeShape(m_shape);
+            setText("Add Shape");
+        }
+
+        ~AddShapeCommand()
+        {
+            if (!m_added && m_shape) 
+            {
+                delete m_shape;
+            }
         }
 
         void redo() override
         {
             m_shapes->addShape(m_shape);
+            m_added = true;
+        }
+
+        void undo() override
+        {
+            m_shapes->removeShape(m_shape);
+            m_added = false;
         }
 
     private:
-        Shapes* m_shapes;
-        Shape*  m_shape;
+        xcanvas::Shapes* m_shapes;
+        xcanvas::Shape*  m_shape;
+        bool             m_added = false;
     };
 
 }

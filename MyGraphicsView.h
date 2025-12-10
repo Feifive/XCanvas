@@ -2,7 +2,7 @@
 #define MYGRAPHICSVIEW_H
 
 #include "Global.h"
-#include "UndoStack.h"
+#include <QUndoStack>
 #include <QGraphicsView>
 
 class QGraphicsRectItem;
@@ -27,10 +27,11 @@ class MyGraphicsView : public QGraphicsView
     void    updateCanvas();
     void    traceRects(const QRectF& rect, QRectF rects[9]);
 
-    // 图元操作
+    // 图元操作, 加入撤销堆栈
     xcanvas::Shapes* GetCurrentShapes();
     void addShape(xcanvas::Shape* shape);
     void removeShape(xcanvas::Shape* shape);
+	void addShapes(xcanvas::Shapes* shapes);
 
   signals:
     void mouseMovePos(QPointF pos);
@@ -81,7 +82,7 @@ private:
     xcanvas::DrawingTool*  m_pBaseDrawingTool;
     xcanvas::Shapes*       m_pShapes;
     BottomFloatingToolBar* m_pFloatingToolBar;
-    xcanvas::UndoStack     m_undoStack;
+    QUndoStack             m_undoStack;
 };
 
 #endif// MYGRAPHICSVIEW_H

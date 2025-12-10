@@ -1,31 +1,45 @@
 #ifndef DELETESHAPECOMMAND_H
 #define DELETESHAPECOMMAND_H
 
-#include  "UndoCommand.h"
+#include  <QUndoCommand>
 #include  "Shapes.h"
 
 namespace xcanvas {
 
-    class RemoveShapeCommand : public UndoCommand
+    class RemoveShapeCommand : public QUndoCommand
     {
     public:
-        RemoveShapeCommand(Shapes* shapes, Shape* shape) : m_shapes(shapes), m_shape(shape) {}
-
-        void undo() override
+        RemoveShapeCommand(xcanvas::Shapes* shapes, xcanvas::Shape* shape, QUndoCommand* parent = nullptr)
+            : QUndoCommand(parent), m_shapes(shapes), m_shape(shape)
         {
-            m_shapes->addShape(m_shape);
+            setText("Remove Shape");
+        }
+
+        ~RemoveShapeCommand()
+        {
+            if (m_removed && m_shape) 
+            {
+                delete m_shape;
+            }
         }
 
         void redo() override
         {
             m_shapes->removeShape(m_shape);
+            m_removed = true;
+        }
+
+        void undo() override
+        {
+            m_shapes->addShape(m_shape);
+            m_removed = false;
         }
 
     private:
-        Shapes* m_shapes;
-        Shape*  m_shape;
+        xcanvas::Shapes* m_shapes;
+        xcanvas::Shape*  m_shape;
+        bool             m_removed = false;
     };
-
 }
 
 

@@ -43,7 +43,7 @@ class Shapes
 
     Shape* shapeAt(const QPointF& point) const;
 
-    const QVector<Shape*>& shapes() const
+    QVector<Shape*> shapes() const
     {
         return m_shapes;
     }

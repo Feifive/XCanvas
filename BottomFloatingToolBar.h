@@ -13,6 +13,8 @@ class BottomFloatingToolBar: public QWidget
 public:
     explicit BottomFloatingToolBar(QWidget* parent = nullptr);
     ~BottomFloatingToolBar();
+	void setCanUndo(bool canUndo);
+	void setCanRedo(bool canRedo);
 
 signals:
     void zoomIn();
@@ -27,6 +29,10 @@ signals:
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
+
+private slots:
+	void onZoomChanged(const qreal zoomValue);
+	void onCloseTimerTimeout();
 
 private:
     void init();

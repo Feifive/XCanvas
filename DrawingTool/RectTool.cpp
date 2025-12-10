@@ -84,6 +84,7 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
         pShape->SetPoints(points);
         pShape->setSelected(true);
 
+        m_pView->GetCurrentShapes()->deselectAll();
         m_pView->addShape(pShape);
 
         m_state = State::Idle;

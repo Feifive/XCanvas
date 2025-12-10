@@ -13,6 +13,7 @@
 #include "BottomFloatingToolBar.h"
 #include  "Shape/AddShapeCommand.h"
 #include "Shape/RemoveShapeCommand.h"
+#include "Shape/AddShapesCommand.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QGraphicsRectItem>
@@ -20,9 +21,6 @@
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QTimer>
-
-#define MIN_ZOOM 0.05
-#define MAX_ZOOM 100.0
 
 MyGraphicsView::MyGraphicsView(QWidget* parent)
     : m_dScaleFactor(1.0), m_eToolType(DrawingToolType::None), 
@@ -35,9 +33,8 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    // 工具栏挂在 viewport 上，这样就是画布上的浮动控件
-    m_pFloatingToolBar = new BottomFloatingToolBar(viewport());
-    m_pFloatingToolBar->adjustSize();  // 先根据布局算下自己的尺寸
+    m_pFloatingToolBar = new BottomFloatingToolBar(this);
+    m_pFloatingToolBar->adjustSize();
 
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomIn, this, &MyGraphicsView::onZoomIn);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomOut, this, &MyGraphicsView::onZoomOut);
@@ -48,6 +45,9 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitShapes, this, &MyGraphicsView::fitShapes);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::undo, this, &MyGraphicsView::onUndo);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::redo, this, &MyGraphicsView::onRedo);
+    connect(&m_undoStack, &QUndoStack::canUndoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
+    connect(&m_undoStack, &QUndoStack::canRedoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
+
     connect(&EventBus::instance(), &EventBus::switchTool, this, &MyGraphicsView::setTool);
 
     QTimer::singleShot(0, this, [this](){ fitCanvas();});
@@ -127,17 +127,29 @@ xcanvas::Shapes* MyGraphicsView::GetCurrentShapes()
     return m_pShapes;
 }
 
-void MyGraphicsView::addShape(xcanvas::Shape *shape) {
-    if (m_pShapes) {
-        m_pShapes->deselectAll();
+void MyGraphicsView::addShape(xcanvas::Shape* shape)
+{
+    if (m_pShapes) 
+    {
         m_undoStack.push(new xcanvas::AddShapeCommand(m_pShapes, shape));
     }
 }
 
-void MyGraphicsView::removeShape(xcanvas::Shape *shape) {
-    if (m_pShapes) {
+void MyGraphicsView::removeShape(xcanvas::Shape* shape)
+{
+    if (m_pShapes)
+    {
         m_undoStack.push(new xcanvas::RemoveShapeCommand(m_pShapes, shape));
     }
+}
+
+void MyGraphicsView::addShapes(xcanvas::Shapes* shapes)
+{
+    if (!shapes || shapes->isEmpty())
+    {
+        return;
+    }
+    m_undoStack.push(new xcanvas::AddShapesCommand(m_pShapes, shapes));
 }
 
 double MyGraphicsView::scale()
@@ -538,30 +550,29 @@ void MyGraphicsView::ImportFile()
     DXFTranslator translator;
     xcanvas::Shapes* pShapes = new xcanvas::Shapes;
     translator.Load(filePath, pShapes);
-    pShapes->selectAll();
-    m_pShapes->deselectAll();
-	m_pShapes->append(pShapes->shapes());
     QRectF rect = pShapes->selectedBoundingRect();
     QPointF viewCenter = mapToScene(viewport()->rect().center());
     QPointF offset = viewCenter - rect.center();
     pShapes->translate(offset);
-    
-    delete pShapes;
-    pShapes = nullptr;
 
+    m_pShapes->deselectAll();
+    pShapes->selectAll();
+	addShapes(pShapes);
+    
     updateCanvas();
 }
 
 void MyGraphicsView::updateBottomFloatingToolBarPos() {
     if (!m_pFloatingToolBar)
+    {
         return;
+    }
 
-    constexpr int margin = 12; // 距离右下角的间距
-    const QSize vpSize = viewport()->size();
-    const QSize barSize = m_pFloatingToolBar->sizeHint();
+    constexpr int margin = 12;
+    const QSize barSize  = m_pFloatingToolBar->sizeHint();
 
-    int x = vpSize.width()  - barSize.width()  - margin;
-    int y = vpSize.height() - barSize.height() - margin;
+    int x = width() - barSize.width() - margin;
+    int y = height() - barSize.height() - margin;
 
     m_pFloatingToolBar->move(x, y);
 }

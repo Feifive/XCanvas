@@ -122,6 +122,34 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
     }
 }
 
+void xcanvas::SelectTool::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace)
+    {
+        if (m_pView)
+        {
+            QVector<Shape*> shapes =  m_pView->GetCurrentShapes()->selectedShapes();
+			if (shapes.isEmpty())
+            {
+                event->accept();
+                return;
+            }
+			if (shapes.size() == 1)
+            {
+                m_pView->removeShape(shapes.first());
+            }
+            else
+            {
+                // 
+            }
+        }
+
+        m_pView->updateCanvas();
+        event->accept();
+        return;
+    }
+}
+
 void xcanvas::SelectTool::drawPreview(QPainter *painter)
 {
     if(!m_highlightPath.isEmpty())

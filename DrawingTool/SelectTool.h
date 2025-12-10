@@ -25,6 +25,7 @@ namespace xcanvas
         virtual void mousePressEvent(QMouseEvent* event) override;
         virtual void mouseMoveEvent(QMouseEvent* event) override;
         virtual void mouseReleaseEvent(QMouseEvent* event) override;
+        virtual void keyPressEvent(QKeyEvent* event)override;
         virtual void drawPreview(QPainter* painter) override;
         virtual DrawingToolType toolType() override;
 
