@@ -23,7 +23,8 @@ enum class DrawingToolType : uint8_t
     Curve,
     Rect,
     Ellipse,
-    Text
+    Text,
+	Polygon
 };
 
 enum ERECT_POS

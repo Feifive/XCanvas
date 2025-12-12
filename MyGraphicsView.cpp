@@ -7,6 +7,7 @@
 #include "DrawingTool/SelectTool.h"
 #include "DrawingTool/TextTool.h"
 #include "DrawingTool/CurveTool.h"
+#include "DrawingTool/PolygonTool.h"
 #include "Shape/Shape.h"
 #include "Shape/Shapes.h"
 #include "EventBus.h"
@@ -113,6 +114,11 @@ void MyGraphicsView::setTool(DrawingToolType type)
         m_pBaseDrawingTool = new xcanvas::CurveTool(this);
     }
     break;
+    case DrawingToolType::Polygon:
+    {
+        m_pBaseDrawingTool = new xcanvas::PolygonTool(this);
+	}
+	break;
     default:
         m_pBaseDrawingTool = nullptr;
         break;

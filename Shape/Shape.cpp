@@ -91,7 +91,7 @@ bool xcanvas::Shape::isPointNearPath(const QPointF &point, double dScale)
         }
         for (int j = 0; j < polygon.size() - 1; ++j)
         {
-            if (MyMath::Point2Segment(polygon[j], polygon[j + 1], point) <= maxDist)
+            if (MyMath::point2Segment(polygon[j], polygon[j + 1], point) <= maxDist)
             {
                 return true;
             }

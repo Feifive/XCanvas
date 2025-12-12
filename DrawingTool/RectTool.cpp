@@ -22,8 +22,6 @@ void xcanvas::RectTool::mousePressEvent(QMouseEvent* event)
             m_mousePos = m_pView->mapToScene(event->pos());
 
             m_state = State::Drawing;
-
-            m_previewPath = QPainterPath(m_mousePos);
         }
     }
     else if (event->button() == Qt::RightButton)
@@ -76,7 +74,7 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
         };
 
         if (points[0] == points[2]) {
-            m_state = State::Idle;
+            cancelDrawing();
             return;
         }
 

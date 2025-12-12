@@ -54,6 +54,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         DrawingTool/SelectTool.cpp DrawingTool/SelectTool.h
         DrawingTool/TextTool.h DrawingTool/TextTool.cpp
         DrawingTool/CurveTool.cpp DrawingTool/CurveTool.h
+        DrawingTool/PolygonTool.cpp DrawingTool/PolygonTool.h
         Shape/Shape.cpp Shape/Shape.h 
         Shape/Ellipse.cpp Shape/Ellipse.h 
         Shape/Polyline.cpp Shape/Polyline.h 
@@ -61,6 +62,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Resource.qrc
         CanvasWidget.h CanvasWidget.cpp
         Common/EventBus.h Common/EventBus.cpp
+        Common/MyMath.h Common/MyMath.cpp
         Shape/Text.h Shape/Text.cpp
         Shape/Curve.h Shape/Curve.cpp
         Shape/Image.h Shape/Image.cpp
