@@ -3,6 +3,7 @@
 #include "Global.h"
 #include "Shape/Polyline.h"
 #include "Shape/Shapes.h"
+#include "Shape/Curve.h"
 
 namespace PolylineOptimizer 
 {
@@ -107,6 +108,210 @@ namespace PolylineOptimizer
     }
 }
 
+//// 辅助结构：齐次坐标点 (wx, wy, w)
+//struct HomogeneousPoint {
+//    double x, y, w;
+//
+//    // 运算符重载，方便 De Boor 算法的线性运算
+//    HomogeneousPoint operator+(const HomogeneousPoint& b) const { return { x + b.x, y + b.y, w + b.w }; }
+//    HomogeneousPoint operator-(const HomogeneousPoint& b) const { return { x - b.x, y - b.y, w - b.w }; }
+//    HomogeneousPoint operator*(double s) const { return { x * s, y * s, w * s }; }
+//};
+//
+//// 辅助结构：返回欧几里得空间的点和切线
+//struct SplineGeo {
+//    QPointF point;
+//    QPointF tangent;
+//};
+//
+//// 核心算法：计算有理 B 样条在 t 处的 点(Point) 和 切线(Tangent)
+//static SplineGeo evaluateRationalSplineGeo(double t, int degree,
+//    const QVector<double>& knots,
+//    const QVector<HomogeneousPoint>& h_ctrlPoints)
+//{
+//    int n = h_ctrlPoints.size();
+//
+//    // 1. 寻找节点区间 k
+//    int k = -1;
+//    for (int i = degree; i < n; ++i) {
+//        if (t >= knots[i] && t < knots[i + 1]) {
+//            k = i;
+//            break;
+//        }
+//    }
+//    if (k == -1) k = n - 1; // 边界保护
+//
+//    // 2. 准备临时计算数组
+//    QVector<HomogeneousPoint> d;
+//    d.reserve(degree + 1);
+//    for (int j = 0; j <= degree; ++j) {
+//        d.append(h_ctrlPoints[k - degree + j]);
+//    }
+//
+//    // 3. De Boor 迭代 (迭代 degree - 1 次，保留最后两个点用于算导数)
+//    for (int r = 1; r < degree; ++r) {
+//        for (int j = 0; j <= degree - r; ++j) {
+//            int ki = k - degree + j + r;
+//            double denom = knots[ki + degree - r + 1] - knots[ki];
+//            double alpha = (denom > 1e-9) ? (t - knots[ki]) / denom : 0.0;
+//
+//            // 齐次空间线性插值
+//            d[j] = d[j] * (1.0 - alpha) + d[j + 1] * alpha;
+//        }
+//    }
+//
+//    // d[0] 和 d[1] 现在是倒数第二轮的两个点
+//    HomogeneousPoint P_prev = d[0];
+//    HomogeneousPoint P_next = d[1];
+//
+//    // 4. 计算齐次导数 H'(t)
+//    double dt = knots[k + 1] - knots[k];
+//    HomogeneousPoint H_prime = { 0, 0, 0 };
+//    if (dt > 1e-9) {
+//        double factor = double(degree) / dt;
+//        H_prime = (P_next - P_prev) * factor;
+//    }
+//
+//    // 5. 计算齐次坐标终点 H(t) (再迭代一次)
+//    double final_denom = knots[k + 1] - knots[k];
+//    double final_alpha = (final_denom > 1e-9) ? (t - knots[k]) / final_denom : 0.0;
+//    HomogeneousPoint H = P_prev * (1.0 - final_alpha) + P_next * final_alpha;
+//
+//    // --- 投影回 2D 欧几里得空间 ---
+//
+//    // 6. 真实坐标 P(t) = H(t) / w(t)
+//    double w = H.w;
+//    if (std::abs(w) < 1e-9) w = 1.0; // 防止除零
+//
+//    QPointF finalPoint(H.x / w, H.y / w);
+//
+//    // 7. 真实切线 P'(t) (使用商法则 Quotient Rule)
+//    // P' = (H' * w - H * w') / w^2
+//    double w2 = w * w;
+//
+//    // H.x 已经是 x*w，H.y 已经是 y*w
+//    double x_prime = (H_prime.x * w - H.x * H_prime.w) / w2;
+//    double y_prime = (H_prime.y * w - H.y * H_prime.w) / w2;
+//
+//    QPointF finalTangent(x_prime, y_prime);
+//
+//    return { finalPoint, finalTangent };
+//}
+
+// 辅助结构：齐次坐标点 (wx, wy, w)
+struct HomogeneousPoint {
+    double x, y, w;
+
+    HomogeneousPoint operator+(const HomogeneousPoint& b) const { return { x + b.x, y + b.y, w + b.w }; }
+    HomogeneousPoint operator-(const HomogeneousPoint& b) const { return { x - b.x, y - b.y, w - b.w }; }
+    HomogeneousPoint operator*(double s) const { return { x * s, y * s, w * s }; }
+};
+
+// 辅助结构：返回欧几里得空间的点和切线
+struct SplineGeo {
+    QPointF point;
+    QPointF tangent;
+};
+
+// 标准 De Boor：返回齐次点 H(t)
+static HomogeneousPoint deBoorHomogeneous(
+    double t,
+    int degree,
+    const QVector<double>& knots,
+    const QVector<HomogeneousPoint>& ctrl)
+{
+    const int n = ctrl.size() - 1;                // 控制点索引 0..n
+    const int m = knots.size() - 1;               // 节点索引 0..m
+    const int p = degree;
+
+    if (n < p || m < 2 * p + 1)
+        return { 0, 0, 1 };
+
+    // 找 span: k ∈ [p, m-p-1] 且 t ∈ [U[k], U[k+1])
+    int k;
+    int kMin = p;
+    int kMax = m - p - 1;
+
+    if (t <= knots[kMin]) {
+        k = kMin;
+    }
+    else if (t >= knots[kMax + 1]) {
+        k = kMax;
+    }
+    else {
+        k = kMin;
+        for (int i = kMin; i <= kMax; ++i) {
+            if (t < knots[i + 1]) {
+                k = i;
+                break;
+            }
+        }
+    }
+
+    // 初始化 De Boor 点：d[0..p]
+    QVector<HomogeneousPoint> d(p + 1);
+    for (int j = 0; j <= p; ++j) {
+        d[j] = ctrl[k - p + j];
+    }
+
+    // De Boor 迭代
+    for (int r = 1; r <= p; ++r) {
+        for (int j = p; j >= r; --j) {
+            int i = k - p + j;
+            double denom = knots[i + p - r + 1] - knots[i];
+            double alpha = 0.0;
+            if (denom > 1e-9)
+                alpha = (t - knots[i]) / denom;
+
+            d[j] = d[j - 1] * (1.0 - alpha) + d[j] * alpha;
+        }
+    }
+
+    // 最终点 d[p]
+    return d[p];
+}
+
+// 只算点：投影齐次坐标 H(t) → 2D 点 P(t)
+static QPointF evaluateRationalPoint(
+    double t,
+    int degree,
+    const QVector<double>& knots,
+    const QVector<HomogeneousPoint>& ctrl)
+{
+    HomogeneousPoint H = deBoorHomogeneous(t, degree, knots, ctrl);
+    double w = (std::abs(H.w) < 1e-12) ? 1.0 : H.w;
+    return QPointF(H.x / w, H.y / w);
+}
+
+// 点 + 数值切线
+static SplineGeo evaluateRationalSplineGeo(
+    double t,
+    int degree,
+    const QVector<double>& knots,
+    const QVector<HomogeneousPoint>& ctrl)
+{
+    QPointF p = evaluateRationalPoint(t, degree, knots, ctrl);
+
+    // 选一个稳定的 eps（相对整个参数范围）
+    double u0 = knots.first();
+    double u1 = knots.last();
+    double range = u1 - u0;
+    if (range < 1e-9)
+        return { p, QPointF(0, 0) };
+
+    double eps = range * 1e-4;   // 足够小，又不至于被浮点误差吞掉
+
+    double t_minus = std::max(u0, t - eps);
+    double t_plus = std::min(u1, t + eps);
+
+    QPointF p_minus = evaluateRationalPoint(t_minus, degree, knots, ctrl);
+    QPointF p_plus = evaluateRationalPoint(t_plus, degree, knots, ctrl);
+
+    QPointF tangent = (p_plus - p_minus) / (t_plus - t_minus);
+
+    return { p, tangent };
+}
+
 DXFTranslator::DXFTranslator() : m_pShapes(nullptr)
 {
 }
@@ -160,7 +365,7 @@ void DXFTranslator::linkImage(const DRW_ImageDef* data)
 
 void DXFTranslator::addLine(const DRW_Line& data)
 {
-    qDebug() << "[DXF] addLine (" << data.basePoint.x << data.basePoint.y << ") -> (" << data.secPoint.x << data.secPoint.y << ")";
+    //qDebug() << "[DXF] addLine (" << data.basePoint.x << data.basePoint.y << ") -> (" << data.secPoint.x << data.secPoint.y << ")";
 
     QVector<QPointF> points;
     points.append(ConvertDXFPoint(data.basePoint.x, data.basePoint.y));
@@ -185,6 +390,19 @@ void DXFTranslator::addCircle(const DRW_Circle& data)
 void DXFTranslator::addLayer(const DRW_Layer& data)
 {
     qDebug() << "[DXF] addLayer name =" << data.name.c_str();
+
+    QColor layerColor;
+
+    if (data.color24 != -1)
+    {
+        layerColor = convertTrueColorToQColor(data.color24);
+    }
+    else
+    {
+        layerColor = convertAciToQColor(data.color);
+    }
+
+    m_layerColors[data.name] = layerColor;
 }
 
 void DXFTranslator::addArc(const DRW_Arc& data)
@@ -328,8 +546,134 @@ void DXFTranslator::addPolyline(const DRW_Polyline& data)
 
 void DXFTranslator::addSpline(const DRW_Spline* data)
 {
-    qDebug() << "[DXF] addSpline controlPoints=" << data->controllist.size();
+    if (data->controllist.empty() || data->knotslist.empty()) return;
+
+    if (isHugePseudoSpline(data))
+    {
+        QVector<QPointF> rawPoints;
+        rawPoints.reserve(data->controllist.size());
+
+        for (const auto& c : data->controllist)
+        {
+            rawPoints.append(ConvertDXFPoint(c->x, c->y));
+        }
+
+        bool isClosed = (data->flags & 0x01u) != 0;
+
+        QVector<QPointF> optimizedPoints = PolylineOptimizer::Optimize(rawPoints, isClosed);
+
+        if (optimizedPoints.size() > 1)
+        {
+            xcanvas::Polyline* poly = new xcanvas::Polyline();
+            poly->SetPoints(optimizedPoints);
+            poly->setColor(color(*data));
+            m_pShapes->addShape(poly);
+        }
+
+        return;
+    }
+
+    int degree = data->degree;
+    int n = data->controllist.size();
+
+    // --- 1. 构建齐次坐标控制点 (同前) ---
+    QVector<HomogeneousPoint> h_ctrlPoints;
+    h_ctrlPoints.reserve(n);
+
+    bool hasWeights = !data->weightlist.empty();
+    int idx = 0;
+    for (const auto& v : data->controllist)
+    {
+        double w = 1.0;
+        if (hasWeights && idx < (int)data->weightlist.size()) {
+            w = data->weightlist[idx];
+        }
+        QPointF pt2d = ConvertDXFPoint(v->x, v->y);
+        h_ctrlPoints.append({ pt2d.x() * w, pt2d.y() * w, w });
+        idx++;
+    }
+
+    QVector<double> knots;
+    for (double k : data->knotslist) knots.append(k);
+
+    if (knots.size() != h_ctrlPoints.size() + degree + 1) return;
+
+    // --- 2. 准备贝塞尔点集 ---
+    QVector<QPointF> bezierPoints;
+    bool isFirstPoint = true;
+
+    // --- 3. 核心改进：细分参数 ---
+    // 每个 Knot Span 切分成多少段 Bezier？
+    // 4 是一个经验值，既能保证圆滑度（即使是90度弧也能完美拟合），又不会产生过多点
+    const int SEGMENTS_PER_SPAN = 4;
+
+    for (int i = degree; i < n; ++i)
+    {
+        double knot_start = knots[i];
+        double knot_end = knots[i + 1];
+        double span_total = knot_end - knot_start;
+
+        if (span_total < 1e-9) continue; // 跳过空区间
+
+        // 在当前区间内进行细分
+        double step = span_total / SEGMENTS_PER_SPAN;
+
+        for (int j = 0; j < SEGMENTS_PER_SPAN; ++j)
+        {
+            // 计算当前细分段的 t0 和 t1
+            double t0 = knot_start + j * step;
+            double t1 = knot_start + (j + 1) * step; // 或者是 t0 + step
+
+            // 修正浮点误差，确保最后一段精准落在 knot_end
+            if (j == SEGMENTS_PER_SPAN - 1) t1 = knot_end;
+
+            double dt = t1 - t0;
+
+            // 采样：计算准确的点和切线
+            SplineGeo startGeo = evaluateRationalSplineGeo(t0, degree, knots, h_ctrlPoints);
+            SplineGeo endGeo = evaluateRationalSplineGeo(t1, degree, knots, h_ctrlPoints);
+
+            // Hermite -> Cubic Bezier 转换公式
+            // P1 = P0 + V0 * (dt / 3)
+            // P2 = P3 - V3 * (dt / 3)
+            // 注意：因为我们现在将 dt 变小了，切线长度也会自动缩放，控制点会收缩，
+            // 从而把"鼓"出来的方圆部分拉回正确的圆形路径上。
+
+            double factor = dt / 3.0;
+
+            QPointF p0 = startGeo.point;
+            QPointF p3 = endGeo.point;
+            QPointF p1 = p0 + startGeo.tangent * factor;
+            QPointF p2 = p3 - endGeo.tangent * factor;
+
+            // 添加点
+            if (isFirstPoint) {
+                bezierPoints.append(p0);
+                isFirstPoint = false;
+            }
+            bezierPoints.append(p1);
+            bezierPoints.append(p2);
+            bezierPoints.append(p3);
+        }
+    }
+
+    // --- 4. 创建 Curve ---
+    if (bezierPoints.size() >= 4)
+    {
+        xcanvas::Curve* pCurve = new xcanvas::Curve();
+        pCurve->SetPoints(bezierPoints);
+        pCurve->setColor(color(*data));
+
+        if (m_pShapes) {
+            m_pShapes->addShape(pCurve);
+        }
+    }
 }
+
+//void DXFTranslator::addSpline(const DRW_Spline* data)
+//{
+//    qDebug() << "[DXF] addSpline controlPoints=" << data->controllist.size();
+//}
 
 void DXFTranslator::addPoint(const DRW_Point& data)
 {
@@ -410,9 +754,21 @@ QColor DXFTranslator::color(const DRW_Entity& data) const
     else if (data.colorName != "")
     {
         // code 430
+        int a = 1;
     }
     else
     {
+        if (data.color == 256)
+        {
+            auto it = m_layerColors.find(data.layer);
+            if (it != m_layerColors.end())
+            {
+                return it->second;
+            }
+
+            return QColor(0, 0, 0);
+        }
+
         return convertAciToQColor(data.color);
     }
 
@@ -709,4 +1065,25 @@ QColor DXFTranslator::convertAciToQColor(int aci) const
 
     // 对于 ByLayer (256)、ByBlock (0) 或无效索引，返回默认颜色 (黑色)
     return QColor(0, 0, 0);
+}
+
+bool DXFTranslator::isHugePseudoSpline(const DRW_Spline* s) const
+{
+    int c = s->controllist.size();
+    int k = s->knotslist.size();
+
+    // 经典阈值：超过 2000 点一定是伪样条
+    if (c > 2000)
+        return true;
+
+    // 控制点 > 500 也强烈建议 fallback
+    if (c > 500)
+        return true;
+
+    // knots = control + degree + 1 (正常情况)
+    // 如果 knots 大量堆叠，也属于伪 Spline
+    if (k > c + s->degree + 10)
+        return true;
+
+    return false;
 }

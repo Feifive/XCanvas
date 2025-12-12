@@ -167,9 +167,11 @@ class DXFTranslator : public DRW_Interface
     QColor  color(const DRW_Entity& data) const;
     QColor  convertTrueColorToQColor(int trueColorCode) const;
     QColor  convertAciToQColor(int aci) const;
+    bool    isHugePseudoSpline(const DRW_Spline* s) const;
 
   private:
     xcanvas::Shapes* m_pShapes;
+    std::map<std::string, QColor> m_layerColors;
 };
 
 #endif// !DXF_TRANSLATOR_H
