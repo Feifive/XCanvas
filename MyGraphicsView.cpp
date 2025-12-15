@@ -9,7 +9,6 @@
 #include "DrawingTool/CurveTool.h"
 #include "DrawingTool/PolygonTool.h"
 #include "Shape/Shape.h"
-#include "Shape/Shapes.h"
 #include "EventBus.h"
 #include "BottomFloatingToolBar.h"
 #include  "Shape/AddShapeCommand.h"
@@ -25,7 +24,7 @@
 
 MyGraphicsView::MyGraphicsView(QWidget* parent)
     : m_dScaleFactor(1.0), m_eToolType(DrawingToolType::None), 
-    m_startPos(-1, -1), m_bDragging(false), m_pBaseDrawingTool(nullptr), m_pShapes(new xcanvas::Shapes), QGraphicsView{parent}
+    m_startPos(-1, -1), m_bDragging(false), m_pBaseDrawingTool(nullptr), m_pShapes(new xcanvas::ShapeManager), QGraphicsView{parent}
     ,m_pFloatingToolBar(nullptr), m_CanvasRect(QRectF(10000, 10000, 1280, 720))
 {
     setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
@@ -128,7 +127,7 @@ void MyGraphicsView::setTool(DrawingToolType type)
     updateCanvas();
 }
 
-xcanvas::Shapes* MyGraphicsView::GetCurrentShapes()
+xcanvas::ShapeManager* MyGraphicsView::GetCurrentShapes()
 {
     return m_pShapes;
 }
@@ -141,6 +140,15 @@ void MyGraphicsView::addShape(xcanvas::Shape* shape)
     }
 }
 
+void MyGraphicsView::addShapes(xcanvas::ShapeList shapes)
+{
+    if (shapes.isEmpty())
+    {
+        return;
+    }
+    m_undoStack.push(new xcanvas::AddShapesCommand(m_pShapes, shapes));
+}
+
 void MyGraphicsView::removeShape(xcanvas::Shape* shape)
 {
     if (m_pShapes)
@@ -149,13 +157,8 @@ void MyGraphicsView::removeShape(xcanvas::Shape* shape)
     }
 }
 
-void MyGraphicsView::addShapes(xcanvas::Shapes* shapes)
+void MyGraphicsView::removeShapes(xcanvas::ShapeList shapes)
 {
-    if (!shapes || shapes->isEmpty())
-    {
-        return;
-    }
-    m_undoStack.push(new xcanvas::AddShapesCommand(m_pShapes, shapes));
 }
 
 double MyGraphicsView::scale()
@@ -553,17 +556,22 @@ void MyGraphicsView::ImportFile()
         return;
     }
 
+    xcanvas::ShapeList shapeList;
+    xcanvas::ShapeManager* shapeManager = new xcanvas::ShapeManager;
     DXFTranslator translator;
-    xcanvas::Shapes* pShapes = new xcanvas::Shapes;
-    translator.Load(filePath, pShapes);
-    QRectF rect = pShapes->selectedBoundingRect();
+    translator.Load(filePath);
+    shapeList = translator.shapeList();
+    shapeManager->append(shapeList);
+    QRectF rect = shapeManager->selectedBoundingRect();
     QPointF viewCenter = mapToScene(viewport()->rect().center());
     QPointF offset = viewCenter - rect.center();
-    pShapes->translate(offset);
+    shapeManager->translate(offset);
 
     m_pShapes->deselectAll();
-    pShapes->selectAll();
-	addShapes(pShapes);
+    shapeManager->selectAll();
+	addShapes(shapeList);
+
+	delete shapeManager;
     
     updateCanvas();
 }

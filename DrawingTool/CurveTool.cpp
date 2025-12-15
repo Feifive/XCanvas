@@ -1,6 +1,6 @@
 #include "CurveTool.h"
 #include "../MyGraphicsView.h"
-#include "Shapes.h"
+#include "ShapeManager.h"
 #include "Curve.h"
 #include "Polyline.h"
 

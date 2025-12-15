@@ -1,7 +1,7 @@
 #include "SelectTool.h"
 #include "Global.h"
 #include "../MyGraphicsView.h"
-#include "Shapes.h"
+#include "ShapeManager.h"
 #include "Shape.h"
 #include <QGraphicsItem>
 #include <QGraphicsPathItem>
@@ -53,7 +53,7 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
     {
         if (m_bMovingItem)
         {
-            Shapes* pShapes = new Shapes;
+            ShapeManager* pShapes = new ShapeManager;
             pShapes->append(m_pView->GetCurrentShapes()->selectedShapes());
             pShapes->translate(scenePos - m_mousePos);
             delete pShapes;
@@ -128,19 +128,19 @@ void xcanvas::SelectTool::keyPressEvent(QKeyEvent* event)
     {
         if (m_pView)
         {
-            QVector<Shape*> shapes =  m_pView->GetCurrentShapes()->selectedShapes();
-			if (shapes.isEmpty())
+            xcanvas::ShapeList shapeList =  m_pView->GetCurrentShapes()->selectedShapes();
+			if (shapeList.isEmpty())
             {
                 event->accept();
                 return;
             }
-			if (shapes.size() == 1)
+			if (shapeList.size() == 1)
             {
-                m_pView->removeShape(shapes.first());
+                m_pView->removeShape(shapeList.first());
             }
             else
             {
-                // 
+				m_pView->removeShapes(shapeList);
             }
         }
 
@@ -251,7 +251,7 @@ void xcanvas::SelectTool::clearSelectionRect()
 xcanvas::Shape* xcanvas::SelectTool::hitUnselectedShape(QPointF pos)
 {
     double  dScale  = m_pView->scale();
-    Shapes* pShapes = m_pView->GetCurrentShapes();
+    ShapeManager* pShapes = m_pView->GetCurrentShapes();
     for (int i = 0; i < pShapes->count(); ++i)
     {
         Shape* pShape = (*pShapes)[i];

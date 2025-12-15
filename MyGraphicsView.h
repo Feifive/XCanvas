@@ -2,6 +2,7 @@
 #define MYGRAPHICSVIEW_H
 
 #include "Global.h"
+#include "Shape/ShapeManager.h"
 #include <QUndoStack>
 #include <QGraphicsView>
 
@@ -11,7 +12,7 @@ class BottomFloatingToolBar;
 namespace xcanvas
 {
   class Shape;
-  class Shapes;
+  class ShapeManager;
   class DrawingTool;
 }
 
@@ -28,10 +29,11 @@ class MyGraphicsView : public QGraphicsView
     void    traceRects(const QRectF& rect, QRectF rects[9]);
 
     // 图元操作, 加入撤销堆栈
-    xcanvas::Shapes* GetCurrentShapes();
+    xcanvas::ShapeManager* GetCurrentShapes();
     void addShape(xcanvas::Shape* shape);
+	void addShapes(xcanvas::ShapeList shapes);
     void removeShape(xcanvas::Shape* shape);
-	void addShapes(xcanvas::Shapes* shapes);
+	void removeShapes(xcanvas::ShapeList shapes);
 
   signals:
     void mouseMovePos(QPointF pos);
@@ -80,7 +82,7 @@ private:
     QRectF                 m_CanvasRect;
     DrawingToolType        m_eToolType;
     xcanvas::DrawingTool*  m_pBaseDrawingTool;
-    xcanvas::Shapes*       m_pShapes;
+    xcanvas::ShapeManager*       m_pShapes;
     BottomFloatingToolBar* m_pFloatingToolBar;
     QUndoStack             m_undoStack;
 };

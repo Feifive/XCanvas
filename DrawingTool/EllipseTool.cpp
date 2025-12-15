@@ -2,7 +2,7 @@
 #include "Global.h"
 #include "../MyGraphicsView.h"
 #include "Ellipse.h"
-#include "Shapes.h"
+#include "ShapeManager.h"
 #include <QGraphicsEllipseItem>
 #include <QMouseEvent>
 #include <QDebug>

@@ -2,37 +2,40 @@
 #define ADDSHAPESCOMMAND_H
 
 #include <QUndoCommand>
-#include "Shapes.h"
+#include <QVector>
+#include "ShapeManager.h"
 
 namespace xcanvas {
 
     class AddShapesCommand : public QUndoCommand
     {
     public:
-        AddShapesCommand(xcanvas::Shapes* shapesManager, xcanvas::Shapes* newShapes, QUndoCommand* parent = nullptr)
-            : QUndoCommand(parent), m_manager(shapesManager), m_newShapes(newShapes)
+        AddShapesCommand(ShapeManager* shapesManager, ShapeList shapesToAdd, QUndoCommand* parent = nullptr)
+            : QUndoCommand(parent), m_manager(shapesManager), m_shapesToAdd(shapesToAdd)
         {
-            setText("Add Shapes");
+            setText("Add ShapeList");
         }
 
         ~AddShapesCommand()
         {
             if (!m_isRedone) 
             {
-                m_newShapes->clear();
-				delete m_newShapes;
+                for (Shape* shape : m_shapesToAdd)
+                {
+                    delete shape;
+                }
             }
         }
 
         void redo() override
         {
-            m_manager->append(m_newShapes->shapes());
+            m_manager->append(m_shapesToAdd);
             m_isRedone = true;
         }
 
         void undo() override
         {
-            for (Shape* shape : m_newShapes->shapes()) 
+            for (Shape* shape : m_shapesToAdd)
             {
                 m_manager->removeShape(shape);
             }
@@ -41,8 +44,8 @@ namespace xcanvas {
 
     private:
     private:
-        Shapes* m_manager;
-        Shapes* m_newShapes;
+        ShapeManager* m_manager;
+        ShapeList     m_shapesToAdd;
         bool m_isRedone = true; 
     };
 

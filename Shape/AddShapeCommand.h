@@ -2,14 +2,14 @@
 #define ADDSHAPECOMMAND_H
 
 #include <QUndoCommand>
-#include "Shapes.h"
+#include "ShapeManager.h"
 
 namespace xcanvas {
 
     class AddShapeCommand : public QUndoCommand
     {
     public:
-        AddShapeCommand(xcanvas::Shapes* shapes, xcanvas::Shape* shape, QUndoCommand* parent = nullptr)
+        AddShapeCommand(xcanvas::ShapeManager* shapes, xcanvas::Shape* shape, QUndoCommand* parent = nullptr)
             : QUndoCommand(parent), m_shapes(shapes), m_shape(shape)
         {
             setText("Add Shape");
@@ -36,7 +36,7 @@ namespace xcanvas {
         }
 
     private:
-        xcanvas::Shapes* m_shapes;
+        xcanvas::ShapeManager* m_shapes;
         xcanvas::Shape*  m_shape;
         bool             m_added = false;
     };

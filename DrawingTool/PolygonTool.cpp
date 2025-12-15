@@ -3,7 +3,7 @@
 #include "../MyGraphicsView.h"
 #include "MyMath.h"
 #include "Polyline.h"
-#include "Shapes.h"
+#include "ShapeManager.h"
 
 #include <QPointF>
 #include <QRectF>

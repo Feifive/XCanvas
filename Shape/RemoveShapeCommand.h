@@ -2,14 +2,14 @@
 #define DELETESHAPECOMMAND_H
 
 #include  <QUndoCommand>
-#include  "Shapes.h"
+#include  "ShapeManager.h"
 
 namespace xcanvas {
 
     class RemoveShapeCommand : public QUndoCommand
     {
     public:
-        RemoveShapeCommand(xcanvas::Shapes* shapes, xcanvas::Shape* shape, QUndoCommand* parent = nullptr)
+        RemoveShapeCommand(xcanvas::ShapeManager* shapes, xcanvas::Shape* shape, QUndoCommand* parent = nullptr)
             : QUndoCommand(parent), m_shapes(shapes), m_shape(shape)
         {
             setText("Remove Shape");
@@ -36,7 +36,7 @@ namespace xcanvas {
         }
 
     private:
-        xcanvas::Shapes* m_shapes;
+        xcanvas::ShapeManager* m_shapes;
         xcanvas::Shape*  m_shape;
         bool             m_removed = false;
     };

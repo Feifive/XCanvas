@@ -6,7 +6,7 @@
 #include "TextTool.h"
 #include "../MyGraphicsView.h"
 #include "Text.h"
-#include "Shapes.h"
+#include "ShapeManager.h"
 
 xcanvas::TextTool::TextTool(MyGraphicsView *pView) :
     DrawingTool(pView),

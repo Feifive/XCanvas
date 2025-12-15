@@ -2,7 +2,7 @@
 #include "Global.h"
 #include "../MyGraphicsView.h"
 #include "Polyline.h"
-#include "Shapes.h"
+#include "ShapeManager.h"
 #include <QMouseEvent>
 
 xcanvas::RectTool::RectTool(MyGraphicsView* pView) : DrawingTool(pView)

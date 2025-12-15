@@ -35,14 +35,6 @@ set(PROJECT_SOURCES
         mainwindow.ui
         BottomFloatingToolBar.cpp
         BottomFloatingToolBar.h
-        Shape/AddShapeCommand.h
-        Shape/RemoveShapeCommand.h
-)
-
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(XCanvas
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
         MyGraphicsView.cpp MyGraphicsView.h
         DrawingToolsBar.h DrawingToolsBar.cpp
         RulerWidget.h RulerWidget.cpp
@@ -55,17 +47,25 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         DrawingTool/TextTool.h DrawingTool/TextTool.cpp
         DrawingTool/CurveTool.cpp DrawingTool/CurveTool.h
         DrawingTool/PolygonTool.cpp DrawingTool/PolygonTool.h
-        Shape/Shape.cpp Shape/Shape.h 
-        Shape/Ellipse.cpp Shape/Ellipse.h 
-        Shape/Polyline.cpp Shape/Polyline.h 
-        Shape/Shapes.cpp Shape/Shapes.h
-        Resource.qrc
         CanvasWidget.h CanvasWidget.cpp
         Common/EventBus.h Common/EventBus.cpp
         Common/MyMath.h Common/MyMath.cpp
         Shape/Text.h Shape/Text.cpp
         Shape/Curve.h Shape/Curve.cpp
         Shape/Image.h Shape/Image.cpp
+        Shape/Shape.cpp Shape/Shape.h 
+        Shape/Ellipse.cpp Shape/Ellipse.h 
+        Shape/Polyline.cpp Shape/Polyline.h 
+        Shape/ShapeManager.cpp Shape/ShapeManager.h
+        Shape/AddShapeCommand.h
+        Shape/RemoveShapeCommand.h
+)
+
+if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+    qt_add_executable(XCanvas
+        MANUAL_FINALIZATION
+        ${PROJECT_SOURCES}
+        Resource.qrc
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET XCanvas APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

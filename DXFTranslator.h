@@ -3,14 +3,10 @@
 
 #include "drw_interface.h"
 #include "libdxfrw.h"
+#include "Shape/ShapeManager.h"
 
 #include <QPointF>
 #include <QColor>
-
-namespace xcanvas
-{
-    class Shapes;
-}
 
 class DXFTranslator : public DRW_Interface
 {
@@ -18,7 +14,8 @@ class DXFTranslator : public DRW_Interface
     DXFTranslator();
     ~DXFTranslator();
 
-    bool Load(const QString& filePath, xcanvas::Shapes* pShapes);
+    bool Load(const QString& filePath);
+    xcanvas::ShapeList shapeList();
 
     // READ FUNCTIONALITY
     void addHeader(const DRW_Header* data) override
@@ -170,7 +167,7 @@ class DXFTranslator : public DRW_Interface
     bool    isHugePseudoSpline(const DRW_Spline* s) const;
 
   private:
-    xcanvas::Shapes* m_pShapes;
+    xcanvas::ShapeList m_shapeList;
     std::map<std::string, QColor> m_layerColors;
 };
 

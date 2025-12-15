@@ -2,7 +2,6 @@
 #include "Shape/Ellipse.h"
 #include "Global.h"
 #include "Shape/Polyline.h"
-#include "Shape/Shapes.h"
 #include "Shape/Curve.h"
 
 namespace PolylineOptimizer 
@@ -312,7 +311,7 @@ static SplineGeo evaluateRationalSplineGeo(
     return { p, tangent };
 }
 
-DXFTranslator::DXFTranslator() : m_pShapes(nullptr)
+DXFTranslator::DXFTranslator()
 {
 }
 
@@ -320,15 +319,8 @@ DXFTranslator::~DXFTranslator()
 {
 }
 
-bool DXFTranslator::Load(const QString& filePath, xcanvas::Shapes* pShapes)
+bool DXFTranslator::Load(const QString& filePath)
 {
-    if (!pShapes)
-    {
-        return false;
-    }
-
-    m_pShapes = pShapes;
-
     dxfRW reader(filePath.toLocal8Bit().toStdString().c_str());
 
     qDebug() << "[DXF] Start loading:" << filePath;
@@ -341,6 +333,13 @@ bool DXFTranslator::Load(const QString& filePath, xcanvas::Shapes* pShapes)
 
     qDebug() << "[DXF] Load failed.";
     return false;
+}
+
+xcanvas::ShapeList DXFTranslator::shapeList()
+{
+    xcanvas::ShapeList result;
+    result.swap(m_shapeList);
+    return result;
 }
 
 void DXFTranslator::addVport(const DRW_Vport& data)
@@ -373,7 +372,7 @@ void DXFTranslator::addLine(const DRW_Line& data)
     xcanvas::Polyline* pShape = new xcanvas::Polyline;
     pShape->SetPoints(points);
 
-    m_pShapes->addShape(pShape);
+    m_shapeList.append(pShape);
 }
 
 void DXFTranslator::addCircle(const DRW_Circle& data)
@@ -384,7 +383,7 @@ void DXFTranslator::addCircle(const DRW_Circle& data)
     xcanvas::Ellipse* pShape = new xcanvas::Ellipse;
     pShape->setEllipse(QPointF(data.basePoint.x, data.basePoint.y), data.radious, data.radious, 0.0);
 
-    m_pShapes->addShape(pShape);
+    m_shapeList.append(pShape);
 }
 
 void DXFTranslator::addLayer(const DRW_Layer& data)
@@ -433,7 +432,7 @@ void DXFTranslator::addEllipse(const DRW_Ellipse& data)
         shape->setEllipseArc(center, dMajor, dMinor, dRotationDegree, dStartDegree, dEndDegree);
     }
 
-    m_pShapes->addShape(shape);
+    m_shapeList.append(shape);
 }
 
 void DXFTranslator::addText(const DRW_Text& data)
@@ -505,10 +504,7 @@ void DXFTranslator::addLWPolyline(const DRW_LWPolyline& data)
         pShape->SetPoints(optimizedPoints);
         pShape->setColor(color(data));
 
-        if (m_pShapes)
-        {
-            m_pShapes->addShape(pShape);
-        }
+        m_shapeList.append(pShape);
     }
 }
 
@@ -537,10 +533,7 @@ void DXFTranslator::addPolyline(const DRW_Polyline& data)
         pLine->SetPoints(optimizedPoints);
         pLine->setColor(color(data));
 
-        if (m_pShapes) 
-        {
-            m_pShapes->addShape(pLine);
-        }
+        m_shapeList.append(pLine);
     }
 }
 
@@ -567,7 +560,7 @@ void DXFTranslator::addSpline(const DRW_Spline* data)
             xcanvas::Polyline* poly = new xcanvas::Polyline();
             poly->SetPoints(optimizedPoints);
             poly->setColor(color(*data));
-            m_pShapes->addShape(poly);
+            m_shapeList.append(poly);
         }
 
         return;
@@ -664,9 +657,7 @@ void DXFTranslator::addSpline(const DRW_Spline* data)
         pCurve->SetPoints(bezierPoints);
         pCurve->setColor(color(*data));
 
-        if (m_pShapes) {
-            m_pShapes->addShape(pCurve);
-        }
+        m_shapeList.append(pCurve);
     }
 }
 
