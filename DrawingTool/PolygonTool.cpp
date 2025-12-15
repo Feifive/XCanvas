@@ -27,16 +27,10 @@ void PolygonTool::mousePressEvent(QMouseEvent* event)
         return;
     }
 
-    if (event->button() == Qt::LeftButton)
+    if (m_state == State::Idle)
     {
-        if (m_state == State::Idle)
-        {
-            m_mousePos = m_pView->mapToScene(event->pos());
-
-            m_state = State::Drawing;
-
-            m_previewPath = QPainterPath();
-        }
+        m_state = State::Drawing;
+        m_mousePos = m_pView->mapToScene(event->pos());
     }
 }
 
@@ -106,9 +100,7 @@ void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
 			m_pView->addShape(pShape);
         }
 
-        m_state = State::Idle;
-
-        m_pView->updateCanvas();
+        cancelDrawing();
     }
 }
 

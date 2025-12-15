@@ -57,8 +57,8 @@ set(PROJECT_SOURCES
         Shape/Ellipse.cpp Shape/Ellipse.h 
         Shape/Polyline.cpp Shape/Polyline.h 
         Shape/ShapeManager.cpp Shape/ShapeManager.h
-        Shape/AddShapeCommand.h
-        Shape/RemoveShapeCommand.h
+        Shape/RemoveShapesCommand.h
+        Shape/TranslateShapeListCommand.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

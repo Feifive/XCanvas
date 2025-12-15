@@ -15,18 +15,15 @@ xcanvas::RectTool::~RectTool()
 
 void xcanvas::RectTool::mousePressEvent(QMouseEvent* event)
 {
-    if (event->button() == Qt::LeftButton)
-    {
-        if(m_state == State::Idle)
-        {
-            m_mousePos = m_pView->mapToScene(event->pos());
-
-            m_state = State::Drawing;
-        }
-    }
-    else if (event->button() == Qt::RightButton)
-    {
+    if (event->button() == Qt::RightButton) {
         handleRightButtonPress(event);
+        return;
+    }
+
+    if(m_state == State::Idle)
+    {
+        m_state = State::Drawing;
+        m_mousePos = m_pView->mapToScene(event->pos());
     }
 }
 
@@ -85,9 +82,7 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
         m_pView->GetCurrentShapes()->deselectAll();
         m_pView->addShape(pShape);
 
-        m_state = State::Idle;
-
-        m_pView->updateCanvas();
+        cancelDrawing();
     }
 }
 

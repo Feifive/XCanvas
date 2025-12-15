@@ -23,9 +23,20 @@ void ShapeManager::addShape(Shape* shape)
     }
 }
 
+void ShapeManager::append(const ShapeList& shapes)
+{
+    m_shapes.append(shapes);
+}
+
 void ShapeManager::removeShape(Shape* shape)
 {
     m_shapes.removeOne(shape);
+}
+
+void ShapeManager::removeAllShapes(const ShapeList &shapes) {
+    for (Shape* shape : shapes) {
+        m_shapes.removeOne(shape);
+    }
 }
 
 void ShapeManager::deleteShape(Shape* shape)
@@ -40,11 +51,6 @@ void ShapeManager::clear()
 {
     deleteAllShapes();
     m_shapes.clear();
-}
-
-void ShapeManager::append(const ShapeList& shapes)
-{
-    m_shapes.append(shapes);
 }
 
 void ShapeManager::deleteAllShapes()

@@ -25,15 +25,7 @@ void xcanvas::DrawingTool::keyPressEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Escape)
     {
-        if (m_state == State::Drawing)
-        {
-            m_state = State::Interrupted;
-            cancelDrawing();
-        }
-        else
-        {
-            emit EventBus::instance().finishDrawing();
-        }
+        cancelDrawing();
     }
 }
 
@@ -53,6 +45,7 @@ void xcanvas::DrawingTool::cancelDrawing()
     m_state       = State::Idle;
     m_previewPath = QPainterPath();
     m_pView->updateCanvas();
+    emit EventBus::instance().finishDrawing();
 }
 
 void xcanvas::DrawingTool::handleRightButtonPress(QMouseEvent *event)
@@ -97,11 +90,6 @@ void xcanvas::DrawingTool::handleRightButtonRelease(QMouseEvent *event)
         // 中断绘制
         m_state = State::Interrupted;
         cancelDrawing();
-    }
-    else
-    {
-        // 第二次右键 → 完全结束工具
-        emit EventBus::instance().finishDrawing();
     }
 
     m_isRightPressed = false;

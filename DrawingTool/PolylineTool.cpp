@@ -23,27 +23,22 @@ void xcanvas::PolylineTool::mousePressEvent(QMouseEvent *event)
 
     m_mousePos = m_pView->mapToScene(event->pos());
 
-    if(event->button() == Qt::LeftButton)
+    if(m_state == State::Idle)
     {
-        if(m_state == State::Idle)
-        {
-            m_points.clear();
-            m_points.append(m_mousePos);
-            m_points.append(m_mousePos);
+        m_points.clear();
+        m_points.append(m_mousePos);
+        m_points.append(m_mousePos);
 
-            m_previewPath = QPainterPath();
-            m_previewPath.moveTo(m_mousePos);
-            m_previewPath.lineTo(m_mousePos);
+        m_previewPath = QPainterPath();
+        m_previewPath.moveTo(m_mousePos);
+        m_previewPath.lineTo(m_mousePos);
 
-            m_state = State::Drawing;
-        }
-        else if (m_state == State::Drawing)
-        {
-            m_points.last() = m_mousePos;
-            m_points.append(m_mousePos);
-        }
-
-        m_pView->updateCanvas();
+        m_state = State::Drawing;
+    }
+    else if (m_state == State::Drawing)
+    {
+        m_points.last() = m_mousePos;
+        m_points.append(m_mousePos);
     }
 }
 
@@ -72,7 +67,6 @@ void xcanvas::PolylineTool::mouseReleaseEvent(QMouseEvent *event)
     if(event->button() == Qt::RightButton)
     {
         handleRightButtonRelease(event);
-        return;
     }
 }
 
@@ -101,12 +95,8 @@ void xcanvas::PolylineTool::cancelDrawing()
         pShape->setSelected(true);
 
         m_pView->GetCurrentShapes()->deselectAll();
-        m_pView->GetCurrentShapes()->addShape(pShape);
+        m_pView->addShape(pShape);
     }
 
-    m_previewPath = QPainterPath();
-    m_points.clear();
-    m_state = State::Idle;
-
-    m_pView->updateCanvas();
+    DrawingTool::cancelDrawing();
 }

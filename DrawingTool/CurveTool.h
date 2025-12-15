@@ -20,7 +20,7 @@ namespace xcanvas
         DrawingToolType toolType() override;
 
     protected:
-        void cancelDrawing();
+        void cancelDrawing() override;
 
 
     private:

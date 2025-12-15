@@ -3,7 +3,7 @@
 #include "../MyGraphicsView.h"
 #include "ShapeManager.h"
 #include "Shape.h"
-#include <QGraphicsItem>
+#include  "TranslateShapeListCommand.h"
 #include <QGraphicsPathItem>
 #include <QMouseEvent>
 
@@ -17,12 +17,8 @@ xcanvas::SelectTool::~SelectTool()
 
 void xcanvas::SelectTool::mousePressEvent(QMouseEvent* event)
 {
-    if (!m_pView)
-    {
-        return;
-    }
-
-    m_mousePos = m_pView->mapToScene(event->pos());
+    QPointF scenePos = m_pView->mapToScene(event->pos());
+    m_mousePos = scenePos;
     if (event->button() == Qt::LeftButton && m_pView->cursor().shape() == Qt::ArrowCursor)
     {
         if(m_state == State::Idle)
@@ -33,6 +29,7 @@ void xcanvas::SelectTool::mousePressEvent(QMouseEvent* event)
     if (event->button() == Qt::LeftButton && m_pView->cursor().shape() == Qt::SizeAllCursor)
     {
         m_bMovingItem = true;
+        m_dragStartPos = scenePos;
     }
 }
 
@@ -53,12 +50,14 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
     {
         if (m_bMovingItem)
         {
-            ShapeManager* pShapes = new ShapeManager;
-            pShapes->append(m_pView->GetCurrentShapes()->selectedShapes());
-            pShapes->translate(scenePos - m_mousePos);
-            delete pShapes;
-            m_mousePos = scenePos;
+            QPointF delta = scenePos - m_mousePos;
 
+            ShapeList selectedShapeList = m_pView->GetCurrentShapes()->selectedShapes();
+            for (Shape* shape : selectedShapeList) {
+                shape->translate(delta);
+            }
+
+            m_mousePos = scenePos;
             m_pView->updateCanvas();
         }
         else
@@ -89,6 +88,8 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
 
 void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
 {
+    QPointF scenePos = m_pView->mapToScene(event->pos());
+
     if (m_state == State::Drawing)
     {
         QRectF rect = m_selectionRectPath.boundingRect();
@@ -100,7 +101,7 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
         else
         {
             m_pView->GetCurrentShapes()->deselectAll();
-            Shape* pShape = hitUnselectedShape(m_pView->mapToScene(event->pos()));
+            Shape* pShape = hitUnselectedShape(scenePos);
             if (pShape)
             {
                 pShape->setSelected(true);
@@ -118,6 +119,15 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
     if (m_bMovingItem)
     {
         m_bMovingItem = false;
+
+        if (const QPointF totalOffset = scenePos - m_dragStartPos; !totalOffset.isNull()) {
+            ShapeList selectedShapeList = m_pView->GetCurrentShapes()->selectedShapes();
+            for (Shape* shape : selectedShapeList) {
+                shape->translate(-totalOffset);
+            }
+            m_pView->getUndoStack()->push(new TranslateShapesCommand(selectedShapeList, totalOffset));
+        }
+
         m_pView->updateCanvas();
     }
 }
@@ -128,25 +138,17 @@ void xcanvas::SelectTool::keyPressEvent(QKeyEvent* event)
     {
         if (m_pView)
         {
-            xcanvas::ShapeList shapeList =  m_pView->GetCurrentShapes()->selectedShapes();
+            ShapeList shapeList =  m_pView->GetCurrentShapes()->selectedShapes();
 			if (shapeList.isEmpty())
             {
                 event->accept();
                 return;
             }
-			if (shapeList.size() == 1)
-            {
-                m_pView->removeShape(shapeList.first());
-            }
-            else
-            {
-				m_pView->removeShapes(shapeList);
-            }
+            m_pView->removeShapes(shapeList);
         }
 
         m_pView->updateCanvas();
         event->accept();
-        return;
     }
 }
 

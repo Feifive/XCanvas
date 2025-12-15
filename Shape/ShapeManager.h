@@ -25,10 +25,11 @@ class ShapeManager
     ShapeManager& operator=(const ShapeManager&) = delete;
 
     void addShape(Shape* shape);
+    void append(const ShapeList& shapes);
     void removeShape(Shape* shape);
+    void removeAllShapes(const ShapeList& shapes);
     void deleteShape(Shape* shape);
     void clear();
-    void append(const ShapeList& shapes);
 
     int count() const;
     int shapeCount() const

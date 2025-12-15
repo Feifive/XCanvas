@@ -27,13 +27,15 @@ class MyGraphicsView : public QGraphicsView
     double  scale();
     void    updateCanvas();
     void    traceRects(const QRectF& rect, QRectF rects[9]);
+    xcanvas::ShapeManager* GetCurrentShapes();
+
 
     // 图元操作, 加入撤销堆栈
-    xcanvas::ShapeManager* GetCurrentShapes();
+    QUndoStack* getUndoStack();
     void addShape(xcanvas::Shape* shape);
-	void addShapes(xcanvas::ShapeList shapes);
+	  void addShapes(const xcanvas::ShapeList& shapeList);
     void removeShape(xcanvas::Shape* shape);
-	void removeShapes(xcanvas::ShapeList shapes);
+	  void removeShapes(const xcanvas::ShapeList& shapeList);
 
   signals:
     void mouseMovePos(QPointF pos);

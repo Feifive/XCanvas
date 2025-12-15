@@ -7,16 +7,16 @@
 
 namespace xcanvas {
 
-    class AddShapesCommand : public QUndoCommand
+    class AddShapesCommand final : public QUndoCommand
     {
     public:
-        AddShapesCommand(ShapeManager* shapesManager, ShapeList shapesToAdd, QUndoCommand* parent = nullptr)
-            : QUndoCommand(parent), m_manager(shapesManager), m_shapesToAdd(shapesToAdd)
+        AddShapesCommand(ShapeManager* shapesManager, const ShapeList &shapesToAdd, QUndoCommand* parent = nullptr)
+            : QUndoCommand(parent), m_shapesManager(shapesManager), m_shapesToAdd(shapesToAdd)
         {
             setText("Add ShapeList");
         }
 
-        ~AddShapesCommand()
+        ~AddShapesCommand() override
         {
             if (!m_isRedone) 
             {
@@ -29,7 +29,7 @@ namespace xcanvas {
 
         void redo() override
         {
-            m_manager->append(m_shapesToAdd);
+            m_shapesManager->append(m_shapesToAdd);
             m_isRedone = true;
         }
 
@@ -37,14 +37,14 @@ namespace xcanvas {
         {
             for (Shape* shape : m_shapesToAdd)
             {
-                m_manager->removeShape(shape);
+                m_shapesManager->removeShape(shape);
             }
             m_isRedone = false;
         }
 
     private:
     private:
-        ShapeManager* m_manager;
+        ShapeManager* m_shapesManager;
         ShapeList     m_shapesToAdd;
         bool m_isRedone = true; 
     };

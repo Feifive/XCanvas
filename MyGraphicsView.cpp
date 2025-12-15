@@ -11,9 +11,8 @@
 #include "Shape/Shape.h"
 #include "EventBus.h"
 #include "BottomFloatingToolBar.h"
-#include  "Shape/AddShapeCommand.h"
-#include "Shape/RemoveShapeCommand.h"
 #include "Shape/AddShapesCommand.h"
+#include "Shape/RemoveShapesCommand.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QGraphicsRectItem>
@@ -21,6 +20,8 @@
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QTimer>
+
+#include "RemoveShapesCommand.h"
 
 MyGraphicsView::MyGraphicsView(QWidget* parent)
     : m_dScaleFactor(1.0), m_eToolType(DrawingToolType::None), 
@@ -123,8 +124,6 @@ void MyGraphicsView::setTool(DrawingToolType type)
         break;
     }
     m_eToolType = type;
-
-    updateCanvas();
 }
 
 xcanvas::ShapeManager* MyGraphicsView::GetCurrentShapes()
@@ -132,33 +131,39 @@ xcanvas::ShapeManager* MyGraphicsView::GetCurrentShapes()
     return m_pShapes;
 }
 
+QUndoStack * MyGraphicsView::getUndoStack() {
+    return &m_undoStack;
+}
+
 void MyGraphicsView::addShape(xcanvas::Shape* shape)
 {
-    if (m_pShapes) 
-    {
-        m_undoStack.push(new xcanvas::AddShapeCommand(m_pShapes, shape));
+    if (m_pShapes)  {
+        addShapes({shape});
     }
 }
 
-void MyGraphicsView::addShapes(xcanvas::ShapeList shapes)
+void MyGraphicsView::addShapes(const xcanvas::ShapeList& shapeList)
 {
-    if (shapes.isEmpty())
-    {
+    if (shapeList.isEmpty()) {
         return;
     }
-    m_undoStack.push(new xcanvas::AddShapesCommand(m_pShapes, shapes));
+    m_undoStack.push(new xcanvas::AddShapesCommand(m_pShapes, shapeList));
 }
 
 void MyGraphicsView::removeShape(xcanvas::Shape* shape)
 {
-    if (m_pShapes)
-    {
-        m_undoStack.push(new xcanvas::RemoveShapeCommand(m_pShapes, shape));
+    if (m_pShapes) {
+        removeShapes({shape});
     }
 }
 
-void MyGraphicsView::removeShapes(xcanvas::ShapeList shapes)
+void MyGraphicsView::removeShapes(const xcanvas::ShapeList& shapeList)
 {
+    if (shapeList.isEmpty()) {
+        return;
+    }
+
+    m_undoStack.push(new xcanvas::RemoveShapesCommand(m_pShapes, shapeList));
 }
 
 double MyGraphicsView::scale()
@@ -556,15 +561,14 @@ void MyGraphicsView::ImportFile()
         return;
     }
 
-    xcanvas::ShapeList shapeList;
     xcanvas::ShapeManager* shapeManager = new xcanvas::ShapeManager;
     DXFTranslator translator;
     translator.Load(filePath);
-    shapeList = translator.shapeList();
+    const xcanvas::ShapeList shapeList = translator.shapeList();
     shapeManager->append(shapeList);
-    QRectF rect = shapeManager->selectedBoundingRect();
-    QPointF viewCenter = mapToScene(viewport()->rect().center());
-    QPointF offset = viewCenter - rect.center();
+    const QRectF rect = shapeManager->boundingRect();
+    const QPointF viewCenter = mapToScene(viewport()->rect().center());
+    const QPointF offset = viewCenter - rect.center();
     shapeManager->translate(offset);
 
     m_pShapes->deselectAll();

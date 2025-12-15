@@ -5,7 +5,7 @@
 
 class MyGraphicsView;
 
-class RulerWidget : public QWidget
+class RulerWidget final : public QWidget
 {
     Q_OBJECT
 public:

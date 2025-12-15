@@ -90,14 +90,10 @@ void CurveTool::cancelDrawing()
 
         pShape->setSelected(true);
         m_pView->GetCurrentShapes()->deselectAll();
-        m_pView->GetCurrentShapes()->addShape(pShape);
+        m_pView->addShape(pShape);
     }
 
-    m_previewPath = QPainterPath();
-    m_points.clear();
-    m_state = State::Idle;
-
-    m_pView->updateCanvas();
+    DrawingTool::cancelDrawing();
 }
 
 QVector<QPointF> CurveTool::computeBezierPoints(const QVector<QPointF>& anchorPoints) const

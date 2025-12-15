@@ -39,6 +39,7 @@ namespace xcanvas
         void clearSelectionRect();
 
     private:
+        QPointF m_dragStartPos;
         bool m_bMovingItem;
         QPainterPath m_highlightPath;
         QPainterPath m_selectionRectPath;
