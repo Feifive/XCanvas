@@ -3,13 +3,27 @@
 
 #include "Shape.h"
 
-namespace xcanvas
+#include <QImage>
+
+namespace xcanvas {
+
+class Image : public Shape
 {
-    class Image : public Shape
-    {
-    public:
-        Image();
-    };
+public:
+    explicit Image(QImage  image);
+    ~Image() override;
+    void draw(QPainter* painter) const override;
+    void translate(const QPointF& offset) override;
+    void setRect(const QRectF& rect);
+
+protected:
+    void updatePainterPath() override;
+
+private:
+    QImage m_image;
+    QRectF m_rect;
+};
+
 }
 
 

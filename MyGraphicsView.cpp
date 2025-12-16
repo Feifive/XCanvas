@@ -9,6 +9,7 @@
 #include "DrawingTool/CurveTool.h"
 #include "DrawingTool/PolygonTool.h"
 #include "Shape/Shape.h"
+#include  "Shape/Image.h"
 #include "EventBus.h"
 #include "BottomFloatingToolBar.h"
 #include "Shape/AddShapesCommand.h"
@@ -555,28 +556,59 @@ void MyGraphicsView::drawCanvas(QPainter *painter) {
 
 void MyGraphicsView::ImportFile()
 {
-    const QString filePath = QFileDialog::getOpenFileName(this, tr("Import File"), "", tr("All supported (*.dxf)"));
+    const QString filePath = QFileDialog::getOpenFileName(this, tr("Import File"), "", tr("All supported (*.png *.jpg *.jpeg *.webp *.dxf)"));
     if (filePath.isEmpty())
     {
         return;
     }
 
-    xcanvas::ShapeManager* shapeManager = new xcanvas::ShapeManager;
-    DXFTranslator translator;
-    translator.Load(filePath);
-    const xcanvas::ShapeList shapeList = translator.shapeList();
-    shapeManager->append(shapeList);
-    const QRectF rect = shapeManager->boundingRect();
-    const QPointF viewCenter = mapToScene(viewport()->rect().center());
-    const QPointF offset = viewCenter - rect.center();
-    shapeManager->translate(offset);
+    if (filePath.endsWith(".dxf")) {
+        xcanvas::ShapeManager* shapeManager = new xcanvas::ShapeManager;
+        DXFTranslator translator;
+        translator.Load(filePath);
+        const xcanvas::ShapeList shapeList = translator.shapeList();
+        shapeManager->append(shapeList);
+        const QRectF rect = shapeManager->boundingRect();
+        const QPointF viewCenter = mapToScene(viewport()->rect().center());
+        const QPointF offset = viewCenter - rect.center();
+        shapeManager->translate(offset);
 
-    m_pShapes->deselectAll();
-    shapeManager->selectAll();
-	addShapes(shapeList);
+        m_pShapes->deselectAll();
+        shapeManager->selectAll();
+        addShapes(shapeList);
 
-	delete shapeManager;
-    
+        delete shapeManager;
+    }
+    else if (filePath.endsWith(".png") || filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") || filePath.endsWith(".webp")) {
+        const QImage image(filePath);
+        if (image.isNull()) {
+            return;
+        }
+        double dpiX = image.dotsPerMeterX() * 0.0254;
+        double dpiY = image.dotsPerMeterY() * 0.0254;
+
+        if (dpiX <= 1e-3) dpiX = 96.0;
+        if (dpiY <= 1e-3) dpiY = dpiX;
+
+        qDebug() << "dpiX = " << dpiX;
+        qDebug() << "dpiY = " << dpiY;
+
+        double widthMm  = image.width()  / dpiX * 25.4;
+        double heightMm = image.height() / dpiY * 25.4;
+        QRectF imageRectMm(0, 0, widthMm, heightMm);
+        xcanvas::Image* imageShape = new xcanvas::Image(image);
+        imageShape->setSelected(true);
+        imageShape->setRect(imageRectMm);
+
+        const QRectF rect = imageShape->boundingRect();
+        const QPointF viewCenter = mapToScene(viewport()->rect().center());
+        const QPointF offset = viewCenter - rect.center();
+        imageShape->translate(offset);
+
+        m_pShapes->deselectAll();
+        addShape(imageShape);
+    }
+
     updateCanvas();
 }
 
