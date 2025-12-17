@@ -2,7 +2,7 @@
 #define ADDSHAPESCOMMAND_H
 
 #include <QUndoCommand>
-#include <QVector>
+#include "Shape.h"
 #include "ShapeManager.h"
 
 namespace xcanvas {

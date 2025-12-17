@@ -78,7 +78,7 @@ void RulerWidget::drawHorizontal(QPainter &p)
     double s0 = sceneTL.x();
     double s1 = sceneTR.x();
 
-    double scale = m_view->scale();
+    double scale = m_view->zoomValue();
     double step  = tickStep(scale);
     int majorCount = 10;
 
@@ -127,7 +127,7 @@ void RulerWidget::drawVertical(QPainter &p)
     double s0 = sceneTL.y();
     double s1 = sceneBL.y();
 
-    double scale = m_view->scale();
+    double scale = m_view->zoomValue();
     double step  = tickStep(scale);
     int majorCount = 10;
 

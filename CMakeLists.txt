@@ -28,6 +28,15 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
+# ===== App Icon (macOS) =====
+if(APPLE)
+    set(APP_ICON_MACOS "${CMAKE_SOURCE_DIR}/Resource/Icons/XCanvasLogo.icns")
+    set_source_files_properties(
+            ${APP_ICON_MACOS}
+            PROPERTIES MACOSX_PACKAGE_LOCATION "Resources"
+    )
+endif()
+
 set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
@@ -58,12 +67,17 @@ set(PROJECT_SOURCES
         Shape/ShapeManager.cpp Shape/ShapeManager.h
         Shape/RemoveShapesCommand.h
         Shape/TranslateShapeListCommand.h
+        Canvas/Canvas.cpp
+        Canvas/Canvas.h
+        Canvas/CanvasRenderer.cpp
+        Canvas/CanvasRenderer.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(XCanvas
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        ${APP_ICON_MACOS}
         Resource.qrc
         Import/ImportManager.h Import/ImportManager.cpp
         Import/IFileImporter.h
@@ -108,6 +122,11 @@ set_target_properties(XCanvas PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${OUTPUT_DIR}/Debug"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${OUTPUT_DIR}/Release"
 )
+if(APPLE)
+    set_target_properties(XCanvas PROPERTIES
+        MACOSX_BUNDLE_ICON_FILE XCanvasLogo.icns
+    )
+endif()
 
 target_include_directories(XCanvas PRIVATE
     ${PROJECT_SOURCE_DIR}/3rdparty/libdxfrw/src

@@ -259,7 +259,7 @@ void xcanvas::SelectTool::clearSelectionRect()
 
 xcanvas::Shape* xcanvas::SelectTool::hitUnselectedShape(QPointF pos)
 {
-    double        dScale  = m_pView->scale();
+    double        dScale  = m_pView->zoomValue();
     ShapeManager* pShapes = m_pView->GetCurrentShapes();
     for (int i = 0; i < pShapes->count(); ++i)
     {

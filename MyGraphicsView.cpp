@@ -13,9 +13,9 @@
 #include "Import/Image/ImageImporter.h"
 #include "Import/ImportManager.h"
 #include "Shape/AddShapesCommand.h"
-#include "Shape/Image.h"
 #include "Shape/RemoveShapesCommand.h"
 #include "Shape/Shape.h"
+#include "Canvas/Canvas.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QGraphicsRectItem>
@@ -24,19 +24,19 @@
 #include <QScrollBar>
 #include <QTimer>
 
-#include "RemoveShapesCommand.h"
-
 MyGraphicsView::MyGraphicsView(QWidget* parent)
     : m_dScaleFactor(1.0),
       m_eToolType(DrawingToolType::None),
       m_startPos(-1, -1),
       m_bDragging(false),
       m_pBaseDrawingTool(nullptr),
-      m_pShapes(new xcanvas::ShapeManager),
+      m_canvas(new xcanvas::Canvas(this)),
       QGraphicsView{parent},
-      m_pFloatingToolBar(nullptr),
-      m_CanvasRect(QRectF(10000, 10000, 1280, 720))
+      m_pFloatingToolBar(nullptr)
 {
+    setTransformationAnchor(QGraphicsView::NoAnchor);
+    setResizeAnchor(QGraphicsView::NoAnchor);
+
     setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
     setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
@@ -58,8 +58,8 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitShapes, this, &MyGraphicsView::fitShapes);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::undo, this, &MyGraphicsView::onUndo);
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::redo, this, &MyGraphicsView::onRedo);
-    connect(&m_undoStack, &QUndoStack::canUndoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
-    connect(&m_undoStack, &QUndoStack::canRedoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
+    connect(m_canvas->undoStack(), &QUndoStack::canUndoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
+    connect(m_canvas->undoStack(), &QUndoStack::canRedoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
 
     connect(&EventBus::instance(), &EventBus::switchTool, this, &MyGraphicsView::setTool);
 
@@ -140,17 +140,17 @@ void MyGraphicsView::setTool(DrawingToolType type)
 
 xcanvas::ShapeManager* MyGraphicsView::GetCurrentShapes()
 {
-    return m_pShapes;
+    return m_canvas->shapeManager();
 }
 
 QUndoStack* MyGraphicsView::getUndoStack()
 {
-    return &m_undoStack;
+    return m_canvas->undoStack();
 }
 
 void MyGraphicsView::addShape(xcanvas::Shape* shape)
 {
-    if (m_pShapes)
+    if (shape)
     {
         addShapes({shape});
     }
@@ -162,12 +162,12 @@ void MyGraphicsView::addShapes(const xcanvas::ShapeList& shapeList)
     {
         return;
     }
-    m_undoStack.push(new xcanvas::AddShapesCommand(m_pShapes, shapeList));
+    m_canvas->undoStack()->push(new xcanvas::AddShapesCommand(m_canvas->shapeManager(), shapeList));
 }
 
 void MyGraphicsView::removeShape(xcanvas::Shape* shape)
 {
-    if (m_pShapes)
+    if (shape)
     {
         removeShapes({shape});
     }
@@ -180,10 +180,10 @@ void MyGraphicsView::removeShapes(const xcanvas::ShapeList& shapeList)
         return;
     }
 
-    m_undoStack.push(new xcanvas::RemoveShapesCommand(m_pShapes, shapeList));
+    m_canvas->undoStack()->push(new xcanvas::RemoveShapesCommand(m_canvas->shapeManager(), shapeList));
 }
 
-double MyGraphicsView::scale()
+double MyGraphicsView::zoomValue()
 {
     return transform().m11();
 }
@@ -317,13 +317,13 @@ void MyGraphicsView::onZoomOut()
 
 void MyGraphicsView::onUndo()
 {
-    m_undoStack.undo();
+    m_canvas->undoStack()->undo();
     updateCanvas();
 }
 
 void MyGraphicsView::onRedo()
 {
-    m_undoStack.redo();
+    m_canvas->undoStack()->redo();
     updateCanvas();
 }
 
@@ -338,7 +338,7 @@ void MyGraphicsView::drawNormalShapes(QPainter* painter, const QRectF& visibleRe
     painter->save();
 
     // 遍历所有形状，只绘制未选中的
-    for (xcanvas::Shape* shape : m_pShapes->shapes())
+    for (xcanvas::Shape* shape : m_canvas->shapeManager()->shapes())
     {
         if (shape->isSelected())
         {
@@ -363,7 +363,7 @@ void MyGraphicsView::drawSelectedShapes(QPainter* painter, const QRectF& visible
     painter->save();
 
     // 最后绘制选中的形状（显示在最上层）
-    QVector<xcanvas::Shape*> selected = m_pShapes->selectedShapes();
+    QVector<xcanvas::Shape*> selected = m_canvas->shapeManager()->selectedShapes();
 
     for (xcanvas::Shape* shape : selected)
     {
@@ -392,7 +392,7 @@ void MyGraphicsView::drawGrid(QPainter* p)
     }
 
     // 计算画布在场景坐标中的可见部分
-    const QRectF canvasSceneRect  = m_CanvasRect;// 画布本身（场景坐标）
+    const QRectF canvasSceneRect  = m_canvas->canvasRect();// 画布本身（场景坐标）
     const QRectF viewSceneRect    = mapToScene(viewport()->rect()).boundingRect();// 视口对应的场景区域
     const QRectF visibleSceneRect = canvasSceneRect.intersected(viewSceneRect);// 画布中可见的部分
 
@@ -401,7 +401,7 @@ void MyGraphicsView::drawGrid(QPainter* p)
         return;
     }
 
-    const double scale      = this->scale();
+    const double scale      = this->zoomValue();
     const double step       = gridStep(scale);// 网格步长（场景单位）
     const int    majorCount = 10;
 
@@ -501,7 +501,7 @@ double MyGraphicsView::gridStep(double scale) const
 void MyGraphicsView::traceRects(const QRectF& rect, QRectF rects[9])
 {
 #define SIZE 3
-    double dScale     = scale();
+    double dScale     = zoomValue();
     double dRectSize  = SIZE / dScale;
     double dRectWidth = dRectSize * 2;
 
@@ -518,18 +518,18 @@ void MyGraphicsView::traceRects(const QRectF& rect, QRectF rects[9])
 
 void MyGraphicsView::drawTrace(QPainter* painter)
 {
-    if (!m_pShapes || m_pShapes->isEmpty())
+    if (!m_canvas->shapeManager() || m_canvas->shapeManager()->isEmpty())
     {
         return;
     }
 
-    QRectF rect = m_pShapes->selectedBoundingRect();
+    QRectF rect = m_canvas->shapeManager()->selectedBoundingRect();
     if (!rect.isValid())
     {
         return;
     }
 
-    double dScale      = scale();
+    double dScale      = zoomValue();
     double dLineLength = 6 / dScale;
 
     painter->save();
@@ -572,7 +572,7 @@ void MyGraphicsView::drawCanvas(QPainter* painter)
 
     painter->setPen(Qt::NoPen);
     painter->setBrush(Qt::white);
-    painter->drawRect(m_CanvasRect);
+    painter->drawRect(m_canvas->canvasRect());
 
     painter->restore();
 }
@@ -593,7 +593,7 @@ void MyGraphicsView::ImportFile()
 
     if (!shapeList.isEmpty())
     {
-        m_pShapes->deselectAll();
+        m_canvas->shapeManager()->deselectAll();
 
         // 统一居中
         QRectF rect;
@@ -631,119 +631,110 @@ void MyGraphicsView::updateBottomFloatingToolBarPos()
 
 void MyGraphicsView::zoomIn(const QPointF& zoomCenterPoint)
 {
-    const QPointF    scenePosBeforeScale = mapToScene(zoomCenterPoint.toPoint());
-    constexpr double dScale              = 1.1;
-    if (m_dScaleFactor == MAX_ZOOM)
-    {
+    if (m_dScaleFactor >= MAX_ZOOM)
         return;
-    }
 
+    constexpr qreal dScale = 1.1;
+
+    const QPointF sceneAnchor = viewportTransform().inverted().map(zoomCenterPoint);
+
+    scale(dScale, dScale);
     m_dScaleFactor *= dScale;
     m_dScaleFactor = qBound(MIN_ZOOM, m_dScaleFactor, MAX_ZOOM);
 
-    QTransform transform;
-    transform.scale(m_dScaleFactor, m_dScaleFactor);
-    setTransform(transform);
+    const QPointF newSceneAnchor = viewportTransform().inverted().map(zoomCenterPoint);
 
-    const QPointF scenePos       = mapToScene(zoomCenterPoint.toPoint());
-    const QPointF viewCenter     = mapToScene(viewport()->rect().center());
-    const QPointF adjustedCenter = viewCenter + (scenePosBeforeScale - scenePos);
+    const QPointF delta = newSceneAnchor - sceneAnchor;
+    translate(delta.x(), delta.y());
 
-    centerOn(adjustedCenter);
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }
 
 void MyGraphicsView::zoomOut(const QPointF& zoomCenterPoint)
 {
-    const QPointF    scenePosBeforeScale = mapToScene(zoomCenterPoint.toPoint());
-    constexpr double dScale              = 1.0 / 1.1;
-
-    if (m_dScaleFactor == MIN_ZOOM)
-    {
+    if (m_dScaleFactor <= MIN_ZOOM)
         return;
-    }
 
+    constexpr qreal dScale = 1.0 / 1.1;
+
+    const QPointF sceneAnchor = viewportTransform().inverted().map(zoomCenterPoint);
+
+    scale(dScale, dScale);
     m_dScaleFactor *= dScale;
     m_dScaleFactor = qBound(MIN_ZOOM, m_dScaleFactor, MAX_ZOOM);
 
-    QTransform transform;
-    transform.scale(m_dScaleFactor, m_dScaleFactor);
-    setTransform(transform);
+    const QPointF newSceneAnchor = viewportTransform().inverted().map(zoomCenterPoint);
 
-    const QPointF scenePos       = mapToScene(zoomCenterPoint.toPoint());
-    const QPointF viewCenter     = mapToScene(viewport()->rect().center());
-    const QPointF adjustedCenter = viewCenter + (scenePosBeforeScale - scenePos);
+    const QPointF delta = newSceneAnchor - sceneAnchor;
+    translate(delta.x(), delta.y());
 
-    centerOn(adjustedCenter);
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }
 
 void MyGraphicsView::zoomTo(qreal zoomValue)
 {
     if (zoomValue <= 0)
-    {
         return;
-    }
 
-    qreal targetScale = zoomValue;
+    qreal targetScale = qBound(MIN_ZOOM, zoomValue, MAX_ZOOM);
 
-    targetScale = qBound(MIN_ZOOM, targetScale, MAX_ZOOM);
+    const QPointF viewAnchor = viewport()->rect().center();
 
-    QPointF cursorViewPos  = viewport()->rect().center();
-    QPointF scenePosBefore = mapToScene(cursorViewPos.toPoint());
+    const QPointF sceneAnchor = viewportTransform().inverted().map(viewAnchor);
 
+    const qreal factor = targetScale / m_dScaleFactor;
+    if (qFuzzyCompare(factor, 1.0))
+        return;
+
+    scale(factor, factor);
     m_dScaleFactor = targetScale;
 
-    QTransform transform;
-    transform.scale(m_dScaleFactor, m_dScaleFactor);
-    setTransform(transform);
+    const QPointF newSceneAnchor = viewportTransform().inverted().map(viewAnchor);
 
-    QPointF scenePosAfter  = mapToScene(cursorViewPos.toPoint());
-    QPointF viewCenter     = mapToScene(viewport()->rect().center());
-    QPointF adjustedCenter = viewCenter + (scenePosBefore - scenePosAfter);
+    const QPointF delta = newSceneAnchor - sceneAnchor;
+    translate(delta.x(), delta.y());
 
-    centerOn(adjustedCenter);
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }
 
 void MyGraphicsView::fitWidth()
 {
-    qreal scale = viewport()->width() / m_CanvasRect.width();
+    const qreal scale = viewport()->width() / m_canvas->canvasRect().width();
     zoomTo(scale);
-    centerOn(m_CanvasRect.center());
+    centerOn(m_canvas->canvasRect().center());
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }
 
 void MyGraphicsView::fitHeight()
 {
-    qreal scale = viewport()->height() / m_CanvasRect.height();
+    const qreal scale = viewport()->height() / m_canvas->canvasRect().height();
     zoomTo(scale);
-    centerOn(m_CanvasRect.center());
+    centerOn(m_canvas->canvasRect().center());
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }
 
 void MyGraphicsView::fitCanvas()
 {
-    qreal scaleW = viewport()->width() / m_CanvasRect.width();
-    qreal scaleH = viewport()->height() / m_CanvasRect.height();
-    qreal scale  = qMin(scaleW, scaleH);
+    const qreal scaleW = viewport()->width() / m_canvas->canvasRect().width();
+    const qreal scaleH = viewport()->height() / m_canvas->canvasRect().height();
+    const qreal scale  = qMin(scaleW, scaleH);
     zoomTo(scale);
-    centerOn(m_CanvasRect.center());
+    centerOn(m_canvas->canvasRect().center());
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }
 
 void MyGraphicsView::fitShapes()
 {
-    if (!m_pShapes || m_pShapes->isEmpty())
+    if (!m_canvas->shapeManager() || m_canvas->shapeManager()->isEmpty())
     {
         return;
     }
 
-    QRectF rect = m_pShapes->boundingRect();
+    const QRectF rect = m_canvas->shapeManager()->boundingRect();
 
-    qreal scaleW = viewport()->width() / rect.width();
-    qreal scaleH = viewport()->height() / rect.height();
-    qreal scale  = qMin(scaleW, scaleH);
+    const qreal scaleW = viewport()->width() / rect.width();
+    const qreal scaleH = viewport()->height() / rect.height();
+    const qreal scale  = qMin(scaleW, scaleH);
     zoomTo(scale);
     centerOn(rect.center());
     emit EventBus::instance().zoomChanged(m_dScaleFactor);

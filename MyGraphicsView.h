@@ -14,6 +14,7 @@ namespace xcanvas
   class Shape;
   class ShapeManager;
   class DrawingTool;
+  class Canvas;
 }
 
 class MyGraphicsView : public QGraphicsView
@@ -24,7 +25,7 @@ class MyGraphicsView : public QGraphicsView
     ~MyGraphicsView();
 
     void    setTool(DrawingToolType type);
-    double  scale();
+    double  zoomValue();
     void    updateCanvas();
     void    traceRects(const QRectF& rect, QRectF rects[9]);
     xcanvas::ShapeManager* GetCurrentShapes();
@@ -78,15 +79,13 @@ private:
     void fitShapes();
 
   private:
+    xcanvas::Canvas* m_canvas;
     QPointF                m_startPos;
     bool                   m_bDragging;
     double                 m_dScaleFactor;
-    QRectF                 m_CanvasRect;
     DrawingToolType        m_eToolType;
     xcanvas::DrawingTool*  m_pBaseDrawingTool;
-    xcanvas::ShapeManager*       m_pShapes;
     BottomFloatingToolBar* m_pFloatingToolBar;
-    QUndoStack             m_undoStack;
 };
 
 #endif// MYGRAPHICSVIEW_H
