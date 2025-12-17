@@ -3,19 +3,22 @@
 
 xcanvas::Text::Text()
 {
-
 }
 
 xcanvas::Text::~Text()
 {
-
 }
 
-void xcanvas::Text::translate(const QPointF &offset)
+void xcanvas::Text::translate(const QPointF& offset)
 {
     m_position += offset;
 
     markDirty();
+}
+
+xcanvas::ShapeType xcanvas::Text::type() const
+{
+    return ShapeType::Text;
 }
 
 void xcanvas::Text::setFont(QFont font)
@@ -29,7 +32,7 @@ QFont xcanvas::Text::font() const
     return m_font;
 }
 
-void xcanvas::Text::setText(const QString &text)
+void xcanvas::Text::setText(const QString& text)
 {
     m_text = text;
     markDirty();
@@ -40,7 +43,7 @@ QString xcanvas::Text::text() const
     return m_text;
 }
 
-void xcanvas::Text::setPosition(const QPointF &position)
+void xcanvas::Text::setPosition(const QPointF& position)
 {
     m_position = position;
     markDirty();
@@ -63,8 +66,8 @@ void xcanvas::Text::updatePainterPath()
     QStringList lines = m_text.split('\n');
 
     QFontMetricsF metrics(m_font);
-    qreal lineSpacing = metrics.lineSpacing();
-    qreal ascent      = metrics.ascent();
+    qreal         lineSpacing = metrics.lineSpacing();
+    qreal         ascent      = metrics.ascent();
 
     // 文本基点（第一行左上角）
     qreal baseX = m_position.x();

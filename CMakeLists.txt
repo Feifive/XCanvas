@@ -38,7 +38,6 @@ set(PROJECT_SOURCES
         MyGraphicsView.cpp MyGraphicsView.h
         DrawingToolsBar.h DrawingToolsBar.cpp
         RulerWidget.h RulerWidget.cpp
-        DXFTranslator.cpp DXFTranslator.h
         DrawingTool/DrawingTool.cpp DrawingTool/DrawingTool.h 
         DrawingTool/EllipseTool.cpp DrawingTool/EllipseTool.h 
         DrawingTool/PolylineTool.cpp DrawingTool/PolylineTool.h 
@@ -66,6 +65,13 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         Resource.qrc
+        Import/ImportManager.h Import/ImportManager.cpp
+        Import/IFileImporter.h
+        Import/ImportContext.h
+        Import/DXF/DXFImporter.h Import/DXF/DXFImporter.cpp
+        Import/Utils/ImageDpiUtil.h Import/Utils/ImageDpiUtil.cpp
+        Import/Image/ImageImporter.h Import/Image/ImageImporter.cpp
+        Import/DXF/DXFTranslator.cpp Import/DXF/DXFTranslator.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET XCanvas APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

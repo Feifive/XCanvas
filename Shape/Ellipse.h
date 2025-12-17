@@ -5,29 +5,30 @@
 
 namespace xcanvas
 {
-    class Ellipse : public Shape
-    {
-    public:
-        Ellipse();
-        ~Ellipse();
+class Ellipse : public Shape
+{
+  public:
+    Ellipse();
+    ~Ellipse();
 
-        void translate(const QPointF& offset) override;
-        void setEllipse(const QPointF& center, double rx, double ry, double rotationDeg = 0.0);
-        void setEllipse(const QRectF& rect);
-        void setEllipseArc(const QPointF& center, double rx, double ry, double rotationDeg, double startDeg, double endDeg);
-        bool isCircle() const;
+    void      translate(const QPointF& offset) override;
+    ShapeType type() const override;
+    void      setEllipse(const QPointF& center, double rx, double ry, double rotationDeg = 0.0);
+    void      setEllipse(const QRectF& rect);
+    void      setEllipseArc(const QPointF& center, double rx, double ry, double rotationDeg, double startDeg, double endDeg);
+    bool      isCircle() const;
 
-    protected:
-        void updatePainterPath() override;
+  protected:
+    void updatePainterPath() override;
 
-    private:
-        QPointF m_center;
-        double  m_rx = 0.0;
-        double  m_ry = 0.0;
-        double  m_dRotationDegree = 0.0;
-        double  m_dStartDegree = 0.0;// arc start
-        double  m_dEndDegree = 360.0;// arc end (360 = full ellipse)
-    };
-}
+  private:
+    QPointF m_center;
+    double  m_rx              = 0.0;
+    double  m_ry              = 0.0;
+    double  m_dRotationDegree = 0.0;
+    double  m_dStartDegree    = 0.0;// arc start
+    double  m_dEndDegree      = 360.0;// arc end (360 = full ellipse)
+};
+}// namespace xcanvas
 
 #endif// ELLIPSESHAPE_H

@@ -3,10 +3,8 @@
 namespace xcanvas
 {
 
-
 Curve::Curve()
 {
-
 }
 
 Curve::~Curve()
@@ -33,6 +31,11 @@ void Curve::translate(const QPointF& offset)
     }
 
     markDirty();
+}
+
+ShapeType Curve::type() const
+{
+    return ShapeType::Curve;
 }
 
 void Curve::updatePainterPath()
@@ -67,4 +70,4 @@ void Curve::updatePainterPath()
     }
 }
 
-} // xcanvas
+}// namespace xcanvas

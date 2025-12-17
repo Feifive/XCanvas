@@ -7,24 +7,23 @@
 
 namespace xcanvas
 {
-    class Polyline : public Shape
-    {
-    public:
-        Polyline();
-        virtual ~Polyline() override;
+class Polyline : public Shape
+{
+  public:
+    Polyline();
+    virtual ~Polyline() override;
 
-        void SetPoints(QVector<QPointF> points);
+    void SetPoints(QVector<QPointF> points);
 
-        void translate(const QPointF& offset) override;
+    void      translate(const QPointF& offset) override;
+    ShapeType type() const override;
 
-    protected:
-        void updatePainterPath() override;
+  protected:
+    void updatePainterPath() override;
 
-    private:
-        QVector<QPointF> m_points;
-    };
-}
+  private:
+    QVector<QPointF> m_points;
+};
+}// namespace xcanvas
 
-
-
-#endif // POLYLINESHAPE_H
+#endif// POLYLINESHAPE_H

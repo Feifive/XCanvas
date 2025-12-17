@@ -1,19 +1,21 @@
 #include "MyGraphicsView.h"
-#include "DXFTranslator.h"
+#include "BottomFloatingToolBar.h"
+#include "DrawingTool/CurveTool.h"
 #include "DrawingTool/DrawingTool.h"
 #include "DrawingTool/EllipseTool.h"
+#include "DrawingTool/PolygonTool.h"
 #include "DrawingTool/PolylineTool.h"
 #include "DrawingTool/RectTool.h"
 #include "DrawingTool/SelectTool.h"
 #include "DrawingTool/TextTool.h"
-#include "DrawingTool/CurveTool.h"
-#include "DrawingTool/PolygonTool.h"
-#include "Shape/Shape.h"
-#include  "Shape/Image.h"
 #include "EventBus.h"
-#include "BottomFloatingToolBar.h"
+#include "Import/DXF/DXFImporter.h"
+#include "Import/Image/ImageImporter.h"
+#include "Import/ImportManager.h"
 #include "Shape/AddShapesCommand.h"
+#include "Shape/Image.h"
 #include "Shape/RemoveShapesCommand.h"
+#include "Shape/Shape.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QGraphicsRectItem>
@@ -25,15 +27,24 @@
 #include "RemoveShapesCommand.h"
 
 MyGraphicsView::MyGraphicsView(QWidget* parent)
-    : m_dScaleFactor(1.0), m_eToolType(DrawingToolType::None), 
-    m_startPos(-1, -1), m_bDragging(false), m_pBaseDrawingTool(nullptr), m_pShapes(new xcanvas::ShapeManager), QGraphicsView{parent}
-    ,m_pFloatingToolBar(nullptr), m_CanvasRect(QRectF(10000, 10000, 1280, 720))
+    : m_dScaleFactor(1.0),
+      m_eToolType(DrawingToolType::None),
+      m_startPos(-1, -1),
+      m_bDragging(false),
+      m_pBaseDrawingTool(nullptr),
+      m_pShapes(new xcanvas::ShapeManager),
+      QGraphicsView{parent},
+      m_pFloatingToolBar(nullptr),
+      m_CanvasRect(QRectF(10000, 10000, 1280, 720))
 {
     setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
     setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    ImportManager::instance().registerImporter(std::make_unique<DXFImporter>());
+    ImportManager::instance().registerImporter(std::make_unique<ImageImporter>());
 
     m_pFloatingToolBar = new BottomFloatingToolBar(this);
     m_pFloatingToolBar->adjustSize();
@@ -52,7 +63,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
 
     connect(&EventBus::instance(), &EventBus::switchTool, this, &MyGraphicsView::setTool);
 
-    QTimer::singleShot(0, this, [this](){ fitCanvas();});
+    QTimer::singleShot(0, this, [this]() { fitCanvas(); });
     updateBottomFloatingToolBarPos();
     m_pFloatingToolBar->show();
 }
@@ -118,8 +129,8 @@ void MyGraphicsView::setTool(DrawingToolType type)
     case DrawingToolType::Polygon:
     {
         m_pBaseDrawingTool = new xcanvas::PolygonTool(this);
-	}
-	break;
+    }
+    break;
     default:
         m_pBaseDrawingTool = nullptr;
         break;
@@ -132,20 +143,23 @@ xcanvas::ShapeManager* MyGraphicsView::GetCurrentShapes()
     return m_pShapes;
 }
 
-QUndoStack * MyGraphicsView::getUndoStack() {
+QUndoStack* MyGraphicsView::getUndoStack()
+{
     return &m_undoStack;
 }
 
 void MyGraphicsView::addShape(xcanvas::Shape* shape)
 {
-    if (m_pShapes)  {
+    if (m_pShapes)
+    {
         addShapes({shape});
     }
 }
 
 void MyGraphicsView::addShapes(const xcanvas::ShapeList& shapeList)
 {
-    if (shapeList.isEmpty()) {
+    if (shapeList.isEmpty())
+    {
         return;
     }
     m_undoStack.push(new xcanvas::AddShapesCommand(m_pShapes, shapeList));
@@ -153,14 +167,16 @@ void MyGraphicsView::addShapes(const xcanvas::ShapeList& shapeList)
 
 void MyGraphicsView::removeShape(xcanvas::Shape* shape)
 {
-    if (m_pShapes) {
+    if (m_pShapes)
+    {
         removeShapes({shape});
     }
 }
 
 void MyGraphicsView::removeShapes(const xcanvas::ShapeList& shapeList)
 {
-    if (shapeList.isEmpty()) {
+    if (shapeList.isEmpty())
+    {
         return;
     }
 
@@ -235,7 +251,7 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
     }
 }
 
-void MyGraphicsView::keyPressEvent(QKeyEvent *event)
+void MyGraphicsView::keyPressEvent(QKeyEvent* event)
 {
     if (m_pBaseDrawingTool)
     {
@@ -249,19 +265,23 @@ void MyGraphicsView::wheelEvent(QWheelEvent* event)
 {
     const QPointF cursorViewPos = mapFromGlobal(QCursor::pos());
 
-    if (event->angleDelta().y() > 0) {
+    if (event->angleDelta().y() > 0)
+    {
         zoomIn(cursorViewPos);
     }
-    else {
+    else
+    {
         zoomOut(cursorViewPos);
     }
 }
 
-void MyGraphicsView::resizeEvent(QResizeEvent *event) {
+void MyGraphicsView::resizeEvent(QResizeEvent* event)
+{
     QGraphicsView::resizeEvent(event);
     updateBottomFloatingToolBarPos();
 }
-void MyGraphicsView::scrollContentsBy(int dx, int dy) {
+void MyGraphicsView::scrollContentsBy(int dx, int dy)
+{
     QGraphicsView::scrollContentsBy(dx, dy);
 
     updateBottomFloatingToolBarPos();
@@ -283,22 +303,26 @@ void MyGraphicsView::drawForeground(QPainter* painter, const QRectF& rect)
     }
 }
 
-void MyGraphicsView::onZoomIn() {
+void MyGraphicsView::onZoomIn()
+{
     const QPoint zoomCenterPos = rect().center();
     zoomIn(zoomCenterPos);
 }
 
-void MyGraphicsView::onZoomOut() {
+void MyGraphicsView::onZoomOut()
+{
     const QPoint zoomCenterPos = rect().center();
     zoomOut(zoomCenterPos);
 }
 
-void MyGraphicsView::onUndo() {
+void MyGraphicsView::onUndo()
+{
     m_undoStack.undo();
     updateCanvas();
 }
 
-void MyGraphicsView::onRedo() {
+void MyGraphicsView::onRedo()
+{
     m_undoStack.redo();
     updateCanvas();
 }
@@ -316,13 +340,13 @@ void MyGraphicsView::drawNormalShapes(QPainter* painter, const QRectF& visibleRe
     // 遍历所有形状，只绘制未选中的
     for (xcanvas::Shape* shape : m_pShapes->shapes())
     {
-        if (shape->isSelected()) 
+        if (shape->isSelected())
         {
             continue;
         }
 
         // 视口裁剪：只绘制可见的形状
-        if (!visibleRect.intersects(shape->boundingRect())) 
+        if (!visibleRect.intersects(shape->boundingRect()))
         {
             continue;
         }
@@ -341,9 +365,9 @@ void MyGraphicsView::drawSelectedShapes(QPainter* painter, const QRectF& visible
     // 最后绘制选中的形状（显示在最上层）
     QVector<xcanvas::Shape*> selected = m_pShapes->selectedShapes();
 
-    for (xcanvas::Shape* shape : selected) 
+    for (xcanvas::Shape* shape : selected)
     {
-        if (!visibleRect.intersects(shape->boundingRect())) 
+        if (!visibleRect.intersects(shape->boundingRect()))
         {
             continue;
         }
@@ -352,15 +376,15 @@ void MyGraphicsView::drawSelectedShapes(QPainter* painter, const QRectF& visible
     }
 
     // 绘制trace
-    if (!selected.isEmpty()) 
+    if (!selected.isEmpty())
     {
-		drawTrace(painter);
+        drawTrace(painter);
     }
 
     painter->restore();
 }
 
-void MyGraphicsView::drawGrid(QPainter *p)
+void MyGraphicsView::drawGrid(QPainter* p)
 {
     if (!scene())
     {
@@ -368,9 +392,9 @@ void MyGraphicsView::drawGrid(QPainter *p)
     }
 
     // 计算画布在场景坐标中的可见部分
-    const QRectF canvasSceneRect   = m_CanvasRect;                                   // 画布本身（场景坐标）
-    const QRectF viewSceneRect     = mapToScene(viewport()->rect()).boundingRect();  // 视口对应的场景区域
-    const QRectF visibleSceneRect  = canvasSceneRect.intersected(viewSceneRect);     // 画布中可见的部分
+    const QRectF canvasSceneRect  = m_CanvasRect;// 画布本身（场景坐标）
+    const QRectF viewSceneRect    = mapToScene(viewport()->rect()).boundingRect();// 视口对应的场景区域
+    const QRectF visibleSceneRect = canvasSceneRect.intersected(viewSceneRect);// 画布中可见的部分
 
     if (!visibleSceneRect.isValid() || visibleSceneRect.isEmpty())
     {
@@ -378,7 +402,7 @@ void MyGraphicsView::drawGrid(QPainter *p)
     }
 
     const double scale      = this->scale();
-    const double step       = gridStep(scale);   // 网格步长（场景单位）
+    const double step       = gridStep(scale);// 网格步长（场景单位）
     const int    majorCount = 10;
 
     const QColor minorColor(230, 230, 230);
@@ -389,7 +413,7 @@ void MyGraphicsView::drawGrid(QPainter *p)
 
     // 使用视口坐标绘制网格线
     const QTransform oldWorldTransform = p->worldTransform();
-    p->setWorldTransform(QTransform()); // 切换到视口坐标
+    p->setWorldTransform(QTransform());// 切换到视口坐标
 
     // 画布在视口中的矩形（只画这里）
     const QRect canvasViewRect = mapFromScene(visibleSceneRect).boundingRect();
@@ -410,8 +434,8 @@ void MyGraphicsView::drawGrid(QPainter *p)
     for (double x = x0; x <= s1x + step; x += step, ++firstIndexX)
     {
         // 把场景中的 (x, 任意y) 映射到视口
-        QPointF v = mapFromScene(QPointF(x, visibleSceneRect.top()));
-        double vx = std::round(v.x()) - 0.5;
+        QPointF v  = mapFromScene(QPointF(x, visibleSceneRect.top()));
+        double  vx = std::round(v.x()) - 0.5;
 
         if ((firstIndexX % majorCount) == 0)
         {
@@ -432,8 +456,8 @@ void MyGraphicsView::drawGrid(QPainter *p)
 
     for (double y = y0; y <= s1y + step; y += step, ++firstIndexY)
     {
-        QPointF v = mapFromScene(QPointF(visibleSceneRect.left(), y));
-        double vy = std::round(v.y()) - 0.5;
+        QPointF v  = mapFromScene(QPointF(visibleSceneRect.left(), y));
+        double  vy = std::round(v.y()) - 0.5;
 
         if ((firstIndexY % majorCount) == 0)
         {
@@ -459,7 +483,7 @@ void MyGraphicsView::drawGrid(QPainter *p)
 
 double MyGraphicsView::gridStep(double scale) const
 {
-    static const double steps[] = {0.1, 0.5, 1.0, 5.0,10.0, 50.0, 100.0, 500.0};
+    static const double steps[] = {0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0, 500.0};
 
     const double minPixelSpacing = 10.0;
 
@@ -477,18 +501,18 @@ double MyGraphicsView::gridStep(double scale) const
 void MyGraphicsView::traceRects(const QRectF& rect, QRectF rects[9])
 {
 #define SIZE 3
-    double dScale = scale();
-    double dRectSize = SIZE / dScale;
+    double dScale     = scale();
+    double dRectSize  = SIZE / dScale;
     double dRectWidth = dRectSize * 2;
 
-    rects[ERECT_TOP_LEFT] = QRectF(rect.left() - dRectWidth, rect.top() - dRectWidth, dRectWidth, dRectWidth);
-    rects[ERECT_TOP_MID] = QRectF(rect.center().x() - dRectSize, rect.top() - dRectWidth, dRectWidth, dRectWidth);
-    rects[ERECT_TOP_RIGHT] = QRectF(rect.right(), rect.top() - dRectWidth, dRectWidth, dRectWidth);
-    rects[ERECT_MID_LEFT] = QRectF(rect.left() - dRectWidth, rect.center().y() - dRectSize, dRectWidth, dRectWidth);
-    rects[ERECT_CENTER] = QRectF(rect.center().x() - dRectSize, rect.center().y() - dRectSize, dRectWidth, dRectWidth);
-    rects[ERECT_MID_RIGHT] = QRectF(rect.right(), rect.center().y() - dRectSize, dRectWidth, dRectWidth);
-    rects[ERECT_BOTTOM_LEFT] = QRectF(rect.left() - dRectWidth, rect.bottom(), dRectWidth, dRectWidth);
-    rects[ERECT_BOTTOM_MID] = QRectF(rect.center().x() - dRectSize, rect.bottom(), dRectWidth, dRectWidth);
+    rects[ERECT_TOP_LEFT]     = QRectF(rect.left() - dRectWidth, rect.top() - dRectWidth, dRectWidth, dRectWidth);
+    rects[ERECT_TOP_MID]      = QRectF(rect.center().x() - dRectSize, rect.top() - dRectWidth, dRectWidth, dRectWidth);
+    rects[ERECT_TOP_RIGHT]    = QRectF(rect.right(), rect.top() - dRectWidth, dRectWidth, dRectWidth);
+    rects[ERECT_MID_LEFT]     = QRectF(rect.left() - dRectWidth, rect.center().y() - dRectSize, dRectWidth, dRectWidth);
+    rects[ERECT_CENTER]       = QRectF(rect.center().x() - dRectSize, rect.center().y() - dRectSize, dRectWidth, dRectWidth);
+    rects[ERECT_MID_RIGHT]    = QRectF(rect.right(), rect.center().y() - dRectSize, dRectWidth, dRectWidth);
+    rects[ERECT_BOTTOM_LEFT]  = QRectF(rect.left() - dRectWidth, rect.bottom(), dRectWidth, dRectWidth);
+    rects[ERECT_BOTTOM_MID]   = QRectF(rect.center().x() - dRectSize, rect.bottom(), dRectWidth, dRectWidth);
     rects[ERECT_BOTTOM_RIGHT] = QRectF(rect.right(), rect.bottom(), dRectWidth, dRectWidth);
 }
 
@@ -505,7 +529,7 @@ void MyGraphicsView::drawTrace(QPainter* painter)
         return;
     }
 
-    double dScale = scale();
+    double dScale      = scale();
     double dLineLength = 6 / dScale;
 
     painter->save();
@@ -530,16 +554,15 @@ void MyGraphicsView::drawTrace(QPainter* painter)
 
     QPointF center = rect.center();
 
-    painter->drawLine(QPointF(center.x() - dLineLength, center.y() - dLineLength),
-        QPointF(center.x() + dLineLength, center.y() + dLineLength));
+    painter->drawLine(QPointF(center.x() - dLineLength, center.y() - dLineLength), QPointF(center.x() + dLineLength, center.y() + dLineLength));
 
-    painter->drawLine(QPointF(center.x() + dLineLength, center.y() - dLineLength),
-        QPointF(center.x() - dLineLength, center.y() + dLineLength));
+    painter->drawLine(QPointF(center.x() + dLineLength, center.y() - dLineLength), QPointF(center.x() - dLineLength, center.y() + dLineLength));
 
     painter->restore();
 }
 
-void MyGraphicsView::drawCanvas(QPainter *painter) {
+void MyGraphicsView::drawCanvas(QPainter* painter)
+{
     painter->save();
 
     const QTransform oldWorldTransform = painter->worldTransform();
@@ -556,70 +579,49 @@ void MyGraphicsView::drawCanvas(QPainter *painter) {
 
 void MyGraphicsView::ImportFile()
 {
-    const QString filePath = QFileDialog::getOpenFileName(this, tr("Import File"), "", tr("All supported (*.png *.jpg *.jpeg *.webp *.dxf)"));
+    const QString filePath = QFileDialog::getOpenFileName(this, tr("Import File"), QString(), ImportManager::instance().buildDialogFilter());
+
     if (filePath.isEmpty())
     {
         return;
     }
 
-    if (filePath.endsWith(".dxf")) {
-        xcanvas::ShapeManager* shapeManager = new xcanvas::ShapeManager;
-        DXFTranslator translator;
-        translator.Load(filePath);
-        const xcanvas::ShapeList shapeList = translator.shapeList();
-        shapeManager->append(shapeList);
-        const QRectF rect = shapeManager->boundingRect();
-        const QPointF viewCenter = mapToScene(viewport()->rect().center());
-        const QPointF offset = viewCenter - rect.center();
-        shapeManager->translate(offset);
+    ImportContext ctx;
+    ctx.targetCenter = mapToScene(viewport()->rect().center());
 
+    xcanvas::ShapeList shapeList = ImportManager::instance().importFile(filePath, ctx);
+
+    if (!shapeList.isEmpty())
+    {
         m_pShapes->deselectAll();
-        shapeManager->selectAll();
-        addShapes(shapeList);
 
-        delete shapeManager;
-    }
-    else if (filePath.endsWith(".png") || filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") || filePath.endsWith(".webp")) {
-        const QImage image(filePath);
-        if (image.isNull()) {
-            return;
+        // 统一居中
+        QRectF rect;
+        for (auto* shape : shapeList)
+        {
+            rect |= shape->boundingRect();
         }
-        double dpiX = image.dotsPerMeterX() * 0.0254;
-        double dpiY = image.dotsPerMeterY() * 0.0254;
 
-        if (dpiX <= 1e-3) dpiX = 96.0;
-        if (dpiY <= 1e-3) dpiY = dpiX;
+        const QPointF offset = ctx.targetCenter - rect.center();
+        for (auto* shape : shapeList)
+        {
+            shape->translate(offset);
+        }
 
-        qDebug() << "dpiX = " << dpiX;
-        qDebug() << "dpiY = " << dpiY;
-
-        double widthMm  = image.width()  / dpiX * 25.4;
-        double heightMm = image.height() / dpiY * 25.4;
-        QRectF imageRectMm(0, 0, widthMm, heightMm);
-        xcanvas::Image* imageShape = new xcanvas::Image(image);
-        imageShape->setSelected(true);
-        imageShape->setRect(imageRectMm);
-
-        const QRectF rect = imageShape->boundingRect();
-        const QPointF viewCenter = mapToScene(viewport()->rect().center());
-        const QPointF offset = viewCenter - rect.center();
-        imageShape->translate(offset);
-
-        m_pShapes->deselectAll();
-        addShape(imageShape);
+        addShapes(shapeList);
+        updateCanvas();
     }
-
-    updateCanvas();
 }
 
-void MyGraphicsView::updateBottomFloatingToolBarPos() {
+void MyGraphicsView::updateBottomFloatingToolBarPos()
+{
     if (!m_pFloatingToolBar)
     {
         return;
     }
 
-    constexpr int margin = 12;
-    const QSize barSize  = m_pFloatingToolBar->sizeHint();
+    constexpr int margin  = 12;
+    const QSize   barSize = m_pFloatingToolBar->sizeHint();
 
     int x = width() - barSize.width() - margin;
     int y = height() - barSize.height() - margin;
@@ -629,9 +631,10 @@ void MyGraphicsView::updateBottomFloatingToolBarPos() {
 
 void MyGraphicsView::zoomIn(const QPointF& zoomCenterPoint)
 {
-    const QPointF scenePosBeforeScale = mapToScene(zoomCenterPoint.toPoint());
-    constexpr double dScale = 1.1;
-    if (m_dScaleFactor == MAX_ZOOM) {
+    const QPointF    scenePosBeforeScale = mapToScene(zoomCenterPoint.toPoint());
+    constexpr double dScale              = 1.1;
+    if (m_dScaleFactor == MAX_ZOOM)
+    {
         return;
     }
 
@@ -652,10 +655,11 @@ void MyGraphicsView::zoomIn(const QPointF& zoomCenterPoint)
 
 void MyGraphicsView::zoomOut(const QPointF& zoomCenterPoint)
 {
-    const QPointF scenePosBeforeScale = mapToScene(zoomCenterPoint.toPoint());
-    constexpr double dScale = 1.0 / 1.1;
+    const QPointF    scenePosBeforeScale = mapToScene(zoomCenterPoint.toPoint());
+    constexpr double dScale              = 1.0 / 1.1;
 
-    if (m_dScaleFactor == MIN_ZOOM) {
+    if (m_dScaleFactor == MIN_ZOOM)
+    {
         return;
     }
 
@@ -666,7 +670,7 @@ void MyGraphicsView::zoomOut(const QPointF& zoomCenterPoint)
     transform.scale(m_dScaleFactor, m_dScaleFactor);
     setTransform(transform);
 
-    const QPointF scenePos = mapToScene(zoomCenterPoint.toPoint());
+    const QPointF scenePos       = mapToScene(zoomCenterPoint.toPoint());
     const QPointF viewCenter     = mapToScene(viewport()->rect().center());
     const QPointF adjustedCenter = viewCenter + (scenePosBeforeScale - scenePos);
 
@@ -674,8 +678,10 @@ void MyGraphicsView::zoomOut(const QPointF& zoomCenterPoint)
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }
 
-void MyGraphicsView::zoomTo(qreal zoomValue) {
-    if (zoomValue <= 0) {
+void MyGraphicsView::zoomTo(qreal zoomValue)
+{
+    if (zoomValue <= 0)
+    {
         return;
     }
 
@@ -683,7 +689,7 @@ void MyGraphicsView::zoomTo(qreal zoomValue) {
 
     targetScale = qBound(MIN_ZOOM, targetScale, MAX_ZOOM);
 
-    QPointF cursorViewPos = viewport()->rect().center();
+    QPointF cursorViewPos  = viewport()->rect().center();
     QPointF scenePosBefore = mapToScene(cursorViewPos.toPoint());
 
     m_dScaleFactor = targetScale;
@@ -692,8 +698,8 @@ void MyGraphicsView::zoomTo(qreal zoomValue) {
     transform.scale(m_dScaleFactor, m_dScaleFactor);
     setTransform(transform);
 
-    QPointF scenePosAfter = mapToScene(cursorViewPos.toPoint());
-    QPointF viewCenter = mapToScene(viewport()->rect().center());
+    QPointF scenePosAfter  = mapToScene(cursorViewPos.toPoint());
+    QPointF viewCenter     = mapToScene(viewport()->rect().center());
     QPointF adjustedCenter = viewCenter + (scenePosBefore - scenePosAfter);
 
     centerOn(adjustedCenter);
@@ -718,7 +724,7 @@ void MyGraphicsView::fitHeight()
 
 void MyGraphicsView::fitCanvas()
 {
-    qreal scaleW = viewport()->width()  / m_CanvasRect.width();
+    qreal scaleW = viewport()->width() / m_CanvasRect.width();
     qreal scaleH = viewport()->height() / m_CanvasRect.height();
     qreal scale  = qMin(scaleW, scaleH);
     zoomTo(scale);
@@ -726,8 +732,10 @@ void MyGraphicsView::fitCanvas()
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
 }
 
-void MyGraphicsView::fitShapes() {
-    if (!m_pShapes || m_pShapes->isEmpty()) {
+void MyGraphicsView::fitShapes()
+{
+    if (!m_pShapes || m_pShapes->isEmpty())
+    {
         return;
     }
 

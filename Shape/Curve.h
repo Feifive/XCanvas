@@ -8,25 +8,23 @@
 namespace xcanvas
 {
 
-
 class Curve : public Shape
 {
-public:
+  public:
     Curve();
     ~Curve();
 
-    void SetPoints(QVector<QPointF> points);
-    void translate(const QPointF& offset) override;
+    void      SetPoints(QVector<QPointF> points);
+    void      translate(const QPointF& offset) override;
+    ShapeType type() const override;
 
-protected:
+  protected:
     void updatePainterPath() override;
 
-private:
+  private:
     QVector<QPointF> m_points;
 };
 
+}// namespace xcanvas
 
-
-} // xcanvas
-
-#endif // CURVE_H
+#endif// CURVE_H

@@ -1,9 +1,9 @@
 #include "SelectTool.h"
-#include "Global.h"
 #include "../MyGraphicsView.h"
-#include "ShapeManager.h"
+#include "Global.h"
 #include "Shape.h"
-#include  "TranslateShapeListCommand.h"
+#include "ShapeManager.h"
+#include "TranslateShapeListCommand.h"
 #include <QGraphicsPathItem>
 #include <QMouseEvent>
 
@@ -18,17 +18,17 @@ xcanvas::SelectTool::~SelectTool()
 void xcanvas::SelectTool::mousePressEvent(QMouseEvent* event)
 {
     QPointF scenePos = m_pView->mapToScene(event->pos());
-    m_mousePos = scenePos;
+    m_mousePos       = scenePos;
     if (event->button() == Qt::LeftButton && m_pView->cursor().shape() == Qt::ArrowCursor)
     {
-        if(m_state == State::Idle)
+        if (m_state == State::Idle)
         {
             m_state = State::Drawing;
         }
     }
     if (event->button() == Qt::LeftButton && m_pView->cursor().shape() == Qt::SizeAllCursor)
     {
-        m_bMovingItem = true;
+        m_bMovingItem  = true;
         m_dragStartPos = scenePos;
     }
 }
@@ -53,7 +53,8 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
             QPointF delta = scenePos - m_mousePos;
 
             ShapeList selectedShapeList = m_pView->GetCurrentShapes()->selectedShapes();
-            for (Shape* shape : selectedShapeList) {
+            for (Shape* shape : selectedShapeList)
+            {
                 shape->translate(delta);
             }
 
@@ -120,9 +121,11 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
     {
         m_bMovingItem = false;
 
-        if (const QPointF totalOffset = scenePos - m_dragStartPos; !totalOffset.isNull()) {
+        if (const QPointF totalOffset = scenePos - m_dragStartPos; !totalOffset.isNull())
+        {
             ShapeList selectedShapeList = m_pView->GetCurrentShapes()->selectedShapes();
-            for (Shape* shape : selectedShapeList) {
+            for (Shape* shape : selectedShapeList)
+            {
                 shape->translate(-totalOffset);
             }
             m_pView->getUndoStack()->push(new TranslateShapesCommand(selectedShapeList, totalOffset));
@@ -138,8 +141,8 @@ void xcanvas::SelectTool::keyPressEvent(QKeyEvent* event)
     {
         if (m_pView)
         {
-            ShapeList shapeList =  m_pView->GetCurrentShapes()->selectedShapes();
-			if (shapeList.isEmpty())
+            ShapeList shapeList = m_pView->GetCurrentShapes()->selectedShapes();
+            if (shapeList.isEmpty())
             {
                 event->accept();
                 return;
@@ -152,9 +155,9 @@ void xcanvas::SelectTool::keyPressEvent(QKeyEvent* event)
     }
 }
 
-void xcanvas::SelectTool::drawPreview(QPainter *painter)
+void xcanvas::SelectTool::drawPreview(QPainter* painter)
 {
-    if(!m_highlightPath.isEmpty())
+    if (!m_highlightPath.isEmpty())
     {
         painter->save();
 
@@ -179,7 +182,7 @@ DrawingToolType xcanvas::SelectTool::toolType()
     return DrawingToolType::Select;
 }
 
-int xcanvas::SelectTool::hitTraceHandle(const QPointF &pos) const
+int xcanvas::SelectTool::hitTraceHandle(const QPointF& pos) const
 {
     QRectF rectf = m_pView->GetCurrentShapes()->selectedBoundingRect();
 
@@ -193,6 +196,10 @@ int xcanvas::SelectTool::hitTraceHandle(const QPointF &pos) const
             if (traces[i].contains(pos))
             {
                 return i;
+            }
+            else if (rectf.contains(pos))
+            {
+                return ERECT_CENTER;
             }
         }
     }
@@ -228,7 +235,7 @@ void xcanvas::SelectTool::setCanvasCursorShape(int nHitPos)
     }
 }
 
-void xcanvas::SelectTool::updateHighlight(const Shape &shape)
+void xcanvas::SelectTool::updateHighlight(const Shape& shape)
 {
     m_highlightPath = QPainterPath();
     m_highlightPath.addPath(shape.path());
@@ -239,7 +246,7 @@ void xcanvas::SelectTool::clearHighlight()
     m_highlightPath = QPainterPath();
 }
 
-void xcanvas::SelectTool::updateSelectionRect(const QRectF &rect)
+void xcanvas::SelectTool::updateSelectionRect(const QRectF& rect)
 {
     m_selectionRectPath = QPainterPath();
     m_selectionRectPath.addRect(rect);
@@ -252,7 +259,7 @@ void xcanvas::SelectTool::clearSelectionRect()
 
 xcanvas::Shape* xcanvas::SelectTool::hitUnselectedShape(QPointF pos)
 {
-    double  dScale  = m_pView->scale();
+    double        dScale  = m_pView->scale();
     ShapeManager* pShapes = m_pView->GetCurrentShapes();
     for (int i = 0; i < pShapes->count(); ++i)
     {
@@ -265,7 +272,14 @@ xcanvas::Shape* xcanvas::SelectTool::hitUnselectedShape(QPointF pos)
         {
             continue;
         }
-        if (pShape->isPointNearPath(pos, dScale))
+        if (pShape->type() == ShapeType::Image)
+        {
+            if (pShape->boundingRect().contains(pos))
+            {
+                return pShape;
+            }
+        }
+        else if (pShape->isPointNearPath(pos, dScale))
         {
             return pShape;
         }

@@ -36,6 +36,11 @@ void xcanvas::Polyline::translate(const QPointF& offset)
     markDirty();
 }
 
+xcanvas::ShapeType xcanvas::Polyline::type() const
+{
+    return ShapeType::Polyline;
+}
+
 void xcanvas::Polyline::updatePainterPath()
 {
     if (m_points.isEmpty())

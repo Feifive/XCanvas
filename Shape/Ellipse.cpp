@@ -18,6 +18,11 @@ void xcanvas::Ellipse::translate(const QPointF& offset)
     markDirty();
 }
 
+xcanvas::ShapeType xcanvas::Ellipse::type() const
+{
+    return ShapeType::Ellipse;
+}
+
 void xcanvas::Ellipse::setEllipse(const QPointF& center, double rx, double ry, double rotationDeg)
 {
     m_center          = center;
@@ -30,7 +35,7 @@ void xcanvas::Ellipse::setEllipse(const QPointF& center, double rx, double ry, d
     markDirty();
 }
 
-void xcanvas::Ellipse::setEllipse(const QRectF &rect)
+void xcanvas::Ellipse::setEllipse(const QRectF& rect)
 {
     m_center          = rect.center();
     m_rx              = rect.width() / 2.0;
