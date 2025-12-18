@@ -1,23 +1,21 @@
 #include "CurveTool.h"
 #include "../MyGraphicsView.h"
-#include "ShapeManager.h"
+#include "Canvas.h"
 #include "Curve.h"
 #include "Polyline.h"
 
 namespace xcanvas
 {
 
-CurveTool::CurveTool(MyGraphicsView* pView) : DrawingTool(pView)
+CurveTool::CurveTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
 {
-
 }
 
 CurveTool::~CurveTool()
 {
-
 }
 
-void CurveTool::mousePressEvent(QMouseEvent *event)
+void CurveTool::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton)
     {
@@ -25,7 +23,7 @@ void CurveTool::mousePressEvent(QMouseEvent *event)
         return;
     }
 
-    m_mousePos = m_pView->mapToScene(event->pos());
+    m_mousePos = m_canvasView->mapToScene(event->pos());
 
     if (m_state == State::Idle)
     {
@@ -38,25 +36,25 @@ void CurveTool::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void CurveTool::mouseMoveEvent(QMouseEvent *event)
+void CurveTool::mouseMoveEvent(QMouseEvent* event)
 {
     if (m_state == State::Idle)
     {
         return;
     }
 
-    m_mousePos = m_pView->mapToScene(event->pos());
+    m_mousePos = m_canvasView->mapToScene(event->pos());
 
     rebuildPreviewPath();
 
-    m_pView->updateCanvas();
+    m_canvasView->requestFullUpdate();
 
     handleRightButtonMove(event);
 }
 
-void CurveTool::mouseReleaseEvent(QMouseEvent *event)
+void CurveTool::mouseReleaseEvent(QMouseEvent* event)
 {
-	handleRightButtonRelease(event);
+    handleRightButtonRelease(event);
 }
 
 void CurveTool::cancelDrawing()
@@ -66,10 +64,10 @@ void CurveTool::cancelDrawing()
         return;
     }
 
-    if(m_points.size() <= 1)
+    if (m_points.size() <= 1)
     {
         m_previewPath = QPainterPath();
-	}
+    }
     else
     {
         Shape* pShape = nullptr;
@@ -82,15 +80,15 @@ void CurveTool::cancelDrawing()
         else
         {
             QVector<QPointF> bezierPoints = computeBezierPoints(m_points);
-            
+
             Curve* pCurve = new Curve;
             pCurve->SetPoints(bezierPoints);
             pShape = pCurve;
-        } 
+        }
 
         pShape->setSelected(true);
-        m_pView->GetCurrentShapes()->deselectAll();
-        m_pView->addShape(pShape);
+        m_canvas->shapeManager()->deselectAll();
+        m_canvas->addShape(pShape);
     }
 
     DrawingTool::cancelDrawing();
@@ -123,7 +121,7 @@ QVector<QPointF> CurveTool::computeBezierPoints(const QVector<QPointF>& anchorPo
         QPointF C1 = P0 + (P1 - P0) / 3.0;
         QPointF C2 = P1 - (P1 - P0) / 3.0;
 
-        segments.append({ P0, P1, C1, C2 });
+        segments.append({P0, P1, C1, C2});
     }
 
     // 两段之间联动控制点
@@ -132,11 +130,11 @@ QVector<QPointF> CurveTool::computeBezierPoints(const QVector<QPointF>& anchorPo
         Segment& prev = segments[i - 1];
         Segment& curr = segments[i];
 
-        QPointF* pC1 = &prev.C2;
-        QPointF* pC2 = &curr.C1;
+        QPointF* pC1   = &prev.C2;
+        QPointF* pC2   = &curr.C1;
         QPointF* pNode = &prev.P1;
 
-        QPointF mid = (*pC1 + *pC2) / 2.0;
+        QPointF mid   = (*pC1 + *pC2) / 2.0;
         QPointF delta = *pNode - mid;
 
         prev.C2 += delta;
@@ -209,4 +207,4 @@ DrawingToolType CurveTool::toolType()
     return DrawingToolType::Curve;
 }
 
-} // xcanvas
+}// namespace xcanvas

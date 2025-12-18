@@ -1,18 +1,18 @@
 #include "PolygonTool.h"
-#include "Global.h"
 #include "../MyGraphicsView.h"
+#include "Canvas.h"
+#include "Global.h"
 #include "MyMath.h"
 #include "Polyline.h"
-#include "ShapeManager.h"
 
 #include <QPointF>
 #include <QRectF>
 
-namespace xcanvas {
-
-PolygonTool::PolygonTool(MyGraphicsView* pView) : DrawingTool(pView)
+namespace xcanvas
 {
 
+PolygonTool::PolygonTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
+{
 }
 
 PolygonTool::~PolygonTool()
@@ -29,24 +29,24 @@ void PolygonTool::mousePressEvent(QMouseEvent* event)
 
     if (m_state == State::Idle)
     {
-        m_state = State::Drawing;
-        m_mousePos = m_pView->mapToScene(event->pos());
+        m_state    = State::Drawing;
+        m_mousePos = m_canvasView->mapToScene(event->pos());
     }
 }
 
 void PolygonTool::mouseMoveEvent(QMouseEvent* event)
 {
-    if(m_state != State::Drawing)
+    if (m_state != State::Drawing)
     {
         handleRightButtonMove(event);
         return;
-	}
+    }
 
     if (m_state == State::Drawing)
     {
-		QPointF currentPos = m_pView->mapToScene(event->pos());
-		QRectF rect(m_mousePos, currentPos);
-		rect = rect.normalized();
+        QPointF currentPos = m_canvasView->mapToScene(event->pos());
+        QRectF  rect(m_mousePos, currentPos);
+        rect = rect.normalized();
 
         QVector<QPointF> pts = MyMath::buildRegularPolygon(rect, 5);
 
@@ -57,11 +57,10 @@ void PolygonTool::mouseMoveEvent(QMouseEvent* event)
 
         m_previewPath.closeSubpath();
 
-        m_pView->updateCanvas();
+        m_canvasView->requestFullUpdate();
     }
 
-
-	handleRightButtonMove(event);
+    handleRightButtonMove(event);
 }
 
 void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
@@ -74,8 +73,8 @@ void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
 
     if (m_state == State::Drawing)
     {
-        QPointF currentPos = m_pView->mapToScene(event->pos());
-        QRectF rect(m_mousePos, currentPos);
+        QPointF currentPos = m_canvasView->mapToScene(event->pos());
+        QRectF  rect(m_mousePos, currentPos);
         rect = rect.normalized();
 
         if (!rect.isValid())
@@ -89,15 +88,15 @@ void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
         {
             if (points.first() != points.last())
             {
-				points.append(points.first());
+                points.append(points.first());
             }
 
             Polyline* pShape = new Polyline;
             pShape->SetPoints(points);
             pShape->setSelected(true);
 
-            m_pView->GetCurrentShapes()->deselectAll();
-			m_pView->addShape(pShape);
+            m_canvas->shapeManager()->deselectAll();
+            m_canvas->addShape(pShape);
         }
 
         cancelDrawing();
@@ -106,9 +105,7 @@ void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
 
 DrawingToolType PolygonTool::toolType()
 {
-	return DrawingToolType::Polygon;
+    return DrawingToolType::Polygon;
 }
 
-}
-
-
+}// namespace xcanvas

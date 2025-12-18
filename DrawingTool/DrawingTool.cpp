@@ -1,27 +1,24 @@
 #include "DrawingTool.h"
-#include "Global.h"
 #include "../MyGraphicsView.h"
 #include "EventBus.h"
-#include <QRectF>
+#include "Global.h"
+#include <QDebug>
 #include <QGraphicsPathItem>
 #include <QMouseEvent>
-#include <QDebug>
+#include <QRectF>
 
 const double RIGHT_DRAG_THRESHOLD = 3.0;
 
-xcanvas::DrawingTool::DrawingTool(MyGraphicsView *pView) :
-    m_pView(pView),
-    m_state(State::Idle),
-    m_isRightPressed(false),
-    m_isRightDragged(false)
+xcanvas::DrawingTool::DrawingTool(MyGraphicsView* canvasView, Canvas* canvas) : m_canvasView(canvasView), m_canvas(canvas), m_state(State::Idle), m_isRightPressed(false), m_isRightDragged(false)
 
-{}
+{
+}
 
 xcanvas::DrawingTool::~DrawingTool()
 {
 }
 
-void xcanvas::DrawingTool::keyPressEvent(QKeyEvent *event)
+void xcanvas::DrawingTool::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Escape)
     {
@@ -29,7 +26,7 @@ void xcanvas::DrawingTool::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void xcanvas::DrawingTool::drawPreview(QPainter *painter)
+void xcanvas::DrawingTool::drawPreview(QPainter* painter)
 {
     if (m_state == State::Drawing && !m_previewPath.isEmpty())
     {
@@ -44,18 +41,18 @@ void xcanvas::DrawingTool::cancelDrawing()
 {
     m_state       = State::Idle;
     m_previewPath = QPainterPath();
-    m_pView->updateCanvas();
+    m_canvasView->requestFullUpdate();
     emit EventBus::instance().finishDrawing();
 }
 
-void xcanvas::DrawingTool::handleRightButtonPress(QMouseEvent *event)
+void xcanvas::DrawingTool::handleRightButtonPress(QMouseEvent* event)
 {
-    m_isRightPressed  = true;
-    m_isRightDragged  = false;
+    m_isRightPressed = true;
+    m_isRightDragged = false;
     m_rightPressPos  = event->pos();
 }
 
-void xcanvas::DrawingTool::handleRightButtonMove(QMouseEvent *event)
+void xcanvas::DrawingTool::handleRightButtonMove(QMouseEvent* event)
 {
     if (!m_isRightPressed)
     {
@@ -70,7 +67,7 @@ void xcanvas::DrawingTool::handleRightButtonMove(QMouseEvent *event)
     }
 }
 
-void xcanvas::DrawingTool::handleRightButtonRelease(QMouseEvent *event)
+void xcanvas::DrawingTool::handleRightButtonRelease(QMouseEvent* event)
 {
     if (!m_isRightPressed)
     {

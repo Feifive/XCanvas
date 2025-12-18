@@ -8,31 +8,30 @@ class QGraphicsTextItem;
 
 namespace xcanvas
 {
-    class TextTool : public DrawingTool
-    {
-        Q_OBJECT
+class TextTool : public DrawingTool
+{
+    Q_OBJECT
 
-        public:
-            explicit TextTool(MyGraphicsView* pView);
-            virtual ~TextTool() override;
+  public:
+    explicit TextTool(MyGraphicsView* view, Canvas* canvas);
+    virtual ~TextTool() override;
 
-            virtual void mousePressEvent(QMouseEvent* event) override;
-            virtual void mouseMoveEvent(QMouseEvent* event) override;
-            virtual void mouseReleaseEvent(QMouseEvent* event) override;
-            virtual DrawingToolType toolType() override;
+    virtual void            mousePressEvent(QMouseEvent* event) override;
+    virtual void            mouseMoveEvent(QMouseEvent* event) override;
+    virtual void            mouseReleaseEvent(QMouseEvent* event) override;
+    virtual DrawingToolType toolType() override;
 
-        protected:
-            void cancelDrawing() override;
+  protected:
+    void cancelDrawing() override;
 
-        private:
-            void startEdit();
-            void finishEdit();
+  private:
+    void startEdit();
+    void finishEdit();
 
-        private:
-            QGraphicsTextItem* m_pTextItem;
-            QFont m_font;
-    };
-}
+  private:
+    QGraphicsTextItem* m_pTextItem;
+    QFont              m_font;
+};
+}// namespace xcanvas
 
-
-#endif // TEXTTOOL_H
+#endif// TEXTTOOL_H

@@ -69,8 +69,6 @@ set(PROJECT_SOURCES
         Shape/TranslateShapeListCommand.h
         Canvas/Canvas.cpp
         Canvas/Canvas.h
-        Canvas/CanvasRenderer.cpp
-        Canvas/CanvasRenderer.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -131,6 +129,8 @@ endif()
 target_include_directories(XCanvas PRIVATE
     ${PROJECT_SOURCE_DIR}/3rdparty/libdxfrw/src
     ${PROJECT_SOURCE_DIR}/Shape
+    ${PROJECT_SOURCE_DIR}/Canvas
+    ${PROJECT_SOURCE_DIR}/Import
     ${PROJECT_SOURCE_DIR}/DrawingTool
     ${PROJECT_SOURCE_DIR}/Common
 )

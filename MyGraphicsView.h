@@ -3,19 +3,19 @@
 
 #include "Global.h"
 #include "Shape/ShapeManager.h"
-#include <QUndoStack>
 #include <QGraphicsView>
+#include <QUndoStack>
 
 class QGraphicsRectItem;
 class BottomFloatingToolBar;
 
 namespace xcanvas
 {
-  class Shape;
-  class ShapeManager;
-  class DrawingTool;
-  class Canvas;
-}
+class Shape;
+class ShapeManager;
+class DrawingTool;
+class Canvas;
+}// namespace xcanvas
 
 class MyGraphicsView : public QGraphicsView
 {
@@ -24,19 +24,10 @@ class MyGraphicsView : public QGraphicsView
     explicit MyGraphicsView(QWidget* parent = nullptr);
     ~MyGraphicsView();
 
-    void    setTool(DrawingToolType type);
-    double  zoomValue();
-    void    updateCanvas();
-    void    traceRects(const QRectF& rect, QRectF rects[9]);
-    xcanvas::ShapeManager* GetCurrentShapes();
-
-
-    // 图元操作, 加入撤销堆栈
-    QUndoStack* getUndoStack();
-    void addShape(xcanvas::Shape* shape);
-	  void addShapes(const xcanvas::ShapeList& shapeList);
-    void removeShape(xcanvas::Shape* shape);
-	  void removeShapes(const xcanvas::ShapeList& shapeList);
+    void   setTool(DrawingToolType type);
+    double zoomValue();
+    void   requestFullUpdate();
+    void   traceRects(const QRectF& rect, QRectF rects[9]);
 
   signals:
     void mouseMovePos(QPointF pos);
@@ -52,13 +43,13 @@ class MyGraphicsView : public QGraphicsView
     void drawBackground(QPainter* painter, const QRectF& rect) override;
     void drawForeground(QPainter* painter, const QRectF& rect) override;
 
-private slots:
-  void onZoomIn();
-  void onZoomOut();
-  void onUndo();
-  void onRedo();
+  private slots:
+    void onZoomIn();
+    void onZoomOut();
+    void onUndo();
+    void onRedo();
 
-private:
+  private:
     void drawShapes(QPainter* painter, const QRectF& visibleRect);
     void drawNormalShapes(QPainter* painter, const QRectF& visibleRect);
     void drawSelectedShapes(QPainter* painter, const QRectF& visibleRect);
@@ -68,18 +59,18 @@ private:
 
   private:
     double gridStep(double scale) const;
-    void ImportFile();
-    void updateBottomFloatingToolBarPos();
-    void zoomIn(const QPointF& zoomCenterPoint);
-    void zoomOut(const QPointF& zoomCenterPoint);
-    void zoomTo(qreal zoomValue);
-    void fitWidth();
-    void fitHeight();
-    void fitCanvas();
-    void fitShapes();
+    void   ImportFile();
+    void   updateBottomFloatingToolBarPos();
+    void   zoomIn(const QPointF& zoomCenterPoint);
+    void   zoomOut(const QPointF& zoomCenterPoint);
+    void   zoomTo(qreal zoomValue);
+    void   fitWidth();
+    void   fitHeight();
+    void   fitCanvas();
+    void   fitShapes();
 
   private:
-    xcanvas::Canvas* m_canvas;
+    xcanvas::Canvas*       m_canvas;
     QPointF                m_startPos;
     bool                   m_bDragging;
     double                 m_dScaleFactor;

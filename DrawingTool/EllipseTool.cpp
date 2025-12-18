@@ -1,21 +1,21 @@
 #include "EllipseTool.h"
-#include "Global.h"
 #include "../MyGraphicsView.h"
+#include "Canvas.h"
 #include "Ellipse.h"
-#include "ShapeManager.h"
+#include "Global.h"
+#include <QDebug>
 #include <QGraphicsEllipseItem>
 #include <QMouseEvent>
-#include <QDebug>
 
-xcanvas::EllipseTool::EllipseTool(MyGraphicsView* pView) :
-    DrawingTool(pView)
-{}
+xcanvas::EllipseTool::EllipseTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
+{
+}
 
 xcanvas::EllipseTool::~EllipseTool()
 {
 }
 
-void xcanvas::EllipseTool::mousePressEvent(QMouseEvent *event)
+void xcanvas::EllipseTool::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton)
     {
@@ -23,37 +23,32 @@ void xcanvas::EllipseTool::mousePressEvent(QMouseEvent *event)
         return;
     }
 
-    if(m_state == State::Idle)
+    if (m_state == State::Idle)
     {
-        m_mousePos = m_pView->mapToScene(event->pos());
+        m_mousePos    = m_canvasView->mapToScene(event->pos());
         m_previewPath = QPainterPath();
-        m_state = State::Drawing;
+        m_state       = State::Drawing;
     }
 }
 
-void xcanvas::EllipseTool::mouseMoveEvent(QMouseEvent *event)
+void xcanvas::EllipseTool::mouseMoveEvent(QMouseEvent* event)
 {
-    if(m_state == State::Drawing)
+    if (m_state == State::Drawing)
     {
-        QPointF currentPos = m_pView->mapToScene(event->pos());
+        QPointF currentPos = m_canvasView->mapToScene(event->pos());
 
-        QRectF rect(
-            qMin(m_mousePos.x(), currentPos.x()),
-            qMin(m_mousePos.y(), currentPos.y()),
-            qAbs(currentPos.x() - m_mousePos.x()),
-            qAbs(currentPos.y() - m_mousePos.y())
-        );
+        QRectF rect(qMin(m_mousePos.x(), currentPos.x()), qMin(m_mousePos.y(), currentPos.y()), qAbs(currentPos.x() - m_mousePos.x()), qAbs(currentPos.y() - m_mousePos.y()));
 
         m_previewPath = QPainterPath();
         m_previewPath.addEllipse(rect);
 
-        m_pView->updateCanvas();
+        m_canvasView->requestFullUpdate();
     }
 
     handleRightButtonMove(event);
 }
 
-void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent *event)
+void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton)
     {
@@ -61,7 +56,7 @@ void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
-    if(m_state == State::Drawing)
+    if (m_state == State::Drawing)
     {
         QRectF rect = m_previewPath.boundingRect();
 
@@ -69,8 +64,8 @@ void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent *event)
         pShape->setEllipse(rect);
         pShape->setSelected(true);
 
-        m_pView->GetCurrentShapes()->deselectAll();
-        m_pView->addShape(pShape);
+        m_canvas->shapeManager()->deselectAll();
+        m_canvas->addShape(pShape);
 
         cancelDrawing();
     }

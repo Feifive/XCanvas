@@ -1,11 +1,12 @@
 #include "RectTool.h"
-#include "Global.h"
 #include "../MyGraphicsView.h"
+#include "Canvas.h"
+#include "Global.h"
 #include "Polyline.h"
-#include "ShapeManager.h"
+#include <QGraphicsView>
 #include <QMouseEvent>
 
-xcanvas::RectTool::RectTool(MyGraphicsView* pView) : DrawingTool(pView)
+xcanvas::RectTool::RectTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
 {
 }
 
@@ -15,15 +16,16 @@ xcanvas::RectTool::~RectTool()
 
 void xcanvas::RectTool::mousePressEvent(QMouseEvent* event)
 {
-    if (event->button() == Qt::RightButton) {
+    if (event->button() == Qt::RightButton)
+    {
         handleRightButtonPress(event);
         return;
     }
 
-    if(m_state == State::Idle)
+    if (m_state == State::Idle)
     {
-        m_state = State::Drawing;
-        m_mousePos = m_pView->mapToScene(event->pos());
+        m_state    = State::Drawing;
+        m_mousePos = m_canvasView->mapToScene(event->pos());
     }
 }
 
@@ -31,7 +33,7 @@ void xcanvas::RectTool::mouseMoveEvent(QMouseEvent* event)
 {
     if (m_state == State::Drawing)
     {
-        QPointF currentPos = m_pView->mapToScene(event->pos());
+        QPointF currentPos = m_canvasView->mapToScene(event->pos());
 
         QPointF p1 = m_mousePos;
         QPointF p2(currentPos.x(), m_mousePos.y());
@@ -44,7 +46,7 @@ void xcanvas::RectTool::mouseMoveEvent(QMouseEvent* event)
         m_previewPath.lineTo(p4);
         m_previewPath.closeSubpath();
 
-        m_pView->updateCanvas();
+        m_canvasView->requestFullUpdate();
     }
 
     handleRightButtonMove(event);
@@ -60,17 +62,12 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
 
     if (m_state == State::Drawing)
     {
-        QPointF endPos = m_pView->mapToScene(event->pos());
+        QPointF endPos = m_canvasView->mapToScene(event->pos());
 
-        QVector<QPointF> points {
-            m_mousePos,
-            QPointF(endPos.x(), m_mousePos.y()),
-            endPos,
-            QPointF(m_mousePos.x(), endPos.y()),
-            m_mousePos
-        };
+        QVector<QPointF> points{m_mousePos, QPointF(endPos.x(), m_mousePos.y()), endPos, QPointF(m_mousePos.x(), endPos.y()), m_mousePos};
 
-        if (points[0] == points[2]) {
+        if (points[0] == points[2])
+        {
             cancelDrawing();
             return;
         }
@@ -79,8 +76,8 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
         pShape->SetPoints(points);
         pShape->setSelected(true);
 
-        m_pView->GetCurrentShapes()->deselectAll();
-        m_pView->addShape(pShape);
+        m_canvas->shapeManager()->deselectAll();
+        m_canvas->shapeManager()->addShape(pShape);
 
         cancelDrawing();
     }

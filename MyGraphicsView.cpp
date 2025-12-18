@@ -1,5 +1,6 @@
 #include "MyGraphicsView.h"
 #include "BottomFloatingToolBar.h"
+#include "Canvas/Canvas.h"
 #include "DrawingTool/CurveTool.h"
 #include "DrawingTool/DrawingTool.h"
 #include "DrawingTool/EllipseTool.h"
@@ -12,10 +13,7 @@
 #include "Import/DXF/DXFImporter.h"
 #include "Import/Image/ImageImporter.h"
 #include "Import/ImportManager.h"
-#include "Shape/AddShapesCommand.h"
-#include "Shape/RemoveShapesCommand.h"
 #include "Shape/Shape.h"
-#include "Canvas/Canvas.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QGraphicsRectItem>
@@ -98,37 +96,37 @@ void MyGraphicsView::setTool(DrawingToolType type)
     {
     case DrawingToolType::Select:
     {
-        m_pBaseDrawingTool = new xcanvas::SelectTool(this);
+        m_pBaseDrawingTool = new xcanvas::SelectTool(this, m_canvas);
     }
     break;
     case DrawingToolType::Text:
     {
-        m_pBaseDrawingTool = new xcanvas::TextTool(this);
+        m_pBaseDrawingTool = new xcanvas::TextTool(this, m_canvas);
     }
     break;
     case DrawingToolType::Rect:
     {
-        m_pBaseDrawingTool = new xcanvas::RectTool(this);
+        m_pBaseDrawingTool = new xcanvas::RectTool(this, m_canvas);
     }
     break;
     case DrawingToolType::Ellipse:
     {
-        m_pBaseDrawingTool = new xcanvas::EllipseTool(this);
+        m_pBaseDrawingTool = new xcanvas::EllipseTool(this, m_canvas);
     }
     break;
     case DrawingToolType::Polyline:
     {
-        m_pBaseDrawingTool = new xcanvas::PolylineTool(this);
+        m_pBaseDrawingTool = new xcanvas::PolylineTool(this, m_canvas);
     }
     break;
     case DrawingToolType::Curve:
     {
-        m_pBaseDrawingTool = new xcanvas::CurveTool(this);
+        m_pBaseDrawingTool = new xcanvas::CurveTool(this, m_canvas);
     }
     break;
     case DrawingToolType::Polygon:
     {
-        m_pBaseDrawingTool = new xcanvas::PolygonTool(this);
+        m_pBaseDrawingTool = new xcanvas::PolygonTool(this, m_canvas);
     }
     break;
     default:
@@ -138,57 +136,12 @@ void MyGraphicsView::setTool(DrawingToolType type)
     m_eToolType = type;
 }
 
-xcanvas::ShapeManager* MyGraphicsView::GetCurrentShapes()
-{
-    return m_canvas->shapeManager();
-}
-
-QUndoStack* MyGraphicsView::getUndoStack()
-{
-    return m_canvas->undoStack();
-}
-
-void MyGraphicsView::addShape(xcanvas::Shape* shape)
-{
-    if (shape)
-    {
-        addShapes({shape});
-    }
-}
-
-void MyGraphicsView::addShapes(const xcanvas::ShapeList& shapeList)
-{
-    if (shapeList.isEmpty())
-    {
-        return;
-    }
-    m_canvas->undoStack()->push(new xcanvas::AddShapesCommand(m_canvas->shapeManager(), shapeList));
-}
-
-void MyGraphicsView::removeShape(xcanvas::Shape* shape)
-{
-    if (shape)
-    {
-        removeShapes({shape});
-    }
-}
-
-void MyGraphicsView::removeShapes(const xcanvas::ShapeList& shapeList)
-{
-    if (shapeList.isEmpty())
-    {
-        return;
-    }
-
-    m_canvas->undoStack()->push(new xcanvas::RemoveShapesCommand(m_canvas->shapeManager(), shapeList));
-}
-
 double MyGraphicsView::zoomValue()
 {
     return transform().m11();
 }
 
-void MyGraphicsView::updateCanvas()
+void MyGraphicsView::requestFullUpdate()
 {
     viewport()->update();
 }
@@ -318,13 +271,13 @@ void MyGraphicsView::onZoomOut()
 void MyGraphicsView::onUndo()
 {
     m_canvas->undoStack()->undo();
-    updateCanvas();
+    requestFullUpdate();
 }
 
 void MyGraphicsView::onRedo()
 {
     m_canvas->undoStack()->redo();
-    updateCanvas();
+    requestFullUpdate();
 }
 
 void MyGraphicsView::drawShapes(QPainter* painter, const QRectF& visibleRect)
@@ -608,8 +561,8 @@ void MyGraphicsView::ImportFile()
             shape->translate(offset);
         }
 
-        addShapes(shapeList);
-        updateCanvas();
+        m_canvas->addShapes(shapeList);
+        requestFullUpdate();
     }
 }
 

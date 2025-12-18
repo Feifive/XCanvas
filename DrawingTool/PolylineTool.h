@@ -1,38 +1,35 @@
 #ifndef POLYLINEDRAWINGTOOL_H
 #define POLYLINEDRAWINGTOOL_H
 
-#include <QObject>
+#include "DrawingTool.h"
 #include <QPointF>
 #include <QVector>
-#include <QtWidgets/qgraphicsitem.h>
-#include "DrawingTool.h"
 
 namespace xcanvas
 {
-    class Polyline;
+class Polyline;
 }
 
 namespace xcanvas
 {
-    class PolylineTool : public DrawingTool
-    {
-        Q_OBJECT
-    public:
-        explicit PolylineTool(MyGraphicsView* pView);
-        virtual ~PolylineTool() override;
+class PolylineTool : public DrawingTool
+{
+    Q_OBJECT
+  public:
+    explicit PolylineTool(MyGraphicsView* view, Canvas* canvas);
+    virtual ~PolylineTool() override;
 
-        virtual void mousePressEvent(QMouseEvent* event) override;
-        virtual void mouseMoveEvent(QMouseEvent* event) override;
-        virtual void mouseReleaseEvent(QMouseEvent* event) override;
-        virtual DrawingToolType toolType() override;
+    virtual void            mousePressEvent(QMouseEvent* event) override;
+    virtual void            mouseMoveEvent(QMouseEvent* event) override;
+    virtual void            mouseReleaseEvent(QMouseEvent* event) override;
+    virtual DrawingToolType toolType() override;
 
-    protected:
-        void cancelDrawing() override;
+  protected:
+    void cancelDrawing() override;
 
-    private:
-        QVector<QPointF> m_points;
-    };
-}
+  private:
+    QVector<QPointF> m_points;
+};
+}// namespace xcanvas
 
-
-#endif // POLYLINEDRAWINGTOOL_H
+#endif// POLYLINEDRAWINGTOOL_H

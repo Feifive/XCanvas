@@ -1,16 +1,14 @@
-#include <QMouseEvent>
-#include <QGraphicsTextItem>
-#include <QTextCursor>
-#include <QAbstractTextDocumentLayout>
-#include <QDebug>
 #include "TextTool.h"
 #include "../MyGraphicsView.h"
+#include "Canvas.h"
 #include "Text.h"
-#include "ShapeManager.h"
+#include <QAbstractTextDocumentLayout>
+#include <QDebug>
+#include <QGraphicsTextItem>
+#include <QMouseEvent>
+#include <QTextCursor>
 
-xcanvas::TextTool::TextTool(MyGraphicsView *pView) :
-    DrawingTool(pView),
-    m_pTextItem(nullptr)
+xcanvas::TextTool::TextTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas), m_pTextItem(nullptr)
 {
     m_font.setFamily("PingFang SC");
     m_font.setPixelSize(24);
@@ -18,10 +16,9 @@ xcanvas::TextTool::TextTool(MyGraphicsView *pView) :
 
 xcanvas::TextTool::~TextTool()
 {
-
 }
 
-void xcanvas::TextTool::mousePressEvent(QMouseEvent *event)
+void xcanvas::TextTool::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton)
     {
@@ -29,17 +26,17 @@ void xcanvas::TextTool::mousePressEvent(QMouseEvent *event)
         return;
     }
 
-    m_mousePos = m_pView->mapToScene(event->pos());
+    m_mousePos = m_canvasView->mapToScene(event->pos());
 
-    if(m_state == State::Idle)
+    if (m_state == State::Idle)
     {
         startEdit();
     }
     else if (m_state == State::Drawing && m_pTextItem)
     {
-        QPointF localPos = m_pTextItem->mapFromScene(m_mousePos);
-        QAbstractTextDocumentLayout* pLayout = m_pTextItem->document()->documentLayout();
-        int nPos = pLayout->hitTest(localPos, Qt::ExactHit);
+        QPointF                      localPos = m_pTextItem->mapFromScene(m_mousePos);
+        QAbstractTextDocumentLayout* pLayout  = m_pTextItem->document()->documentLayout();
+        int                          nPos     = pLayout->hitTest(localPos, Qt::ExactHit);
 
         if (nPos < 0)
         {
@@ -53,12 +50,12 @@ void xcanvas::TextTool::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void xcanvas::TextTool::mouseMoveEvent(QMouseEvent *event)
+void xcanvas::TextTool::mouseMoveEvent(QMouseEvent* event)
 {
     handleRightButtonMove(event);
 }
 
-void xcanvas::TextTool::mouseReleaseEvent(QMouseEvent *event)
+void xcanvas::TextTool::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton)
     {
@@ -90,33 +87,32 @@ void xcanvas::TextTool::startEdit()
     cursor.movePosition(QTextCursor::End);
     m_pTextItem->setTextCursor(cursor);
 
-    m_pView->scene()->addItem(m_pTextItem);
+    m_canvasView->scene()->addItem(m_pTextItem);
 
     m_state = State::Drawing;
 }
 
 void xcanvas::TextTool::finishEdit()
 {
-    if(!m_pTextItem)
+    if (!m_pTextItem)
     {
         return;
     }
 
-    m_pView->scene()->removeItem(m_pTextItem);
+    m_canvasView->scene()->removeItem(m_pTextItem);
 
     const QString plainText = m_pTextItem->toPlainText();
-    if(!plainText.isEmpty())
+    if (!plainText.isEmpty())
     {
         Text* pShape = new Text();
         pShape->setText(plainText);
         pShape->setPosition(m_pTextItem->pos());
         pShape->setFont(m_font);
         pShape->setSelected(true);
-        m_pView->GetCurrentShapes()->deselectAll();
-        m_pView->addShape(pShape);
+        m_canvas->shapeManager()->deselectAll();
+        m_canvas->addShape(pShape);
 
-
-        m_pView->updateCanvas();
+        m_canvasView->requestFullUpdate();
     }
 
     delete m_pTextItem;

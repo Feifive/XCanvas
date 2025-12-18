@@ -3,21 +3,22 @@
 
 #include "DrawingTool.h"
 
-namespace xcanvas {
+namespace xcanvas
+{
 
 class PolygonTool : public DrawingTool
 {
     Q_OBJECT
-public:
-    explicit PolygonTool(MyGraphicsView* pView);
+  public:
+    explicit PolygonTool(MyGraphicsView* view, Canvas* canvas);
     ~PolygonTool() override;
 
-    virtual void mousePressEvent(QMouseEvent* event) override;
-    virtual void mouseMoveEvent(QMouseEvent* event) override;
-    virtual void mouseReleaseEvent(QMouseEvent* event) override;
+    virtual void            mousePressEvent(QMouseEvent* event) override;
+    virtual void            mouseMoveEvent(QMouseEvent* event) override;
+    virtual void            mouseReleaseEvent(QMouseEvent* event) override;
     virtual DrawingToolType toolType() override;
 };
 
-}
+}// namespace xcanvas
 
-#endif // !POLYGONTOOL_H
+#endif// !POLYGONTOOL_H

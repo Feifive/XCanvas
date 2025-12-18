@@ -1,5 +1,6 @@
 #include "SelectTool.h"
 #include "../MyGraphicsView.h"
+#include "Canvas.h"
 #include "Global.h"
 #include "Shape.h"
 #include "ShapeManager.h"
@@ -7,7 +8,7 @@
 #include <QGraphicsPathItem>
 #include <QMouseEvent>
 
-xcanvas::SelectTool::SelectTool(MyGraphicsView* pView) : DrawingTool(pView), m_bMovingItem(false)
+xcanvas::SelectTool::SelectTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas), m_bMovingItem(false)
 {
 }
 
@@ -17,16 +18,16 @@ xcanvas::SelectTool::~SelectTool()
 
 void xcanvas::SelectTool::mousePressEvent(QMouseEvent* event)
 {
-    QPointF scenePos = m_pView->mapToScene(event->pos());
+    QPointF scenePos = m_canvasView->mapToScene(event->pos());
     m_mousePos       = scenePos;
-    if (event->button() == Qt::LeftButton && m_pView->cursor().shape() == Qt::ArrowCursor)
+    if (event->button() == Qt::LeftButton && m_canvasView->cursor().shape() == Qt::ArrowCursor)
     {
         if (m_state == State::Idle)
         {
             m_state = State::Drawing;
         }
     }
-    if (event->button() == Qt::LeftButton && m_pView->cursor().shape() == Qt::SizeAllCursor)
+    if (event->button() == Qt::LeftButton && m_canvasView->cursor().shape() == Qt::SizeAllCursor)
     {
         m_bMovingItem  = true;
         m_dragStartPos = scenePos;
@@ -35,7 +36,7 @@ void xcanvas::SelectTool::mousePressEvent(QMouseEvent* event)
 
 void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
 {
-    QPointF scenePos = m_pView->mapToScene(event->pos());
+    QPointF scenePos = m_canvasView->mapToScene(event->pos());
     int     nHitPos  = -1;
 
     if (m_state == State::Drawing)
@@ -44,7 +45,7 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
 
         updateSelectionRect(rect);
 
-        m_pView->updateCanvas();
+        m_canvasView->requestFullUpdate();
     }
     else
     {
@@ -52,14 +53,14 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
         {
             QPointF delta = scenePos - m_mousePos;
 
-            ShapeList selectedShapeList = m_pView->GetCurrentShapes()->selectedShapes();
+            ShapeList selectedShapeList = m_canvas->shapeManager()->selectedShapes();
             for (Shape* shape : selectedShapeList)
             {
                 shape->translate(delta);
             }
 
             m_mousePos = scenePos;
-            m_pView->updateCanvas();
+            m_canvasView->requestFullUpdate();
         }
         else
         {
@@ -82,14 +83,14 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
                 clearHighlight();
             }
 
-            m_pView->updateCanvas();
+            m_canvasView->requestFullUpdate();
         }
     }
 }
 
 void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
 {
-    QPointF scenePos = m_pView->mapToScene(event->pos());
+    QPointF scenePos = m_canvasView->mapToScene(event->pos());
 
     if (m_state == State::Drawing)
     {
@@ -97,11 +98,11 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
 
         if (rect.width() > 1 && rect.height() > 1)
         {
-            m_pView->GetCurrentShapes()->selectInRect(rect);
+            m_canvas->shapeManager()->selectInRect(rect);
         }
         else
         {
-            m_pView->GetCurrentShapes()->deselectAll();
+            m_canvas->shapeManager()->deselectAll();
             Shape* pShape = hitUnselectedShape(scenePos);
             if (pShape)
             {
@@ -114,7 +115,7 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
 
         m_state = State::Idle;
 
-        m_pView->updateCanvas();
+        m_canvasView->requestFullUpdate();
     }
 
     if (m_bMovingItem)
@@ -123,15 +124,15 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
 
         if (const QPointF totalOffset = scenePos - m_dragStartPos; !totalOffset.isNull())
         {
-            ShapeList selectedShapeList = m_pView->GetCurrentShapes()->selectedShapes();
+            ShapeList selectedShapeList = m_canvas->shapeManager()->selectedShapes();
             for (Shape* shape : selectedShapeList)
             {
                 shape->translate(-totalOffset);
             }
-            m_pView->getUndoStack()->push(new TranslateShapesCommand(selectedShapeList, totalOffset));
+            m_canvas->undoStack()->push(new TranslateShapesCommand(selectedShapeList, totalOffset));
         }
 
-        m_pView->updateCanvas();
+        m_canvasView->requestFullUpdate();
     }
 }
 
@@ -139,18 +140,15 @@ void xcanvas::SelectTool::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace)
     {
-        if (m_pView)
+        ShapeList shapeList = m_canvas->shapeManager()->selectedShapes();
+        if (shapeList.isEmpty())
         {
-            ShapeList shapeList = m_pView->GetCurrentShapes()->selectedShapes();
-            if (shapeList.isEmpty())
-            {
-                event->accept();
-                return;
-            }
-            m_pView->removeShapes(shapeList);
+            event->accept();
+            return;
         }
+        m_canvas->removeShapes(shapeList);
 
-        m_pView->updateCanvas();
+        m_canvasView->requestFullUpdate();
         event->accept();
     }
 }
@@ -184,12 +182,12 @@ DrawingToolType xcanvas::SelectTool::toolType()
 
 int xcanvas::SelectTool::hitTraceHandle(const QPointF& pos) const
 {
-    QRectF rectf = m_pView->GetCurrentShapes()->selectedBoundingRect();
+    QRectF rectf = m_canvas->shapeManager()->selectedBoundingRect();
 
     if (rectf.isValid())
     {
         QRectF traces[9];
-        m_pView->traceRects(rectf, traces);
+        m_canvasView->traceRects(rectf, traces);
 
         for (int i = 0; i < ERECT_POS_COUNT; ++i)
         {
@@ -212,25 +210,25 @@ void xcanvas::SelectTool::setCanvasCursorShape(int nHitPos)
     {
     case ERECT_TOP_LEFT:
     case ERECT_BOTTOM_RIGHT:
-        m_pView->setCursor(Qt::SizeFDiagCursor);
+        m_canvasView->setCursor(Qt::SizeFDiagCursor);
         break;
     case ERECT_TOP_MID:
     case ERECT_BOTTOM_MID:
-        m_pView->setCursor(Qt::SizeVerCursor);
+        m_canvasView->setCursor(Qt::SizeVerCursor);
         break;
     case ERECT_TOP_RIGHT:
     case ERECT_BOTTOM_LEFT:
-        m_pView->setCursor(Qt::SizeBDiagCursor);
+        m_canvasView->setCursor(Qt::SizeBDiagCursor);
         break;
     case ERECT_MID_LEFT:
     case ERECT_MID_RIGHT:
-        m_pView->setCursor(Qt::SizeHorCursor);
+        m_canvasView->setCursor(Qt::SizeHorCursor);
         break;
     case ERECT_CENTER:
-        m_pView->setCursor(Qt::SizeAllCursor);
+        m_canvasView->setCursor(Qt::SizeAllCursor);
         break;
     default:
-        m_pView->setCursor(Qt::ArrowCursor);
+        m_canvasView->setCursor(Qt::ArrowCursor);
         break;
     }
 }
@@ -259,8 +257,8 @@ void xcanvas::SelectTool::clearSelectionRect()
 
 xcanvas::Shape* xcanvas::SelectTool::hitUnselectedShape(QPointF pos)
 {
-    double        dScale  = m_pView->zoomValue();
-    ShapeManager* pShapes = m_pView->GetCurrentShapes();
+    double        dScale  = m_canvasView->transform().m11();
+    ShapeManager* pShapes = m_canvas->shapeManager();
     for (int i = 0; i < pShapes->count(); ++i)
     {
         Shape* pShape = (*pShapes)[i];
