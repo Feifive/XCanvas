@@ -28,13 +28,15 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
-# ===== App Icon (macOS) =====
+# ===== Icon =====
 if(APPLE)
     set(APP_ICON_MACOS "${CMAKE_SOURCE_DIR}/Resource/Icons/XCanvasLogo.icns")
     set_source_files_properties(
             ${APP_ICON_MACOS}
             PROPERTIES MACOSX_PACKAGE_LOCATION "Resources"
     )
+elseif(WIN32)
+    set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_SOURCE_DIR}/Resource/Icons/XCanvasLogo.rc")
 endif()
 
 set(PROJECT_SOURCES
@@ -76,6 +78,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         ${APP_ICON_MACOS}
+        ${APP_ICON_RESOURCE_WINDOWS}
         Resource.qrc
         Import/ImportManager.h Import/ImportManager.cpp
         Import/IFileImporter.h
