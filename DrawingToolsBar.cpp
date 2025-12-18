@@ -90,5 +90,4 @@ DrawingToolsBar::~DrawingToolsBar()
 void DrawingToolsBar::onFinishDrawing()
 {
     m_pSelectTool->setChecked(true);
-    emit EventBus::instance().switchTool(DrawingToolType::Select);
 }

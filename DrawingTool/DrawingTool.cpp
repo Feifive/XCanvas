@@ -1,6 +1,5 @@
 #include "DrawingTool.h"
 #include "../MyGraphicsView.h"
-#include "EventBus.h"
 #include "Global.h"
 #include <QDebug>
 #include <QGraphicsPathItem>
@@ -42,7 +41,7 @@ void xcanvas::DrawingTool::cancelDrawing()
     m_state       = State::Idle;
     m_previewPath = QPainterPath();
     m_canvasView->requestFullUpdate();
-    emit EventBus::instance().finishDrawing();
+    emit finished();
 }
 
 void xcanvas::DrawingTool::handleRightButtonPress(QMouseEvent* event)

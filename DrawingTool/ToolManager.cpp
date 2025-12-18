@@ -1,6 +1,8 @@
 #include "ToolManager.h"
 #include "../MyGraphicsView.h"
 
+#include "EventBus.h"
+
 #include "SelectTool.h"
 #include "RectTool.h"
 #include "EllipseTool.h"
@@ -17,7 +19,6 @@ ToolManager::ToolManager(MyGraphicsView* view, xcanvas::Canvas* canvas)
     , m_canvas(canvas)
 {
     setTool(DrawingToolType::Select);
-    connect(m_currentTool.get(), &DrawingTool::finished, this, [this](){setTool(DrawingToolType::Select);});
 }
 
 void ToolManager::setTool(const DrawingToolType type)
@@ -30,7 +31,14 @@ void ToolManager::setTool(const DrawingToolType type)
     m_currentTool = createTool(type);
     m_currentType = type;
 
-    emit toolChanged(type);
+    if (m_currentTool) {
+        connect(m_currentTool.get(), &DrawingTool::finished, this, [this]() {
+            setTool(DrawingToolType::Select);
+            emit EventBus::instance().finishDrawing();
+        });
+    }
+
+        emit toolChanged(type);
 }
 
 std::unique_ptr<DrawingTool> ToolManager::createTool(const DrawingToolType type)
