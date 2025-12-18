@@ -78,11 +78,6 @@ DrawingToolType xcanvas::PolylineTool::toolType()
 
 void xcanvas::PolylineTool::cancelDrawing()
 {
-    if (m_state != State::Interrupted)
-    {
-        return;
-    }
-
     m_points.removeLast();
 
     if (m_points.size() < 2)

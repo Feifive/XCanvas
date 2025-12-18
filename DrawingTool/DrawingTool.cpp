@@ -81,13 +81,7 @@ void xcanvas::DrawingTool::handleRightButtonRelease(QMouseEvent* event)
         return;
     }
 
-    // 未拖动 → 右键单击逻辑
-    if (m_state == State::Drawing)
-    {
-        // 中断绘制
-        m_state = State::Interrupted;
-        cancelDrawing();
-    }
+    cancelDrawing();
 
     m_isRightPressed = false;
 }

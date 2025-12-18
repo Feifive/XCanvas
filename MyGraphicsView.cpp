@@ -1,19 +1,12 @@
 #include "MyGraphicsView.h"
 #include "BottomFloatingToolBar.h"
 #include "Canvas/Canvas.h"
-#include "DrawingTool/CurveTool.h"
-#include "DrawingTool/DrawingTool.h"
-#include "DrawingTool/EllipseTool.h"
-#include "DrawingTool/PolygonTool.h"
-#include "DrawingTool/PolylineTool.h"
-#include "DrawingTool/RectTool.h"
-#include "DrawingTool/SelectTool.h"
-#include "DrawingTool/TextTool.h"
 #include "EventBus.h"
 #include "Import/DXF/DXFImporter.h"
 #include "Import/Image/ImageImporter.h"
 #include "Import/ImportManager.h"
 #include "Shape/Shape.h"
+#include "ToolManager.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QGraphicsRectItem>
@@ -21,13 +14,12 @@
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QTimer>
+#include <QUndoStack>
 
 MyGraphicsView::MyGraphicsView(QWidget* parent)
     : m_dScaleFactor(1.0),
-      m_eToolType(DrawingToolType::None),
       m_startPos(-1, -1),
       m_bDragging(false),
-      m_pBaseDrawingTool(nullptr),
       m_canvas(new xcanvas::Canvas(this)),
       QGraphicsView{parent},
       m_pFloatingToolBar(nullptr)
@@ -44,6 +36,9 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     ImportManager::instance().registerImporter(std::make_unique<DXFImporter>());
     ImportManager::instance().registerImporter(std::make_unique<ImageImporter>());
 
+    m_toolMgr = std::make_unique<xcanvas::ToolManager>(this, m_canvas);
+    connect(&EventBus::instance(), &EventBus::switchTool, m_toolMgr.get(), &xcanvas::ToolManager::setTool);
+
     m_pFloatingToolBar = new BottomFloatingToolBar(this);
     m_pFloatingToolBar->adjustSize();
 
@@ -58,8 +53,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     connect(m_pFloatingToolBar, &BottomFloatingToolBar::redo, this, &MyGraphicsView::onRedo);
     connect(m_canvas->undoStack(), &QUndoStack::canUndoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
     connect(m_canvas->undoStack(), &QUndoStack::canRedoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
-
-    connect(&EventBus::instance(), &EventBus::switchTool, this, &MyGraphicsView::setTool);
+    connect(&EventBus::instance(), &EventBus::importFileRequested, this, &MyGraphicsView::ImportFile);
 
     QTimer::singleShot(0, this, [this]() { fitCanvas(); });
     updateBottomFloatingToolBarPos();
@@ -68,72 +62,6 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
 
 MyGraphicsView::~MyGraphicsView()
 {
-    if (m_pBaseDrawingTool)
-    {
-        delete m_pBaseDrawingTool;
-        m_pBaseDrawingTool = nullptr;
-    }
-}
-
-void MyGraphicsView::setTool(DrawingToolType type)
-{
-    switch (type)
-    {
-    case DrawingToolType::Import:
-        ImportFile();
-        return;
-    default:
-        break;
-    }
-
-    if (m_pBaseDrawingTool)
-    {
-        delete m_pBaseDrawingTool;
-        m_pBaseDrawingTool = nullptr;
-    }
-
-    switch (type)
-    {
-    case DrawingToolType::Select:
-    {
-        m_pBaseDrawingTool = new xcanvas::SelectTool(this, m_canvas);
-    }
-    break;
-    case DrawingToolType::Text:
-    {
-        m_pBaseDrawingTool = new xcanvas::TextTool(this, m_canvas);
-    }
-    break;
-    case DrawingToolType::Rect:
-    {
-        m_pBaseDrawingTool = new xcanvas::RectTool(this, m_canvas);
-    }
-    break;
-    case DrawingToolType::Ellipse:
-    {
-        m_pBaseDrawingTool = new xcanvas::EllipseTool(this, m_canvas);
-    }
-    break;
-    case DrawingToolType::Polyline:
-    {
-        m_pBaseDrawingTool = new xcanvas::PolylineTool(this, m_canvas);
-    }
-    break;
-    case DrawingToolType::Curve:
-    {
-        m_pBaseDrawingTool = new xcanvas::CurveTool(this, m_canvas);
-    }
-    break;
-    case DrawingToolType::Polygon:
-    {
-        m_pBaseDrawingTool = new xcanvas::PolygonTool(this, m_canvas);
-    }
-    break;
-    default:
-        m_pBaseDrawingTool = nullptr;
-        break;
-    }
-    m_eToolType = type;
 }
 
 double MyGraphicsView::zoomValue()
@@ -156,11 +84,7 @@ void MyGraphicsView::mousePressEvent(QMouseEvent* event)
         setCursor(Qt::ClosedHandCursor);// 设置为闭合手型光标
         event->accept();// 标记事件已处理
     }
-
-    if (m_pBaseDrawingTool)
-    {
-        m_pBaseDrawingTool->mousePressEvent(event);
-    }
+    m_toolMgr->mousePressEvent(event);
 }
 
 void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
@@ -180,12 +104,7 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
         m_startPos = event->pos();
         event->accept();
     }
-
-    if (m_pBaseDrawingTool)
-    {
-        m_pBaseDrawingTool->mouseMoveEvent(event);
-    }
-
+    m_toolMgr->mouseMoveEvent(event);
     emit mouseMovePos(event->pos());
 }
 
@@ -197,20 +116,12 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
         setCursor(Qt::ArrowCursor);// 恢复默认光标
         event->accept();
     }
-
-    if (m_pBaseDrawingTool)
-    {
-        m_pBaseDrawingTool->mouseReleaseEvent(event);
-    }
+    m_toolMgr->mouseReleaseEvent(event);
 }
 
 void MyGraphicsView::keyPressEvent(QKeyEvent* event)
 {
-    if (m_pBaseDrawingTool)
-    {
-        m_pBaseDrawingTool->keyPressEvent(event);
-    }
-
+    m_toolMgr->keyPressEvent(event);
     QGraphicsView::keyPressEvent(event);
 }
 
@@ -250,9 +161,9 @@ void MyGraphicsView::drawBackground(QPainter* painter, const QRectF& rect)
 void MyGraphicsView::drawForeground(QPainter* painter, const QRectF& rect)
 {
     drawSelectedShapes(painter, rect);
-    if (m_pBaseDrawingTool)
+    if (m_toolMgr)
     {
-        m_pBaseDrawingTool->drawPreview(painter);
+        m_toolMgr->drawPreview(painter);
     }
 }
 

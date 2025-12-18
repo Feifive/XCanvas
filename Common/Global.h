@@ -18,7 +18,6 @@ enum class DrawingToolType : uint8_t
 {
     None = 0,
     Select,
-    Import,
     Polyline,
     Curve,
     Rect,

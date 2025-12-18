@@ -17,7 +17,6 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
     m_pGraphicsView->setScene(m_pGraphicsScene);
     m_pGraphicsView->setAlignment(Qt::AlignLeft | Qt::AlignTop);
     m_pGraphicsView->setMouseTracking(true);
-    m_pGraphicsView->setTool(DrawingToolType::Select);
     m_pGraphicsView->centerOn(10000, 10000);
 
     m_pRulerHorizontal     = new RulerWidget(Qt::Horizontal, this);

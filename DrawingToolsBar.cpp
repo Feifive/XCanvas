@@ -71,7 +71,7 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
     m_pSelectTool = MakeButton(":/Resource/Icons/Select.svg");
 
     connect(m_pSelectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Select); });
-    connect(m_pImport, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Import); });
+    connect(m_pImport, &QToolButton::clicked, this, [=] { emit EventBus::instance().importFileRequested();});
     connect(m_pText, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Text); });
     connect(m_pRectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Rect); });
     connect(m_pPolylineTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Polyline); });

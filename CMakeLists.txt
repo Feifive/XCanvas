@@ -71,6 +71,8 @@ set(PROJECT_SOURCES
         Shape/TranslateShapeListCommand.h
         Canvas/Canvas.cpp
         Canvas/Canvas.h
+        DrawingTool/ToolManager.cpp
+        DrawingTool/ToolManager.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

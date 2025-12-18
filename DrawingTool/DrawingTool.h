@@ -50,7 +50,7 @@ class DrawingTool : public QObject
     void handleRightButtonRelease(QMouseEvent* event);
 
   signals:
-    void toolFinished();
+    void finished();
 
   protected:
     MyGraphicsView* m_canvasView;

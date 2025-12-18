@@ -2,19 +2,14 @@
 #define MYGRAPHICSVIEW_H
 
 #include "Global.h"
-#include "Shape/ShapeManager.h"
 #include <QGraphicsView>
-#include <QUndoStack>
 
-class QGraphicsRectItem;
 class BottomFloatingToolBar;
-
 namespace xcanvas
 {
-class Shape;
-class ShapeManager;
 class DrawingTool;
 class Canvas;
+class ToolManager;
 }// namespace xcanvas
 
 class MyGraphicsView : public QGraphicsView
@@ -22,9 +17,8 @@ class MyGraphicsView : public QGraphicsView
     Q_OBJECT
   public:
     explicit MyGraphicsView(QWidget* parent = nullptr);
-    ~MyGraphicsView();
+    ~MyGraphicsView() override;
 
-    void   setTool(DrawingToolType type);
     double zoomValue();
     void   requestFullUpdate();
     void   traceRects(const QRectF& rect, QRectF rects[9]);
@@ -74,9 +68,8 @@ class MyGraphicsView : public QGraphicsView
     QPointF                m_startPos;
     bool                   m_bDragging;
     double                 m_dScaleFactor;
-    DrawingToolType        m_eToolType;
-    xcanvas::DrawingTool*  m_pBaseDrawingTool;
     BottomFloatingToolBar* m_pFloatingToolBar;
+    std::unique_ptr<xcanvas::ToolManager> m_toolMgr;
 };
 
 #endif// MYGRAPHICSVIEW_H

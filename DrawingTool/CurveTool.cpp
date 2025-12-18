@@ -59,11 +59,6 @@ void CurveTool::mouseReleaseEvent(QMouseEvent* event)
 
 void CurveTool::cancelDrawing()
 {
-    if (m_state != State::Interrupted)
-    {
-        return;
-    }
-
     if (m_points.size() <= 1)
     {
         m_previewPath = QPainterPath();
