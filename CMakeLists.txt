@@ -2,191 +2,194 @@ cmake_minimum_required(VERSION 3.16)
 
 project(XCanvas VERSION 0.1 LANGUAGES CXX)
 
-FILE(GLOB ORIGIN *.cpp *.h)
-FILE(GLOB DRAWINGTOOL DrawingTool/*.h DrawingTool/*.cpp)
-FILE(GLOB SHAPE Shape/*.h Shape/*.cpp)
-FILE(GLOB COMMON Common/*.h Common/*.cpp)
+# ============================================================
+# 基础配置
+# ============================================================
 
-source_group("DrawingTool"  FILES ${DRAWINGTOOL})
-source_group("Shape"        FILES ${SHAPE})
-source_group("Common"       FILES ${COMMON})
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# ============================================================
+# Qt 配置
+# ============================================================
 
-SET(QT_SDK_DIR /Users/ze/Qt/6.10.1/macos CACHE PATH "QT SDK DIR" FORCE)
+set(QT_SDK_DIR
+    D:/software/Qt6.8.3/6.8.3/msvc2022_64
+    CACHE PATH "Qt SDK directory" FORCE
+)
 list(APPEND CMAKE_PREFIX_PATH ${QT_SDK_DIR})
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
+find_package(QT NAMES Qt6 Qt5 REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core)
 
-# ===== Icon =====
-if(APPLE)
-    set(APP_ICON_MACOS "${CMAKE_SOURCE_DIR}/Resource/Icons/XCanvasLogo.icns")
-    set_source_files_properties(
-            ${APP_ICON_MACOS}
-            PROPERTIES MACOSX_PACKAGE_LOCATION "Resources"
-    )
-elseif(WIN32)
-    set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_SOURCE_DIR}/Resource/Icons/XCanvasLogo.rc")
-endif()
+# ============================================================
+# 第三方库
+# ============================================================
+
+add_subdirectory(3rdparty/pdfium)
+
+# ============================================================
+# 源文件
+# ============================================================
+
+file(GLOB DRAWINGTOOL DrawingTool/*.h DrawingTool/*.cpp)
+file(GLOB SHAPE       Shape/*.h Shape/*.cpp)
+file(GLOB COMMON      Common/*.h Common/*.cpp)
+file(GLOB CANVAS      Canvas/*.h Canvas/*.cpp)
+file(GLOB IMPORT_ROOT Import/*.h Import/*.cpp)
+file(GLOB IMPORT_UTILS Import/Utils/*.h Import/Utils/*.cpp)
+file(GLOB IMPORT_DXF  Import/DXF/*.h Import/DXF/*.cpp)
+file(GLOB IMPORT_IMG  Import/Image/*.h Import/Image/*.cpp)
+file(GLOB IMPORT_PDF  Import/PDF/*.h Import/PDF/*.cpp)
+
+source_group("DrawingTool"   FILES ${DRAWINGTOOL})
+source_group("Shape"         FILES ${SHAPE})
+source_group("Common"        FILES ${COMMON})
+source_group("Canvas"        FILES ${CANVAS})
+source_group("Import"        FILES ${IMPORT_ROOT})
+source_group("Import\\Utils" FILES ${IMPORT_UTILS})
+source_group("Import\\DXF"   FILES ${IMPORT_DXF})
+source_group("Import\\Image" FILES ${IMPORT_IMG})
+source_group("Import\\PDF"   FILES ${IMPORT_PDF})
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
-        BottomFloatingToolBar.cpp
-        BottomFloatingToolBar.h
-        MyGraphicsView.cpp MyGraphicsView.h
-        DrawingToolsBar.h DrawingToolsBar.cpp
-        RulerWidget.h RulerWidget.cpp
-        DrawingTool/DrawingTool.cpp DrawingTool/DrawingTool.h 
-        DrawingTool/EllipseTool.cpp DrawingTool/EllipseTool.h 
-        DrawingTool/PolylineTool.cpp DrawingTool/PolylineTool.h 
-        DrawingTool/RectTool.cpp DrawingTool/RectTool.h 
-        DrawingTool/SelectTool.cpp DrawingTool/SelectTool.h
-        DrawingTool/TextTool.h DrawingTool/TextTool.cpp
-        DrawingTool/CurveTool.cpp DrawingTool/CurveTool.h
-        DrawingTool/PolygonTool.cpp DrawingTool/PolygonTool.h
-        CanvasWidget.h CanvasWidget.cpp
-        Common/EventBus.h Common/EventBus.cpp
-        Common/MyMath.h Common/MyMath.cpp
-        Shape/Text.h Shape/Text.cpp
-        Shape/Curve.h Shape/Curve.cpp
-        Shape/Image.h Shape/Image.cpp
-        Shape/Shape.cpp Shape/Shape.h 
-        Shape/Ellipse.cpp Shape/Ellipse.h 
-        Shape/Polyline.cpp Shape/Polyline.h 
-        Shape/ShapeManager.cpp Shape/ShapeManager.h
-        Shape/RemoveShapesCommand.h
-        Shape/TranslateShapeListCommand.h
-        Canvas/Canvas.cpp
-        Canvas/Canvas.h
-        DrawingTool/ToolManager.cpp
-        DrawingTool/ToolManager.h
+    main.cpp
+    mainwindow.cpp mainwindow.h mainwindow.ui
+    BottomFloatingToolBar.cpp BottomFloatingToolBar.h
+    MyGraphicsView.cpp MyGraphicsView.h
+    DrawingToolsBar.cpp DrawingToolsBar.h
+    RulerWidget.cpp RulerWidget.h
+    CanvasWidget.cpp CanvasWidget.h
+
+    ${DRAWINGTOOL}
+    ${SHAPE}
+    ${COMMON}
+    ${CANVAS}
+    ${IMPORT_ROOT}
+    ${IMPORT_DXF}
+    ${IMPORT_IMG}
+    ${IMPORT_PDF}
+    ${IMPORT_UTILS}
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+# ============================================================
+# 可执行程序
+# ============================================================
+
+if (QT_VERSION_MAJOR GREATER_EQUAL 6)
     qt_add_executable(XCanvas
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        ${APP_ICON_MACOS}
-        ${APP_ICON_RESOURCE_WINDOWS}
         Resource.qrc
-        Import/ImportManager.h Import/ImportManager.cpp
-        Import/IFileImporter.h
-        Import/ImportContext.h
-        Import/DXF/DXFImporter.h Import/DXF/DXFImporter.cpp
-        Import/Utils/ImageDpiUtil.h Import/Utils/ImageDpiUtil.cpp
-        Import/Image/ImageImporter.h Import/Image/ImageImporter.cpp
-        Import/DXF/DXFTranslator.cpp Import/DXF/DXFTranslator.h
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET XCanvas APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
-    if(ANDROID)
-        add_library(XCanvas SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(XCanvas
-            ${PROJECT_SOURCES}
-        )
-    endif()
+    add_executable(XCanvas ${PROJECT_SOURCES})
 endif()
 
-# 根据平台区分输出路径
+# ============================================================
+# 平台相关：图标
+# ============================================================
+
+if (APPLE)
+    set(APP_ICON_MACOS "${CMAKE_SOURCE_DIR}/Resource/Icons/XCanvasLogo.icns")
+    set_source_files_properties(${APP_ICON_MACOS}
+        PROPERTIES MACOSX_PACKAGE_LOCATION "Resources"
+    )
+    target_sources(XCanvas PRIVATE ${APP_ICON_MACOS})
+elseif (WIN32)
+    target_sources(XCanvas PRIVATE
+        "${CMAKE_SOURCE_DIR}/Resource/Icons/XCanvasLogo.rc"
+    )
+endif()
+
+# ============================================================
+# 输出目录
+# ============================================================
+
 if (WIN32)
     set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Bin/win64")
-elseif(APPLE)
+elseif (APPLE)
     set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Bin/mac")
-elseif(UNIX)
-    set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Bin/linux")
 else()
-    set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Bin/other")
+    set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Bin/linux")
 endif()
 
-# 指定输出路径
 set_target_properties(XCanvas PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${OUTPUT_DIR}/Debug"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${OUTPUT_DIR}/Release"
 )
-if(APPLE)
-    set_target_properties(XCanvas PROPERTIES
-        MACOSX_BUNDLE_ICON_FILE XCanvasLogo.icns
-    )
-endif()
+
+# ============================================================
+# Include 目录
+# ============================================================
 
 target_include_directories(XCanvas PRIVATE
-    ${PROJECT_SOURCE_DIR}/3rdparty/libdxfrw/src
     ${PROJECT_SOURCE_DIR}/Shape
     ${PROJECT_SOURCE_DIR}/Canvas
     ${PROJECT_SOURCE_DIR}/Import
     ${PROJECT_SOURCE_DIR}/DrawingTool
     ${PROJECT_SOURCE_DIR}/Common
+
+    # NOTE: dxfrw 为源码级第三方，暂时直接 include
+    ${PROJECT_SOURCE_DIR}/3rdparty/libdxfrw/src
 )
+
+# ============================================================
+# dxfrw（Imported Library）
+# ============================================================
 
 if (WIN32)
-    set(LIBDXFRW_PATH
-        ${PROJECT_SOURCE_DIR}/SDK/lib/x86_64/dxfrw.lib
-    )
-
+    set(LIBDXFRW_PATH "${PROJECT_SOURCE_DIR}/SDK/lib/x86_64/dxfrw.lib")
 elseif (APPLE)
-    set(LIBDXFRW_PATH
-        ${PROJECT_SOURCE_DIR}/SDK/lib/macos/libdxfrw.a
-    )
-
-else()
-    message(FATAL_ERROR "Unsupported platform!")
+    set(LIBDXFRW_PATH "${PROJECT_SOURCE_DIR}/SDK/lib/macos/libdxfrw.a")
 endif()
 
-if (NOT EXISTS "${LIBDXFRW_PATH}")
-    message(FATAL_ERROR "libdxfrw not found: ${LIBDXFRW_PATH}")
-endif()
-
-target_link_libraries(XCanvas PRIVATE "${LIBDXFRW_PATH}")
-
-target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Core)
-target_link_libraries(XCanvas PRIVATE Qt${QT_VERSION_MAJOR}::Core)
-
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.XCanvas)
-endif()
-set_target_properties(XCanvas PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
+add_library(libdxfrw STATIC IMPORTED)
+set_target_properties(libdxfrw PROPERTIES
+    IMPORTED_LOCATION "${LIBDXFRW_PATH}"
 )
 
+# ============================================================
+# 链接
+# ============================================================
+
+target_link_libraries(XCanvas PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Core
+    libdxfrw
+    thirdparty_pdfium
+)
+
+# ============================================================
+# Windows：运行期 dll 拷贝（pdfium）
+# ============================================================
+
+if (WIN32)
+    get_target_property(_pdfium_dll thirdparty_pdfium PDFIUM_RUNTIME_DLL)
+
+    add_custom_command(TARGET XCanvas POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${_pdfium_dll}"
+            $<TARGET_FILE_DIR:XCanvas>
+    )
+endif()
+
+# ============================================================
+# 安装 & Qt finalize
+# ============================================================
+
 include(GNUInstallDirs)
+
 install(TARGETS XCanvas
     BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-if(QT_VERSION_MAJOR EQUAL 6)
+if (QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(XCanvas)
 endif()

@@ -5,6 +5,7 @@
 #include "Import/DXF/DXFImporter.h"
 #include "Import/Image/ImageImporter.h"
 #include "Import/ImportManager.h"
+#include "Import/PDF/PDFImporter.h"
 #include "Shape/Shape.h"
 #include "ToolManager.h"
 #include <QDebug>
@@ -16,13 +17,7 @@
 #include <QTimer>
 #include <QUndoStack>
 
-MyGraphicsView::MyGraphicsView(QWidget* parent)
-    : m_dScaleFactor(1.0),
-      m_startPos(-1, -1),
-      m_bDragging(false),
-      m_canvas(new xcanvas::Canvas(this)),
-      QGraphicsView{parent},
-      m_pFloatingToolBar(nullptr)
+MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPos(-1, -1), m_bDragging(false), m_canvas(new xcanvas::Canvas(this)), QGraphicsView{parent}, m_pFloatingToolBar(nullptr)
 {
     setTransformationAnchor(QGraphicsView::NoAnchor);
     setResizeAnchor(QGraphicsView::NoAnchor);
@@ -35,6 +30,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
 
     ImportManager::instance().registerImporter(std::make_unique<DXFImporter>());
     ImportManager::instance().registerImporter(std::make_unique<ImageImporter>());
+    ImportManager::instance().registerImporter(std::make_unique<PDFImporter>());
 
     m_toolMgr = std::make_unique<xcanvas::ToolManager>(this, m_canvas);
     connect(&EventBus::instance(), &EventBus::switchTool, m_toolMgr.get(), &xcanvas::ToolManager::setTool);
