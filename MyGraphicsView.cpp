@@ -24,7 +24,8 @@ MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPo
 
     setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
-    setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
+    setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
+    setRenderHint(QPainter::SmoothPixmapTransform, false);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 

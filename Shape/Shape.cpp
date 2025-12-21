@@ -7,7 +7,6 @@
 
 xcanvas::Shape::~Shape()
 {
-    int a = 1;
 }
 
 void xcanvas::Shape::draw(QPainter* painter) const

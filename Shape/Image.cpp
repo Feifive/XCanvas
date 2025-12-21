@@ -6,7 +6,6 @@ xcanvas::Image::Image(QImage image) : m_image(std::move(image))
 }
 
 xcanvas::Image::~Image() {
-    int a = 1;
 }
 
 void xcanvas::Image::draw(QPainter* painter) const
@@ -17,7 +16,6 @@ void xcanvas::Image::draw(QPainter* painter) const
     }
 
     painter->save();
-    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter->drawImage(m_rect, m_image);
     if (m_selected)
     {
