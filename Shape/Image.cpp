@@ -5,7 +5,9 @@ xcanvas::Image::Image(QImage image) : m_image(std::move(image))
 {
 }
 
-xcanvas::Image::~Image() = default;
+xcanvas::Image::~Image() {
+    int a = 1;
+}
 
 void xcanvas::Image::draw(QPainter* painter) const
 {

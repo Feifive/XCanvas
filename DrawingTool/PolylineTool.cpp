@@ -2,7 +2,7 @@
 #include "../MyGraphicsView.h"
 #include "Canvas.h"
 #include "Global.h"
-#include "Polyline.h"
+#include "Vector.h"
 #include <QGraphicsView>
 #include <QMouseEvent>
 
@@ -86,12 +86,16 @@ void xcanvas::PolylineTool::cancelDrawing()
     }
     else
     {
-        Polyline* pShape = new Polyline();
-        pShape->SetPoints(m_points);
-        pShape->setSelected(true);
+        auto* shape = new Vector();
+        shape->setSemantic(VectorSemantic::Polyline);
+        shape->setSelected(true);
+        shape->moveTo(m_points[0]);
+        for (int i = 1; i < m_points.size(); ++i) {
+            shape->lineTo(m_points[i]);
+        }
 
         m_canvas->shapeManager()->deselectAll();
-        m_canvas->addShape(pShape);
+        m_canvas->addShape(shape);
     }
 
     DrawingTool::cancelDrawing();

@@ -11,7 +11,7 @@ class Polyline : public Shape
 {
   public:
     Polyline();
-    virtual ~Polyline() override;
+    ~Polyline() override;
 
     void SetPoints(QVector<QPointF> points);
 

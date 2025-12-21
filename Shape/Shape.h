@@ -13,6 +13,7 @@ namespace xcanvas
 
 enum class ShapeType
 {
+    Vector,
     Polyline,
     Ellipse,
     Text,

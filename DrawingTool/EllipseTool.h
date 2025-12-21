@@ -2,8 +2,7 @@
 #define ELLIPSEDRAWINGTOOL_H
 
 #include "DrawingTool.h"
-#include <QObject>
-#include <QPointF>
+#include "Vector.h"
 
 class QGraphicsEllipseItem;
 
@@ -16,10 +15,14 @@ class EllipseTool : public DrawingTool
     explicit EllipseTool(MyGraphicsView* view, Canvas* canvas);
     virtual ~EllipseTool() override;
 
-    virtual void            mousePressEvent(QMouseEvent* event) override;
-    virtual void            mouseMoveEvent(QMouseEvent* event) override;
-    virtual void            mouseReleaseEvent(QMouseEvent* event) override;
-    virtual DrawingToolType toolType() override;
+    void            mousePressEvent(QMouseEvent* event) override;
+    void            mouseMoveEvent(QMouseEvent* event) override;
+    void            mouseReleaseEvent(QMouseEvent* event) override;
+    DrawingToolType toolType() override;
+
+private:
+    QVector<Segment> buildEllipseSegments(const QRectF& rect);
+
 };
 }// namespace xcanvas
 

@@ -2,7 +2,7 @@
 #include "../MyGraphicsView.h"
 #include "Canvas.h"
 #include "Global.h"
-#include "Polyline.h"
+#include "Vector.h"
 #include <QGraphicsView>
 #include <QMouseEvent>
 
@@ -62,7 +62,7 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
 
     if (m_state == State::Drawing)
     {
-        QPointF endPos = m_canvasView->mapToScene(event->pos());
+        const QPointF endPos = m_canvasView->mapToScene(event->pos());
 
         QVector<QPointF> points{m_mousePos, QPointF(endPos.x(), m_mousePos.y()), endPos, QPointF(m_mousePos.x(), endPos.y()), m_mousePos};
 
@@ -72,12 +72,17 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
             return;
         }
 
-        Polyline* pShape = new Polyline;
-        pShape->SetPoints(points);
-        pShape->setSelected(true);
+        Vector* shape = new Vector();
+        shape->setSemantic(VectorSemantic::Rectangle);
+        shape->moveTo(points[0]);
+        shape->lineTo(points[1]);
+        shape->lineTo(points[2]);
+        shape->lineTo(points[3]);
+        shape->lineTo(points[4]);
+        shape->setSelected(true);
 
         m_canvas->shapeManager()->deselectAll();
-        m_canvas->shapeManager()->addShape(pShape);
+        m_canvas->shapeManager()->addShape(shape);
 
         cancelDrawing();
     }

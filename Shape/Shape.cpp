@@ -7,6 +7,7 @@
 
 xcanvas::Shape::~Shape()
 {
+    int a = 1;
 }
 
 void xcanvas::Shape::draw(QPainter* painter) const
@@ -78,7 +79,7 @@ QRectF xcanvas::Shape::boundingRect() const
 
 bool xcanvas::Shape::isPointNearPath(const QPointF &point, double dScale)
 {
-    const QList<QPolygonF>& polygons = m_path.toSubpathPolygons();
+    const QList<QPolygonF>& polygons = path().toSubpathPolygons();
     const double            maxDist  = 6 / dScale;
 
     for (const QPolygonF& polygon : polygons)

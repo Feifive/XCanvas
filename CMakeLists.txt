@@ -17,10 +17,11 @@ set(CMAKE_AUTORCC ON)
 # Qt 配置
 # ============================================================
 
-set(QT_SDK_DIR
-    D:/software/Qt6.8.3/6.8.3/msvc2022_64
-    CACHE PATH "Qt SDK directory" FORCE
-)
+if(WIN32)
+    set(QT_SDK_DIR D:/software/Qt6.8.3/6.8.3/msvc2022_64 CACHE PATH "Qt SDK directory" FORCE)
+elseif (APPLE)
+    set(QT_SDK_DIR /Users/ze/Qt/6.10.1/macos CACHE PATH "QT SDK DIR" FORCE)
+endif ()
 list(APPEND CMAKE_PREFIX_PATH ${QT_SDK_DIR})
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED)
@@ -74,6 +75,8 @@ set(PROJECT_SOURCES
     ${IMPORT_IMG}
     ${IMPORT_PDF}
     ${IMPORT_UTILS}
+        Shape/Vector.cpp
+        Shape/Vector.h
 )
 
 # ============================================================
@@ -82,12 +85,23 @@ set(PROJECT_SOURCES
 
 if (QT_VERSION_MAJOR GREATER_EQUAL 6)
     qt_add_executable(XCanvas
+        MACOSX_BUNDLE
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         Resource.qrc
     )
 else()
-    add_executable(XCanvas ${PROJECT_SOURCES})
+    add_executable(XCanvas MACOSX_BUNDLE ${PROJECT_SOURCES})
+endif()
+
+if (APPLE)
+    set_target_properties(XCanvas PROPERTIES
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_GUI_IDENTIFIER "com.xcanvas.app"
+            MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+            MACOSX_BUNDLE_SHORT_VERSION_STRING
+            ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    )
 endif()
 
 # ============================================================
@@ -134,8 +148,6 @@ target_include_directories(XCanvas PRIVATE
     ${PROJECT_SOURCE_DIR}/Import
     ${PROJECT_SOURCE_DIR}/DrawingTool
     ${PROJECT_SOURCE_DIR}/Common
-
-    # NOTE: dxfrw 为源码级第三方，暂时直接 include
     ${PROJECT_SOURCE_DIR}/3rdparty/libdxfrw/src
 )
 
@@ -166,16 +178,28 @@ target_link_libraries(XCanvas PRIVATE
 )
 
 # ============================================================
-# Windows：运行期 dll 拷贝（pdfium）
+# 运行期动态库拷贝（pdfium）
 # ============================================================
 
 if (WIN32)
     get_target_property(_pdfium_dll thirdparty_pdfium PDFIUM_RUNTIME_DLL)
-
     add_custom_command(TARGET XCanvas POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${_pdfium_dll}"
-            $<TARGET_FILE_DIR:XCanvas>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_pdfium_dll}" $<TARGET_FILE_DIR:XCanvas>
+    )
+elseif (APPLE)
+    get_target_property(_pdfium_dylib thirdparty_pdfium PDFIUM_RUNTIME_DYLIB)
+    set(_frameworks_dir "$<TARGET_BUNDLE_CONTENT_DIR:XCanvas>/Frameworks")
+    add_custom_command(TARGET XCanvas POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_frameworks_dir}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_pdfium_dylib}" "${_frameworks_dir}"
+        COMMAND /usr/bin/install_name_tool -id "@rpath/libpdfium.dylib" "${_frameworks_dir}/libpdfium.dylib"
+        COMMAND /usr/bin/install_name_tool -delete_rpath "/Users/ze/Desktop/QtProjects/XCanvas/3rdparty/pdfium/macos/lib" "$<TARGET_FILE:XCanvas>"
+        COMMAND /usr/bin/install_name_tool -delete_rpath "/Users/ze/Qt/6.10.1/macos/lib" "$<TARGET_FILE:XCanvas>"
+        VERBATIM
+    )
+    set_target_properties(XCanvas PROPERTIES
+        BUILD_RPATH "@executable_path/../Frameworks"
+        INSTALL_RPATH "@executable_path/../Frameworks"
     )
 endif()
 

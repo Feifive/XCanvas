@@ -3,7 +3,7 @@
 #include "Canvas.h"
 #include "Global.h"
 #include "MyMath.h"
-#include "Polyline.h"
+#include "Vector.h"
 
 #include <QPointF>
 #include <QRectF>
@@ -83,20 +83,23 @@ void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
             return;
         }
 
-        QVector<QPointF> points = MyMath::buildRegularPolygon(rect, 5);
-        if (!points.isEmpty())
+        if (QVector<QPointF> points = MyMath::buildRegularPolygon(rect, 5); !points.isEmpty())
         {
             if (points.first() != points.last())
             {
                 points.append(points.first());
             }
 
-            Polyline* pShape = new Polyline;
-            pShape->SetPoints(points);
-            pShape->setSelected(true);
+            auto* shape = new Vector();
+            shape->setSemantic(VectorSemantic::Polygon);
+            shape->setSelected(true);
+            shape->moveTo(points[0]);
+            for (int i = 1; i < points.size(); ++i) {
+                shape->lineTo(points[i]);
+            }
 
             m_canvas->shapeManager()->deselectAll();
-            m_canvas->addShape(pShape);
+            m_canvas->addShape(shape);
         }
 
         cancelDrawing();
