@@ -13,7 +13,6 @@
 #define MAX_ZOOM 100.0
 
 const double BOUNDING_BOX_TOLERANCE = 0.001;
-constexpr double KAPPA = 0.5522847498307936;
 
 enum class DrawingToolType : uint8_t
 {

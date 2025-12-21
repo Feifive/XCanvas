@@ -20,9 +20,6 @@ class EllipseTool : public DrawingTool
     void            mouseReleaseEvent(QMouseEvent* event) override;
     DrawingToolType toolType() override;
 
-private:
-    QVector<Segment> buildEllipseSegments(const QRectF& rect);
-
 };
 }// namespace xcanvas
 
