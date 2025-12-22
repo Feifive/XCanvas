@@ -7,6 +7,11 @@
 #include <QColor>
 #include <QPointF>
 
+namespace xcanvas
+{
+class Vector;
+}
+
 class DXFTranslator : public DRW_Interface
 {
   public:

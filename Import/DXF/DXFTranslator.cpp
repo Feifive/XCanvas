@@ -1,10 +1,12 @@
 #include "DXFTranslator.h"
 #include "Curve.h"
-#include "Ellipse.h"
+#include "MyMath.h"
 #include "Polyline.h"
+#include "Vector.h"
 #include "libdxfrw.h"
 
 #include <QDebug>
+#include <QTransform>
 
 namespace PolylineOptimizer
 {
@@ -310,13 +312,18 @@ void DXFTranslator::addLine(const DRW_Line& data)
 
 void DXFTranslator::addCircle(const DRW_Circle& data)
 {
-    qDebug() << "[DXF] addCircle center=(" << data.basePoint.x << data.basePoint.y << ")"
-             << " radius=" << data.radious;
+    auto* shape = new xcanvas::Vector();
 
-    xcanvas::Ellipse* pShape = new xcanvas::Ellipse;
-    pShape->setEllipse(QPointF(data.basePoint.x, data.basePoint.y), data.radious, data.radious, 0.0);
+    QPointF center = ConvertDXFPoint(data.basePoint.x, data.basePoint.y);
+    double  r      = data.radious;
+    QRectF  localRect(-r, -r, 2 * r, 2 * r);
 
-    m_shapeList.append(pShape);
+    shape->segments() = xcanvas::MyMath::buildEllipseSegments(localRect);
+    shape->translate(center);
+    shape->setSemantic(xcanvas::VectorSemantic::Circle);
+
+    shape->setColor(color(data));
+    m_shapeList.append(shape);
 }
 
 void DXFTranslator::addLayer(const DRW_Layer& data)
@@ -345,26 +352,28 @@ void DXFTranslator::addArc(const DRW_Arc& data)
 
 void DXFTranslator::addEllipse(const DRW_Ellipse& data)
 {
-    qDebug() << "[DXF] addEllipse";
+    QPointF center        = ConvertDXFPoint(data.basePoint.x, data.basePoint.y);
+    double  major         = std::hypot(data.secPoint.x, data.secPoint.y);
+    double  minor         = major * data.ratio;
+    double  rotationRad   = -std::atan2(data.secPoint.y, data.secPoint.x);
+    bool    isFullEllipse = qFuzzyIsNull(data.staparam) && qFuzzyCompare(data.endparam, 2 * M_PI);
+    auto*   shape         = new xcanvas::Vector();
 
-    QPointF center(data.basePoint.x, data.basePoint.y);
-    double  dMajor          = hypot(data.secPoint.x, data.secPoint.y);
-    double  dMinor          = dMajor * data.ratio;
-    double  dRotationDegree = std::atan2(data.secPoint.y, data.secPoint.x) * 180.0 / M_PI;
-    double  dStartDegree    = data.staparam * 180.0 / M_PI;
-    double  dEndDegree      = data.endparam * 180.0 / M_PI;
-
-    xcanvas::Ellipse* shape = new xcanvas::Ellipse;
-
-    if (qFuzzyCompare(dStartDegree, 0.0) && qFuzzyCompare(dEndDegree, 2 * 180.0))
+    if (isFullEllipse)
     {
-        shape->setEllipse(center, dMajor, dMinor, dRotationDegree);
-    }
-    else
-    {
-        shape->setEllipseArc(center, dMajor, dMinor, dRotationDegree, dStartDegree, dEndDegree);
-    }
+        QRectF rect(-major, -minor, 2 * major, 2 * minor);
+        shape->segments() = xcanvas::MyMath::buildEllipseSegments(rect);
 
+        QTransform t;
+        t.translate(center.x(), center.y());
+        t.rotate(rotationRad * 180.0 / M_PI);
+        shape->transform(t);
+
+        shape->setSemantic(qFuzzyCompare(major, minor) ? xcanvas::VectorSemantic::Circle : xcanvas::VectorSemantic::Ellipse);
+    }
+    // TODO未处理椭圆弧
+
+    shape->setColor(color(data));
     m_shapeList.append(shape);
 }
 

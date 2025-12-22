@@ -3,7 +3,8 @@
 
 #include "Shape.h"
 
-namespace xcanvas {
+namespace xcanvas
+{
 
 enum class VectorSemantic
 {
@@ -28,7 +29,7 @@ enum class SegmentType
 
 struct Segment
 {
-    SegmentType type;
+    SegmentType            type;
     std::array<QPointF, 3> points{};
 
     Segment() = default;
@@ -37,25 +38,39 @@ struct Segment
     {
         switch (type)
         {
-            case SegmentType::MoveTo:  return 1;
-            case SegmentType::LineTo:  return 1;
-            case SegmentType::QuadTo:  return 2;
-            case SegmentType::CubicTo: return 3;
-            default: return 0;
+        case SegmentType::MoveTo:
+            return 1;
+        case SegmentType::LineTo:
+            return 1;
+        case SegmentType::QuadTo:
+            return 2;
+        case SegmentType::CubicTo:
+            return 3;
+        default:
+            return 0;
         }
     }
 
-    QPointF& point(int i) { return points[i]; }
-    const QPointF& point(int i) const { return points[i]; }
+    QPointF& point(int i)
+    {
+        return points[i];
+    }
+    const QPointF& point(int i) const
+    {
+        return points[i];
+    }
 
     QPointF& end()
     {
         switch (type)
         {
-            case SegmentType::MoveTo:
-            case SegmentType::LineTo:  return points[0];
-            case SegmentType::QuadTo:  return points[1];
-            case SegmentType::CubicTo:return points[2];
+        case SegmentType::MoveTo:
+        case SegmentType::LineTo:
+            return points[0];
+        case SegmentType::QuadTo:
+            return points[1];
+        case SegmentType::CubicTo:
+            return points[2];
         }
         return points[0];
     }
@@ -63,10 +78,13 @@ struct Segment
     {
         switch (type)
         {
-            case SegmentType::MoveTo:
-            case SegmentType::LineTo:  return points[0];
-            case SegmentType::QuadTo:  return points[1];
-            case SegmentType::CubicTo:return points[2];
+        case SegmentType::MoveTo:
+        case SegmentType::LineTo:
+            return points[0];
+        case SegmentType::QuadTo:
+            return points[1];
+        case SegmentType::CubicTo:
+            return points[2];
         }
         return points[0];
     }
@@ -92,7 +110,7 @@ struct Segment
     static Segment moveTo(const QPointF& p)
     {
         Segment s;
-        s.type = SegmentType::MoveTo;
+        s.type      = SegmentType::MoveTo;
         s.points[0] = p;
         return s;
     }
@@ -100,7 +118,7 @@ struct Segment
     static Segment lineTo(const QPointF& p)
     {
         Segment s;
-        s.type = SegmentType::LineTo;
+        s.type      = SegmentType::LineTo;
         s.points[0] = p;
         return s;
     }
@@ -108,7 +126,7 @@ struct Segment
     static Segment quadTo(const QPointF& c, const QPointF& end)
     {
         Segment s;
-        s.type = SegmentType::QuadTo;
+        s.type      = SegmentType::QuadTo;
         s.points[0] = c;
         s.points[1] = end;
         return s;
@@ -117,7 +135,7 @@ struct Segment
     static Segment cubicTo(const QPointF& c1, const QPointF& c2, const QPointF& end)
     {
         Segment s;
-        s.type = SegmentType::CubicTo;
+        s.type      = SegmentType::CubicTo;
         s.points[0] = c1;
         s.points[1] = c2;
         s.points[2] = end;
@@ -125,18 +143,20 @@ struct Segment
     }
 };
 
-class Vector : public Shape {
-public:
+class Vector : public Shape
+{
+  public:
     explicit Vector();
     ~Vector() override;
-    void translate(const QPointF& offset) override;
+    void      translate(const QPointF& offset) override;
     ShapeType type() const override;
 
-    const QVector<Segment>& segments() const { return m_segments; }
-    QVector<Segment>& segments()             { return m_segments; }
-    bool isEmpty() const { return m_segments.isEmpty(); }
-    VectorSemantic semantic() const { return m_semantic; }
-    void setSemantic(const VectorSemantic semantic) { m_semantic = semantic; }
+    void                    transform(const QTransform& transform);
+    const QVector<Segment>& segments() const;
+    QVector<Segment>&       segments();
+    bool                    isEmpty() const;
+    VectorSemantic          semantic() const;
+    void                    setSemantic(const VectorSemantic semantic);
 
     void moveTo(const QPointF& p);
     void lineTo(const QPointF& p);
@@ -144,17 +164,14 @@ public:
     void cubicTo(const QPointF& c1, const QPointF& c2, const QPointF& end);
     void clear();
 
-protected:
+  protected:
     void updatePainterPath() override;
 
-private:
-    void transform(const QTransform& transform);
-
-private:
+  private:
     QVector<Segment> m_segments;
-    VectorSemantic m_semantic;
+    VectorSemantic   m_semantic;
 };
 
-} // xcanvas
+}// namespace xcanvas
 
-#endif //VECTOR_H
+#endif//VECTOR_H
