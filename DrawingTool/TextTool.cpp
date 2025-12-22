@@ -1,7 +1,7 @@
 #include "TextTool.h"
 #include "../MyGraphicsView.h"
 #include "Canvas.h"
-#include "Text.h"
+#include "ShapeText.h"
 #include <QAbstractTextDocumentLayout>
 #include <QDebug>
 #include <QGraphicsTextItem>
@@ -104,7 +104,7 @@ void xcanvas::TextTool::finishEdit()
     const QString plainText = m_pTextItem->toPlainText();
     if (!plainText.isEmpty())
     {
-        Text* pShape = new Text();
+        ShapeText* pShape = new ShapeText();
         pShape->setText(plainText);
         pShape->setPosition(m_pTextItem->pos());
         pShape->setFont(m_font);

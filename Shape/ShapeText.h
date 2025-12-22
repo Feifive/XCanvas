@@ -6,11 +6,11 @@
 
 namespace xcanvas
 {
-class Text : public Shape
+class ShapeText final : public Shape
 {
   public:
-    Text();
-    virtual ~Text() override;
+    ShapeText();
+    virtual ~ShapeText() override;
     void      translate(const QPointF& offset) override;
     ShapeType type() const override;
     void      setFont(QFont font);

@@ -75,8 +75,9 @@ set(PROJECT_SOURCES
     ${IMPORT_IMG}
     ${IMPORT_PDF}
     ${IMPORT_UTILS}
-        Shape/Vector.cpp
-        Shape/Vector.h
+        Shape/ShapeVector.cpp
+        Shape/ShapeVector.h
+        Common/GeometryDefs.h
 )
 
 # ============================================================

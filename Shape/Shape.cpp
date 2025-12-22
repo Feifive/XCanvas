@@ -5,103 +5,104 @@
 #include <QPainterPath>
 #include <QPainter>
 
-xcanvas::Shape::~Shape()
-{
-}
-
-void xcanvas::Shape::draw(QPainter* painter) const
-{
-    painter->save();
-
-    painter->setPen(m_selected ? selectedPen() : normalPen(m_color));
-
-    painter->drawPath(path());
-
-    painter->restore();
-}
-
-void xcanvas::Shape::setSelected(bool selected)
-{
-    m_selected = selected;
-}
-
-void xcanvas::Shape::setColor(const QColor& color)
-{
-    m_color = color; 
-    markDirty();
-}
-
-QPainterPath& xcanvas::Shape::path() const
-{
-    if (m_dirty) 
+namespace xcanvas {
+    Shape::~Shape()
     {
-        m_dirty = false;
-        const_cast<Shape*>(this)->updatePainterPath();
     }
 
-    return m_path;
-}
-
-QRectF xcanvas::Shape::boundingRect() const
-{
-    if (!m_boundingRectDirty)
+    void Shape::draw(QPainter* painter) const
     {
-		return m_cachedBoundingRect;
+        painter->save();
+
+        painter->setPen(m_selected ? selectedPen() : normalPen(m_color));
+
+        painter->drawPath(path());
+
+        painter->restore();
     }
 
-    QRectF rawRect = path().boundingRect();
-
-    qreal left   = rawRect.left();
-    qreal top    = rawRect.top();
-    qreal right  = rawRect.right();
-    qreal bottom = rawRect.bottom();
-
-    const double delta = BOUNDING_BOX_TOLERANCE;
-
-    if (qFuzzyIsNull(right - left))
+    void Shape::setSelected(bool selected)
     {
-        left  -= delta / 2.0;
-        right += delta / 2.0;
+        m_selected = selected;
     }
 
-    if (qFuzzyIsNull(bottom - top))
+    void Shape::setColor(const QColor& color)
     {
-        top    -= delta / 2.0;
-        bottom += delta / 2.0;
+        m_color = color;
+        markDirty();
     }
 
-    m_boundingRectDirty  = false;
-    m_cachedBoundingRect = QRectF(QPointF(left, top), QPointF(right, bottom));
-
-	return m_cachedBoundingRect;
-}
-
-bool xcanvas::Shape::isPointNearPath(const QPointF &point, double dScale)
-{
-    const QList<QPolygonF>& polygons = path().toSubpathPolygons();
-    const double            maxDist  = 6 / dScale;
-
-    for (const QPolygonF& polygon : polygons)
+    QPainterPath& Shape::path() const
     {
-        QRectF rect = polygon.boundingRect();
-        rect.adjust(-maxDist, -maxDist, maxDist, maxDist);
-        if (!rect.contains(point))
+        if (m_dirty)
         {
-            continue;
+            m_dirty = false;
+            const_cast<Shape*>(this)->updatePainterPath();
         }
-        for (int j = 0; j < polygon.size() - 1; ++j)
+
+        return m_path;
+    }
+
+    QRectF Shape::boundingRect() const
+    {
+        if (!m_boundingRectDirty)
         {
-            if (MyMath::point2Segment(polygon[j], polygon[j + 1], point) <= maxDist)
+            return m_cachedBoundingRect;
+        }
+
+        QRectF rawRect = path().boundingRect();
+
+        qreal left   = rawRect.left();
+        qreal top    = rawRect.top();
+        qreal right  = rawRect.right();
+        qreal bottom = rawRect.bottom();
+
+        const double delta = BOUNDING_BOX_TOLERANCE;
+
+        if (qFuzzyIsNull(right - left))
+        {
+            left  -= delta / 2.0;
+            right += delta / 2.0;
+        }
+
+        if (qFuzzyIsNull(bottom - top))
+        {
+            top    -= delta / 2.0;
+            bottom += delta / 2.0;
+        }
+
+        m_boundingRectDirty  = false;
+        m_cachedBoundingRect = QRectF(QPointF(left, top), QPointF(right, bottom));
+
+        return m_cachedBoundingRect;
+    }
+
+    bool Shape::isPointNearPath(const QPointF &point, double dScale)
+    {
+        const QList<QPolygonF>& polygons = path().toSubpathPolygons();
+        const double            maxDist  = 6 / dScale;
+
+        for (const QPolygonF& polygon : polygons)
+        {
+            QRectF rect = polygon.boundingRect();
+            rect.adjust(-maxDist, -maxDist, maxDist, maxDist);
+            if (!rect.contains(point))
             {
-                return true;
+                continue;
+            }
+            for (int j = 0; j < polygon.size() - 1; ++j)
+            {
+                if (geometryMath::point2Segment(polygon[j], polygon[j + 1], point) <= maxDist)
+                {
+                    return true;
+                }
             }
         }
+        return false;
     }
-    return false;
-}
 
-void xcanvas::Shape::markDirty()
-{
-    m_dirty             = true;
-	m_boundingRectDirty = true;
+    void xcanvas::Shape::markDirty() const {
+        m_dirty             = true;
+        m_boundingRectDirty = true;
+    }
 }

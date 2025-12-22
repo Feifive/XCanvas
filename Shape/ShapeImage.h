@@ -8,11 +8,11 @@
 namespace xcanvas
 {
 
-class Image : public Shape
+class ShapeImage final : public Shape
 {
   public:
-    explicit Image(QImage image);
-    ~Image() override;
+    explicit ShapeImage(QImage image);
+    ~ShapeImage() override;
     void      draw(QPainter* painter) const override;
     void      translate(const QPointF& offset) override;
     ShapeType type() const override;

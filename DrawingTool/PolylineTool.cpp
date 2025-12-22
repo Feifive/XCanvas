@@ -2,9 +2,11 @@
 #include "../MyGraphicsView.h"
 #include "Canvas.h"
 #include "Global.h"
-#include "Vector.h"
+#include "ShapeVector.h"
 #include <QGraphicsView>
 #include <QMouseEvent>
+
+#include "MyMath.h"
 
 xcanvas::PolylineTool::PolylineTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
 {
@@ -86,13 +88,10 @@ void xcanvas::PolylineTool::cancelDrawing()
     }
     else
     {
-        auto* shape = new Vector();
+        auto* shape = new ShapeVector();
         shape->setSemantic(VectorSemantic::Polyline);
         shape->setSelected(true);
-        shape->moveTo(m_points[0]);
-        for (int i = 1; i < m_points.size(); ++i) {
-            shape->lineTo(m_points[i]);
-        }
+        shape->segments() = geometryMath::buildPolylineSegments(m_points);
 
         m_canvas->shapeManager()->deselectAll();
         m_canvas->addShape(shape);

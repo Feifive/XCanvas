@@ -1,10 +1,32 @@
 #include "MyMath.h"
 #include <QtMath>
 
-namespace xcanvas
+namespace xcanvas::geometryMath
 {
 
-double MyMath::point2Segment(const QPointF& A, const QPointF& B, const QPointF& P)
+QVector<QRectF> traceRects(const QRectF &rect, double zoomValue) {
+    QVector<QRectF> rects;
+    rects.reserve(9);
+
+    const double dRectSize  = 4 / zoomValue;
+    const double dRectWidth = dRectSize * 2;
+    const double offset     = 5 / zoomValue;
+    const QRectF outRect    = rect.adjusted(-offset, -offset, offset, offset);
+
+    rects.append(QRectF(outRect.left() - dRectWidth, outRect.top() - dRectWidth, dRectWidth, dRectWidth));
+    rects.append(QRectF(outRect.center().x() - dRectSize, outRect.top() - dRectWidth, dRectWidth, dRectWidth));
+    rects.append(QRectF(outRect.right(), outRect.top() - dRectWidth, dRectWidth, dRectWidth));
+    rects.append(QRectF(outRect.left() - dRectWidth, outRect.center().y() - dRectSize, dRectWidth, dRectWidth));
+    rects.append(QRectF(outRect.center().x() - dRectSize, outRect.center().y() - dRectSize, dRectWidth, dRectWidth));
+    rects.append(QRectF(outRect.right(), outRect.center().y() - dRectSize, dRectWidth, dRectWidth));
+    rects.append(QRectF(outRect.left() - dRectWidth, outRect.bottom(), dRectWidth, dRectWidth));
+    rects.append(QRectF(outRect.center().x() - dRectSize, outRect.bottom(), dRectWidth, dRectWidth));
+    rects.append(QRectF(outRect.right(), outRect.bottom(), dRectWidth, dRectWidth));
+
+    return rects;
+}
+
+double point2Segment(const QPointF& A, const QPointF& B, const QPointF& P)
 {
     const double vx = B.x() - A.x();
     const double vy = B.y() - A.y();
@@ -24,7 +46,7 @@ double MyMath::point2Segment(const QPointF& A, const QPointF& B, const QPointF& 
     return std::hypot(P.x() - projx, P.y() - projy);
 }
 
-QVector<QPointF> MyMath::buildRegularPolygon(const QRectF& rect, int sides, double startAngleDeg)
+QVector<QPointF> buildRegularPolygon(const QRectF& rect, int sides, double startAngleDeg)
 {
     QVector<QPointF> points;
     if (sides < 3)
@@ -49,13 +71,45 @@ QVector<QPointF> MyMath::buildRegularPolygon(const QRectF& rect, int sides, doub
     return points;
 }
 
-QVector<Segment> MyMath::buildPolylineSegments(const QVector<QPointF>& points)
+QVector<Segment> buildPolylineSegments(const QVector<QPointF>& points)
 {
-    QVector<Segment> dd;
-    return dd;
+    QVector<Segment> segments;
+    if (points.size() < 2) {
+        return segments;
+    }
+
+    segments.reserve(points.size());
+    segments.append(Segment::moveTo(points[0]));
+    for (int i = 1; i < points.size(); ++i) {
+        segments.append(Segment::lineTo(points[i]));
+    }
+
+    return segments;
 }
 
-QVector<xcanvas::Segment> MyMath::buildEllipseSegments(const QRectF& rect)
+QVector<Segment> buildCurveSegments(const QVector<QPointF> &points) {
+    QVector<Segment> segments;
+    if (points.size() < 4) {
+        return segments;
+    }
+
+    segments.reserve(points.size());
+
+    segments.append(Segment::moveTo(points[0]));
+
+    for (int i = 0; i + 3 < points.size(); i += 3)
+    {
+        const QPointF& c1  = points[i + 1];
+        const QPointF& c2  = points[i + 2];
+        const QPointF& end = points[i + 3];
+
+        segments.append(Segment::cubicTo(c1, c2, end));
+    }
+
+    return segments;
+}
+
+QVector<xcanvas::Segment> buildEllipseSegments(const QRectF& rect)
 {
     QVector<Segment> segments;
 
@@ -92,4 +146,4 @@ QVector<xcanvas::Segment> MyMath::buildEllipseSegments(const QRectF& rect)
     return segments;
 }
 
-}// namespace xcanvas
+}// namespace xcanvas::geometryMath

@@ -8,6 +8,8 @@
 #include <QGraphicsPathItem>
 #include <QMouseEvent>
 
+#include "MyMath.h"
+
 xcanvas::SelectTool::SelectTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas), m_bMovingItem(false)
 {
 }
@@ -182,12 +184,11 @@ DrawingToolType xcanvas::SelectTool::toolType()
 
 int xcanvas::SelectTool::hitTraceHandle(const QPointF& pos) const
 {
-    QRectF rectf = m_canvas->shapeManager()->selectedBoundingRect();
+    const QRectF rect = m_canvas->shapeManager()->selectedBoundingRect();
 
-    if (rectf.isValid())
+    if (rect.isValid())
     {
-        QRectF traces[9];
-        m_canvasView->traceRects(rectf, traces);
+        QVector<QRectF> traces = geometryMath::traceRects(rect, m_canvasView->zoomValue());
 
         for (int i = 0; i < ERECT_POS_COUNT; ++i)
         {
@@ -195,7 +196,7 @@ int xcanvas::SelectTool::hitTraceHandle(const QPointF& pos) const
             {
                 return i;
             }
-            else if (rectf.contains(pos))
+            if (rect.contains(pos))
             {
                 return ERECT_CENTER;
             }

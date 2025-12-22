@@ -1,10 +1,10 @@
 #include "PDFTranslator.h"
 #include "fpdf_edit.h"
 #include "fpdf_transformpage.h"
-#include "Polyline.h"
-#include "Image.h"
+#include "ShapeImage.h"
 #include "Utils/ImageDpiUtil.h"
-#include "Vector.h"
+#include "ShapeVector.h"
+#include "ShapeText.h"
 #include <QDebug>
 #include <QImage>
 
@@ -94,7 +94,7 @@ void PDFTranslator::parsePath(FPDF_PAGEOBJECT pathObj)
         return;
     }
 
-    auto* shape = new xcanvas::Vector();
+    auto* shape = new xcanvas::ShapeVector();
     shape->setSemantic(xcanvas::VectorSemantic::Complex);
 
     QVector<QPointF> bezierBuf;
@@ -233,7 +233,7 @@ void PDFTranslator::parseImage(const FPDF_DOCUMENT doc, const FPDF_PAGE page, co
     const double heightMm = (top - bottom) * PT_TO_MM;
     const QRectF rectMm(topLeftMm.x(), topLeftMm.y(), widthMm, heightMm);
 
-    auto* imageShape = new xcanvas::Image(img);
+    auto* imageShape = new xcanvas::ShapeImage(img);
     imageShape->setRect(rectMm);
     m_shapeList.append(imageShape);
 }

@@ -2,7 +2,7 @@
 #define ELLIPSEDRAWINGTOOL_H
 
 #include "DrawingTool.h"
-#include "Vector.h"
+#include "ShapeVector.h"
 
 class QGraphicsEllipseItem;
 

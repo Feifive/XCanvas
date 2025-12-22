@@ -58,7 +58,7 @@ void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent* event)
     if (m_state == State::Drawing)
     {
         const QRectF rect = m_previewPath.boundingRect();
-        auto* shape = new Vector();
+        auto* shape = new ShapeVector();
         if (qFuzzyCompare(rect.width(), rect.height())) {
             shape->setSemantic(VectorSemantic::Circle);
         }
@@ -66,7 +66,7 @@ void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent* event)
             shape->setSemantic(VectorSemantic::Ellipse);
         }
 
-        shape->segments() = MyMath::buildEllipseSegments(rect);
+        shape->segments() = geometryMath::buildEllipseSegments(rect);
         shape->setSelected(true);
 
         m_canvas->shapeManager()->deselectAll();

@@ -9,7 +9,7 @@
 
 namespace xcanvas
 {
-class Vector;
+class ShapeVector;
 }
 
 class DXFTranslator : public DRW_Interface

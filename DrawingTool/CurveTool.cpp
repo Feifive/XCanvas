@@ -1,7 +1,8 @@
 #include "CurveTool.h"
 #include "../MyGraphicsView.h"
 #include "Canvas.h"
-#include "Vector.h"
+#include "MyMath.h"
+#include "ShapeVector.h"
 
 namespace xcanvas
 {
@@ -64,51 +65,27 @@ void CurveTool::cancelDrawing()
     }
     else
     {
-        Vector* shape = nullptr;
+        ShapeVector* shape = nullptr;
         if (m_points.size() == 2)
         {
-            Vector* polyline = new Vector();
+            auto* polyline = new ShapeVector();
             polyline->setSemantic(VectorSemantic::Polyline);
+            polyline->segments() = geometryMath::buildPolylineSegments(m_points);
             shape = polyline;
-            polyline->moveTo(m_points[0]);
-            polyline->lineTo(m_points[1]);
         }
         else
         {
             QVector<QPointF> bezierPoints = computeBezierPoints(m_points);
 
-            auto* curve = new Vector();
+            auto* curve = new ShapeVector();
+            curve->setSemantic(VectorSemantic::Curve);
+            curve->segments() = geometryMath::buildCurveSegments(bezierPoints);
             shape = curve;
-            if (bezierPoints.size() < 4)
-            {
-                if (!bezierPoints.isEmpty())
-                {
-                    curve->setSemantic(VectorSemantic::Polyline);
-                    curve->moveTo(bezierPoints[0]);
-                    for (int i = 1; i < bezierPoints.size(); ++i)
-                    {
-                        curve->lineTo(bezierPoints[i]);
-                    }
-                }
-            }
-            else {
-                curve->setSemantic(VectorSemantic::Curve);
-                curve->moveTo(bezierPoints[0]);
-                for (int i = 0; i <= bezierPoints.size() - 4; i += 3)
-                {
-                    QPointF c1  = bezierPoints.at(i + 1);
-                    QPointF c2  = bezierPoints.at(i + 2);
-                    QPointF end = bezierPoints.at(i + 3);
-                    curve->cubicTo(c1, c2, end);
-                }
-            }
         }
-
         shape->setSelected(true);
         m_canvas->shapeManager()->deselectAll();
         m_canvas->addShape(shape);
     }
-
     DrawingTool::cancelDrawing();
 }
 

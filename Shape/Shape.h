@@ -14,10 +14,7 @@ namespace xcanvas
 enum class ShapeType
 {
     Vector,
-    Polyline,
-    Ellipse,
     Text,
-    Curve,
     Image
 };
 
@@ -29,16 +26,10 @@ class Shape
     virtual void draw(QPainter* painter) const;
 
     virtual void setSelected(bool selected);
-    virtual bool isSelected() const
-    {
-        return m_selected;
-    }
+    virtual bool isSelected() const { return m_selected;}
 
     virtual void   setColor(const QColor& color);
-    virtual QColor color() const
-    {
-        return m_color;
-    }
+    virtual QColor color() const { return m_color;}
 
     virtual QPainterPath& path() const;
     virtual QRectF        boundingRect() const;
@@ -47,18 +38,12 @@ class Shape
     virtual void      translate(const QPointF& offset) = 0;
     virtual ShapeType type() const                     = 0;
 
-    bool isDirty() const
-    {
-        return m_dirty;
-    }
-    void setDirty(bool dirty)
-    {
-        m_dirty = dirty;
-    }
+    bool isDirty() const { return m_dirty;}
+    void setDirty(const bool dirty) const {m_dirty = dirty;}
 
   protected:
     virtual void updatePainterPath() = 0;
-    void         markDirty();
+    void         markDirty() const;
 
   protected:
     bool                 m_selected          = false;

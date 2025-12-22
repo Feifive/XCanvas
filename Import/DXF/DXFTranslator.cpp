@@ -1,8 +1,6 @@
 #include "DXFTranslator.h"
-#include "Curve.h"
 #include "MyMath.h"
-#include "Polyline.h"
-#include "Vector.h"
+#include "ShapeVector.h"
 #include "libdxfrw.h"
 
 #include <QDebug>
@@ -299,26 +297,25 @@ void DXFTranslator::linkImage(const DRW_ImageDef* data)
 
 void DXFTranslator::addLine(const DRW_Line& data)
 {
-    //qDebug() << "[DXF] addLine (" << data.basePoint.x << data.basePoint.y << ") -> (" << data.secPoint.x << data.secPoint.y << ")";
-
     QVector<QPointF> points;
     points.append(ConvertDXFPoint(data.basePoint.x, data.basePoint.y));
     points.append(ConvertDXFPoint(data.secPoint.x, data.secPoint.y));
-    xcanvas::Polyline* pShape = new xcanvas::Polyline;
-    pShape->SetPoints(points);
+    auto* shape = new xcanvas::ShapeVector;
+    shape->setColor(color(data));
+    shape->segments() = xcanvas::geometryMath::buildPolylineSegments(points);
 
-    m_shapeList.append(pShape);
+    m_shapeList.append(shape);
 }
 
 void DXFTranslator::addCircle(const DRW_Circle& data)
 {
-    auto* shape = new xcanvas::Vector();
+    auto* shape = new xcanvas::ShapeVector();
 
     QPointF center = ConvertDXFPoint(data.basePoint.x, data.basePoint.y);
     double  r      = data.radious;
     QRectF  localRect(-r, -r, 2 * r, 2 * r);
 
-    shape->segments() = xcanvas::MyMath::buildEllipseSegments(localRect);
+    shape->segments() = xcanvas::geometryMath::buildEllipseSegments(localRect);
     shape->translate(center);
     shape->setSemantic(xcanvas::VectorSemantic::Circle);
 
@@ -357,12 +354,12 @@ void DXFTranslator::addEllipse(const DRW_Ellipse& data)
     double  minor         = major * data.ratio;
     double  rotationRad   = -std::atan2(data.secPoint.y, data.secPoint.x);
     bool    isFullEllipse = qFuzzyIsNull(data.staparam) && qFuzzyCompare(data.endparam, 2 * M_PI);
-    auto*   shape         = new xcanvas::Vector();
+    auto*   shape         = new xcanvas::ShapeVector();
 
     if (isFullEllipse)
     {
         QRectF rect(-major, -minor, 2 * major, 2 * minor);
-        shape->segments() = xcanvas::MyMath::buildEllipseSegments(rect);
+        shape->segments() = xcanvas::geometryMath::buildEllipseSegments(rect);
 
         QTransform t;
         t.translate(center.x(), center.y());
@@ -442,11 +439,11 @@ void DXFTranslator::addLWPolyline(const DRW_LWPolyline& data)
 
     if (optimizedPoints.size() > 1)
     {
-        xcanvas::Polyline* pShape = new xcanvas::Polyline;
-        pShape->SetPoints(optimizedPoints);
-        pShape->setColor(color(data));
+        auto* shape = new xcanvas::ShapeVector;
+        shape->setColor(color(data));
+        shape->segments() = xcanvas::geometryMath::buildPolylineSegments(optimizedPoints);
 
-        m_shapeList.append(pShape);
+        m_shapeList.append(shape);
     }
 }
 
@@ -471,11 +468,11 @@ void DXFTranslator::addPolyline(const DRW_Polyline& data)
 
     if (optimizedPoints.size() > 1)
     {
-        xcanvas::Polyline* pLine = new xcanvas::Polyline();
-        pLine->SetPoints(optimizedPoints);
-        pLine->setColor(color(data));
+        auto* shape = new xcanvas::ShapeVector;
+        shape->setColor(color(data));
+        shape->segments() = xcanvas::geometryMath::buildPolylineSegments(optimizedPoints);
 
-        m_shapeList.append(pLine);
+        m_shapeList.append(shape);
     }
 }
 
@@ -500,10 +497,10 @@ void DXFTranslator::addSpline(const DRW_Spline* data)
 
         if (optimizedPoints.size() > 1)
         {
-            xcanvas::Polyline* poly = new xcanvas::Polyline();
-            poly->SetPoints(optimizedPoints);
-            poly->setColor(color(*data));
-            m_shapeList.append(poly);
+            auto* shape = new xcanvas::ShapeVector;
+            shape->setColor(color(*data));
+            shape->segments() = xcanvas::geometryMath::buildPolylineSegments(optimizedPoints);
+            m_shapeList.append(shape);
         }
 
         return;
@@ -602,18 +599,13 @@ void DXFTranslator::addSpline(const DRW_Spline* data)
     // --- 4. 创建 Curve ---
     if (bezierPoints.size() >= 4)
     {
-        xcanvas::Curve* pCurve = new xcanvas::Curve();
-        pCurve->SetPoints(bezierPoints);
-        pCurve->setColor(color(*data));
+        auto* shape = new xcanvas::ShapeVector();
+        shape->setColor(color(*data));
+        shape->segments() = xcanvas::geometryMath::buildCurveSegments(bezierPoints);
 
-        m_shapeList.append(pCurve);
+        m_shapeList.append(shape);
     }
 }
-
-//void DXFTranslator::addSpline(const DRW_Spline* data)
-//{
-//    qDebug() << "[DXF] addSpline controlPoints=" << data->controllist.size();
-//}
 
 void DXFTranslator::addPoint(const DRW_Point& data)
 {

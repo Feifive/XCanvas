@@ -2,7 +2,8 @@
 #include "../MyGraphicsView.h"
 #include "Canvas.h"
 #include "Global.h"
-#include "Vector.h"
+#include "ShapeVector.h"
+#include "MyMath.h"
 #include <QGraphicsView>
 #include <QMouseEvent>
 
@@ -72,17 +73,13 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
             return;
         }
 
-        Vector* shape = new Vector();
+        ShapeVector* shape = new ShapeVector();
         shape->setSemantic(VectorSemantic::Rectangle);
-        shape->moveTo(points[0]);
-        shape->lineTo(points[1]);
-        shape->lineTo(points[2]);
-        shape->lineTo(points[3]);
-        shape->lineTo(points[4]);
         shape->setSelected(true);
+        shape->segments() = geometryMath::buildPolylineSegments(points);
 
         m_canvas->shapeManager()->deselectAll();
-        m_canvas->shapeManager()->addShape(shape);
+        m_canvas->addShape(shape);
 
         cancelDrawing();
     }

@@ -21,7 +21,6 @@ class MyGraphicsView : public QGraphicsView
 
     double zoomValue();
     void   requestFullUpdate();
-    void   traceRects(const QRectF& rect, QRectF rects[9]);
 
   signals:
     void mouseMovePos(QPointF pos);

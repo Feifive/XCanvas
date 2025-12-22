@@ -1,6 +1,6 @@
 #include "ImageImporter.h"
 #include "../Utils/ImageDpiUtil.h"
-#include "Image.h"
+#include "ShapeImage.h"
 #include <QSet>
 
 QSet<QString> ImageImporter::supportedExtensions() const
@@ -29,7 +29,7 @@ xcanvas::ShapeList ImageImporter::importFile(const QString& filePath, const Impo
 
     QRectF rectMm = ImageDpiUtil::imageRectMm(image, ctx.defaultDpi);
 
-    auto* imageShape = new xcanvas::Image(image);
+    auto* imageShape = new xcanvas::ShapeImage(image);
     imageShape->setRect(rectMm);
     imageShape->setSelected(true);
 

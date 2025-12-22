@@ -17,6 +17,8 @@
 #include <QTimer>
 #include <QUndoStack>
 
+#include "MyMath.h"
+
 MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPos(-1, -1), m_bDragging(false), m_canvas(new xcanvas::Canvas(this)), QGraphicsView{parent}, m_pFloatingToolBar(nullptr)
 {
     setTransformationAnchor(QGraphicsView::NoAnchor);
@@ -359,24 +361,6 @@ double MyGraphicsView::gridStep(double scale) const
     return 500.0;
 }
 
-void MyGraphicsView::traceRects(const QRectF& rect, QRectF rects[9])
-{
-#define SIZE 3
-    double dScale     = zoomValue();
-    double dRectSize  = SIZE / dScale;
-    double dRectWidth = dRectSize * 2;
-
-    rects[ERECT_TOP_LEFT]     = QRectF(rect.left() - dRectWidth, rect.top() - dRectWidth, dRectWidth, dRectWidth);
-    rects[ERECT_TOP_MID]      = QRectF(rect.center().x() - dRectSize, rect.top() - dRectWidth, dRectWidth, dRectWidth);
-    rects[ERECT_TOP_RIGHT]    = QRectF(rect.right(), rect.top() - dRectWidth, dRectWidth, dRectWidth);
-    rects[ERECT_MID_LEFT]     = QRectF(rect.left() - dRectWidth, rect.center().y() - dRectSize, dRectWidth, dRectWidth);
-    rects[ERECT_CENTER]       = QRectF(rect.center().x() - dRectSize, rect.center().y() - dRectSize, dRectWidth, dRectWidth);
-    rects[ERECT_MID_RIGHT]    = QRectF(rect.right(), rect.center().y() - dRectSize, dRectWidth, dRectWidth);
-    rects[ERECT_BOTTOM_LEFT]  = QRectF(rect.left() - dRectWidth, rect.bottom(), dRectWidth, dRectWidth);
-    rects[ERECT_BOTTOM_MID]   = QRectF(rect.center().x() - dRectSize, rect.bottom(), dRectWidth, dRectWidth);
-    rects[ERECT_BOTTOM_RIGHT] = QRectF(rect.right(), rect.bottom(), dRectWidth, dRectWidth);
-}
-
 void MyGraphicsView::drawTrace(QPainter* painter)
 {
     if (!m_canvas->shapeManager() || m_canvas->shapeManager()->isEmpty())
@@ -384,40 +368,20 @@ void MyGraphicsView::drawTrace(QPainter* painter)
         return;
     }
 
-    QRectF rect = m_canvas->shapeManager()->selectedBoundingRect();
+    const QRectF rect = m_canvas->shapeManager()->selectedBoundingRect();
     if (!rect.isValid())
     {
         return;
     }
 
-    double dScale      = zoomValue();
-    double dLineLength = 6 / dScale;
-
     painter->save();
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(QColor("#90909B"));
 
-    QPen pen(Qt::black);
-    pen.setWidthF(2 / dScale);
-    pen.setCosmetic(false);
-    painter->setPen(pen);
-    painter->setBrush(Qt::black);
-
-    QRectF rects[9];
-    traceRects(rect, rects);
-
-    for (int i = 0; i < 9; ++i)
+    for (const QRectF& r : xcanvas::geometryMath::traceRects(rect, zoomValue()))
     {
-        if (i == ERECT_CENTER)
-        {
-            continue;
-        }
-        painter->drawRect(rects[i]);
+        painter->drawRect(r);
     }
-
-    QPointF center = rect.center();
-
-    painter->drawLine(QPointF(center.x() - dLineLength, center.y() - dLineLength), QPointF(center.x() + dLineLength, center.y() + dLineLength));
-
-    painter->drawLine(QPointF(center.x() + dLineLength, center.y() - dLineLength), QPointF(center.x() - dLineLength, center.y() + dLineLength));
 
     painter->restore();
 }
