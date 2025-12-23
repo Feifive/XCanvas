@@ -4,26 +4,32 @@
 namespace xcanvas::geometryMath
 {
 
-QVector<QRectF> traceRects(const QRectF &rect, double zoomValue) {
-    QVector<QRectF> rects;
-    rects.reserve(9);
+TraceHandles traceRects(const QRectF &rect, double zoomValue) {
+    TraceHandles handles;
+    handles.resizeRects.reserve(9);
 
     const double dRectSize  = 4 / zoomValue;
     const double dRectWidth = dRectSize * 2;
     const double offset     = 5 / zoomValue;
     const QRectF outRect    = rect.adjusted(-offset, -offset, offset, offset);
 
-    rects.append(QRectF(outRect.left() - dRectWidth, outRect.top() - dRectWidth, dRectWidth, dRectWidth));
-    rects.append(QRectF(outRect.center().x() - dRectSize, outRect.top() - dRectWidth, dRectWidth, dRectWidth));
-    rects.append(QRectF(outRect.right(), outRect.top() - dRectWidth, dRectWidth, dRectWidth));
-    rects.append(QRectF(outRect.left() - dRectWidth, outRect.center().y() - dRectSize, dRectWidth, dRectWidth));
-    rects.append(QRectF(outRect.center().x() - dRectSize, outRect.center().y() - dRectSize, dRectWidth, dRectWidth));
-    rects.append(QRectF(outRect.right(), outRect.center().y() - dRectSize, dRectWidth, dRectWidth));
-    rects.append(QRectF(outRect.left() - dRectWidth, outRect.bottom(), dRectWidth, dRectWidth));
-    rects.append(QRectF(outRect.center().x() - dRectSize, outRect.bottom(), dRectWidth, dRectWidth));
-    rects.append(QRectF(outRect.right(), outRect.bottom(), dRectWidth, dRectWidth));
+    handles.resizeRects.append(QRectF(outRect.left() - dRectWidth, outRect.top() - dRectWidth, dRectWidth, dRectWidth));
+    handles.resizeRects.append(QRectF(outRect.center().x() - dRectSize, outRect.top() - dRectWidth, dRectWidth, dRectWidth));
+    handles.resizeRects.append(QRectF(outRect.right(), outRect.top() - dRectWidth, dRectWidth, dRectWidth));
+    handles.resizeRects.append(QRectF(outRect.left() - dRectWidth, outRect.center().y() - dRectSize, dRectWidth, dRectWidth));
+    handles.resizeRects.append(QRectF(outRect.center().x() - dRectSize, outRect.center().y() - dRectSize, dRectWidth, dRectWidth));
+    handles.resizeRects.append(QRectF(outRect.right(), outRect.center().y() - dRectSize, dRectWidth, dRectWidth));
+    handles.resizeRects.append(QRectF(outRect.left() - dRectWidth, outRect.bottom(), dRectWidth, dRectWidth));
+    handles.resizeRects.append(QRectF(outRect.center().x() - dRectSize, outRect.bottom(), dRectWidth, dRectWidth));
+    handles.resizeRects.append(QRectF(outRect.right(), outRect.bottom(), dRectWidth, dRectWidth));
 
-    return rects;
+    const double rotateSize    = 16.0 / zoomValue;
+    const double rotateGap     = 28.0 / zoomValue;
+    const double rotateOffsetX = -1.0 / zoomValue;
+    const QPointF rotateCenter(rect.center().x() + rotateOffsetX, rect.top() - rotateGap);
+    handles.rotateRect = QRectF(rotateCenter.x() - rotateSize * 0.5,rotateCenter.y() - rotateSize * 0.5,rotateSize,rotateSize);
+
+    return handles;
 }
 
 double point2Segment(const QPointF& A, const QPointF& B, const QPointF& P)

@@ -4,6 +4,7 @@
 #include "ShapeManager.h"
 #include "fpdfview.h"
 #include <QColor>
+#include <QTransform>
 
 class PDFTranslator
 {

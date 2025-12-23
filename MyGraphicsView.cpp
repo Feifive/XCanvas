@@ -57,6 +57,8 @@ MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPo
     QTimer::singleShot(0, this, [this]() { fitCanvas(); });
     updateBottomFloatingToolBarPos();
     m_pFloatingToolBar->show();
+
+    m_rotateHandle.load(QStringLiteral(":/Resource/Icons/RotateHandle.svg"));
 }
 
 MyGraphicsView::~MyGraphicsView()
@@ -378,10 +380,18 @@ void MyGraphicsView::drawTrace(QPainter* painter)
     painter->setPen(Qt::NoPen);
     painter->setBrush(QColor("#90909B"));
 
-    for (const QRectF& r : xcanvas::geometryMath::traceRects(rect, zoomValue()))
+    const auto [resizeRects, rotateRect] = xcanvas::geometryMath::traceRects(rect, zoomValue());
+    for (const QRectF& r : resizeRects)
     {
         painter->drawRect(r);
     }
+
+    // 画旋转图标
+    const QTransform old = painter->worldTransform();
+    painter->setWorldTransform(QTransform());
+    const QRectF viewRotateRect = mapFromScene(rotateRect).boundingRect();
+    m_rotateHandle.render(painter, viewRotateRect);
+    painter->setWorldTransform(old);
 
     painter->restore();
 }

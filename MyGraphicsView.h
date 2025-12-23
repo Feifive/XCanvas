@@ -3,6 +3,7 @@
 
 #include "Global.h"
 #include <QGraphicsView>
+#include <QSvgRenderer>
 
 class BottomFloatingToolBar;
 namespace xcanvas
@@ -69,6 +70,7 @@ class MyGraphicsView : public QGraphicsView
     double                 m_dScaleFactor;
     BottomFloatingToolBar* m_pFloatingToolBar;
     std::unique_ptr<xcanvas::ToolManager> m_toolMgr;
+    QSvgRenderer m_rotateHandle;
 };
 
 #endif// MYGRAPHICSVIEW_H

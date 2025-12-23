@@ -188,17 +188,20 @@ int xcanvas::SelectTool::hitTraceHandle(const QPointF& pos) const
 
     if (rect.isValid())
     {
-        QVector<QRectF> traces = geometryMath::traceRects(rect, m_canvasView->zoomValue());
+        auto [resizeRects, rotateRect] = geometryMath::traceRects(rect, m_canvasView->zoomValue());
+        if (rotateRect.contains(pos)) {
+            return Rotate;
+        }
 
-        for (int i = 0; i < ERECT_POS_COUNT; ++i)
+        for (int i = 0; i < resizeRects.size(); ++i)
         {
-            if (traces[i].contains(pos))
+            if (resizeRects[i].contains(pos))
             {
                 return i;
             }
             if (rect.contains(pos))
             {
-                return ERECT_CENTER;
+                return Center;
             }
         }
     }
@@ -209,24 +212,27 @@ void xcanvas::SelectTool::setCanvasCursorShape(int nHitPos)
 {
     switch (nHitPos)
     {
-    case ERECT_TOP_LEFT:
-    case ERECT_BOTTOM_RIGHT:
+    case TopLeft:
+    case BottomRight:
         m_canvasView->setCursor(Qt::SizeFDiagCursor);
         break;
-    case ERECT_TOP_MID:
-    case ERECT_BOTTOM_MID:
+    case TopMid:
+    case BottomMid:
         m_canvasView->setCursor(Qt::SizeVerCursor);
         break;
-    case ERECT_TOP_RIGHT:
-    case ERECT_BOTTOM_LEFT:
+    case TopRight:
+    case BottomLeft:
         m_canvasView->setCursor(Qt::SizeBDiagCursor);
         break;
-    case ERECT_MID_LEFT:
-    case ERECT_MID_RIGHT:
+    case MidLeft:
+    case MidRight:
         m_canvasView->setCursor(Qt::SizeHorCursor);
         break;
-    case ERECT_CENTER:
+    case Center:
         m_canvasView->setCursor(Qt::SizeAllCursor);
+        break;
+    case Rotate:
+        m_canvasView->setCursor(Qt::PointingHandCursor);
         break;
     default:
         m_canvasView->setCursor(Qt::ArrowCursor);

@@ -13,5 +13,6 @@
         <file>Resource/Icons/Undo.svg</file>
         <file>Resource/Icons/ZoomIn.svg</file>
         <file>Resource/Icons/ZoomOut.svg</file>
+        <file>Resource/Icons/RotateHandle.svg</file>
     </qresource>
 </RCC>

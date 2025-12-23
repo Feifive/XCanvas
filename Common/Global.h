@@ -26,18 +26,18 @@ enum class DrawingToolType : uint8_t
 	Polygon
 };
 
-enum ERECT_POS
+enum HandleType
 {
-    ERECT_TOP_LEFT = 0,
-    ERECT_TOP_MID,
-    ERECT_TOP_RIGHT,
-    ERECT_MID_LEFT,
-    ERECT_CENTER,
-    ERECT_MID_RIGHT,
-    ERECT_BOTTOM_LEFT,
-    ERECT_BOTTOM_MID,
-    ERECT_BOTTOM_RIGHT,
-    ERECT_POS_COUNT
+    TopLeft = 0,
+    TopMid,
+    TopRight,
+    MidLeft,
+    Center,
+    MidRight,
+    BottomLeft,
+    BottomMid,
+    BottomRight,
+    Rotate
 };
 
 inline QPen dotLinePen()

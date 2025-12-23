@@ -26,6 +26,7 @@ list(APPEND CMAKE_PREFIX_PATH ${QT_SDK_DIR})
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core)
+find_package(Qt6 REQUIRED COMPONENTS Svg)
 
 # ============================================================
 # 第三方库
@@ -177,6 +178,7 @@ target_link_libraries(XCanvas PRIVATE
     libdxfrw
     thirdparty_pdfium
 )
+target_link_libraries(XCanvas PRIVATE Qt6::Svg)
 
 # ============================================================
 # 运行期动态库拷贝（pdfium）
