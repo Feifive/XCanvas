@@ -16,14 +16,16 @@ class PDFTranslator
 
   private:
     void    parsePage(FPDF_DOCUMENT doc, FPDF_PAGE page);
-    void    parsePath(FPDF_PAGEOBJECT pathObj);
-    void    parseText(FPDF_PAGEOBJECT textObj);
-    void    parseImage(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_PAGEOBJECT imageObj, bool isFormObj);
-    void    parseForm(const FPDF_DOCUMENT doc, const FPDF_PAGE page, FPDF_PAGEOBJECT formObj);
+    void    parsePath(FPDF_PAGEOBJECT pathObj, const QTransform& worldPdfTf);
+    void    parseText(FPDF_PAGEOBJECT textObj, const QTransform& worldPdfTf);
+    void    parseImage(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_PAGEOBJECT imageObj, const QTransform& worldPdfTf, bool insideForm);
+    void    parseObjectRecursive(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_PAGEOBJECT obj, const QTransform& parentPdfTf, bool insideForm);
     QPointF ConvertPDFPoint(double x, double y) const;
 
   private:
-    QTransform pdfMatrixToQt(const FS_MATRIX& m, double pageHeightPt);
+    QTransform fsMatrixToQTransform(const FS_MATRIX& m);
+    bool       isWhiteLike(const QColor& c, int threshold = 245);
+    QColor     normalizePdfColor(const QColor& c);
     QColor     getStrokeColor(FPDF_PAGEOBJECT obj, bool& hasStroke);
     QColor     getFillColor(FPDF_PAGEOBJECT obj, bool& hasFill);
 

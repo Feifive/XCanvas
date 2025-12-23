@@ -26,7 +26,6 @@ bool PDFTranslator::Load(const QString& filePath)
     }
 
     int pageCount = FPDF_GetPageCount(doc);
-    qDebug() << "PDF pageCount:" << pageCount;
 
     for (int i = 0; i < pageCount; ++i)
     {
@@ -53,9 +52,9 @@ xcanvas::ShapeList PDFTranslator::shapeList()
 
 void PDFTranslator::parsePage(FPDF_DOCUMENT doc, FPDF_PAGE page)
 {
-    m_pageHeightPt     = FPDF_GetPageHeight(page);
-    const int objCount = FPDFPage_CountObjects(page);
-
+    m_pageHeightPt      = FPDF_GetPageHeight(page);
+    const int  objCount = FPDFPage_CountObjects(page);
+    QTransform identity;
     for (int i = 0; i < objCount; ++i)
     {
         FPDF_PAGEOBJECT obj = FPDFPage_GetObject(page, i);
@@ -63,39 +62,17 @@ void PDFTranslator::parsePage(FPDF_DOCUMENT doc, FPDF_PAGE page)
         {
             continue;
         }
-
-        switch (int type = FPDFPageObj_GetType(obj))
-        {
-        case FPDF_PAGEOBJ_PATH:
-            parsePath(obj);
-            break;
-        case FPDF_PAGEOBJ_TEXT:
-            parseText(obj);
-            break;
-        case FPDF_PAGEOBJ_IMAGE:
-            parseImage(doc, page, obj, false);
-            break;
-        case FPDF_PAGEOBJ_FORM:
-            parseForm(doc, page, obj);
-            break;
-        default:
-            break;
-        }
+        parseObjectRecursive(doc, page, obj, identity, false);
     }
 }
 
-void PDFTranslator::parsePath(FPDF_PAGEOBJECT pathObj)
+void PDFTranslator::parsePath(FPDF_PAGEOBJECT pathObj, const QTransform& worldPdfTf)
 {
-    qDebug() << "parsePath";
     const int segmentCount = FPDFPath_CountSegments(pathObj);
     if (segmentCount <= 0)
     {
         return;
     }
-
-    // 获取变换矩阵
-    FS_MATRIX matrix;
-    FPDFPageObj_GetMatrix(pathObj, &matrix);
 
     bool   hasStroke   = false;
     bool   hasFill     = false;
@@ -117,17 +94,14 @@ void PDFTranslator::parsePath(FPDF_PAGEOBJECT pathObj)
             continue;
         }
 
-        const int type = FPDFPathSegment_GetType(seg);
-
         float xPt = 0.0f, yPt = 0.0f;
         FPDFPathSegment_GetPoint(seg, &xPt, &yPt);
 
-        double dTransformedX = matrix.a * xPt + matrix.c * yPt + matrix.e;
-        double dTransformedY = matrix.b * xPt + matrix.d * yPt + matrix.f;
-
-        const QPointF pt    = ConvertPDFPoint(dTransformedX, dTransformedY);
+        QPointF       pPdf  = worldPdfTf.map(QPointF(xPt, yPt));
+        const QPointF pt    = ConvertPDFPoint(pPdf.x(), pPdf.y());
         const bool    close = FPDFPathSegment_GetClose(seg);
 
+        const int type = FPDFPathSegment_GetType(seg);
         switch (type)
         {
         case FPDF_SEGMENT_MOVETO:
@@ -201,19 +175,14 @@ void PDFTranslator::parsePath(FPDF_PAGEOBJECT pathObj)
     }
 }
 
-void PDFTranslator::parseText(FPDF_PAGEOBJECT textObj)
+void PDFTranslator::parseText(FPDF_PAGEOBJECT textObj, const QTransform& worldPdfTf)
 {
 }
 
-void PDFTranslator::parseImage(const FPDF_DOCUMENT doc, const FPDF_PAGE page, const FPDF_PAGEOBJECT imageObj, bool isFormObj)
+void PDFTranslator::parseImage(const FPDF_DOCUMENT doc, const FPDF_PAGE page, const FPDF_PAGEOBJECT imageObj, const QTransform& worldPdfTf, bool insideForm)
 {
-    float left, bottom, right, top;
-    if (!FPDFPageObj_GetBounds(imageObj, &left, &bottom, &right, &top))
-    {
-        return;
-    }
     FPDF_BITMAP bitmap = nullptr;
-    if (!isFormObj)
+    if (!insideForm)
     {
         bitmap = FPDFImageObj_GetBitmap(imageObj);
     }
@@ -265,47 +234,58 @@ void PDFTranslator::parseImage(const FPDF_DOCUMENT doc, const FPDF_PAGE page, co
         return;
     }
 
-    const QPointF topLeftMm = ConvertPDFPoint(left, top);
-    const double  widthMm   = (right - left) * PT_TO_MM;
-    const double  heightMm  = (top - bottom) * PT_TO_MM;
-    const QRectF  rectMm(topLeftMm.x(), topLeftMm.y(), widthMm, heightMm);
+    QRectF  unitRect(0, 0, 1, 1);
+    QRectF  worldRect  = worldPdfTf.mapRect(unitRect);
+    QPointF topLeftMm  = ConvertPDFPoint(worldRect.left(), worldRect.top());
+    QPointF botRightMm = ConvertPDFPoint(worldRect.right(), worldRect.bottom());
+    QRectF  rectMm(QPointF(topLeftMm.x(), topLeftMm.y()), QPointF(botRightMm.x(), botRightMm.y()));
+    rectMm = rectMm.normalized();
 
     auto* imageShape = new xcanvas::ShapeImage(img);
     imageShape->setRect(rectMm);
     m_shapeList.append(imageShape);
 }
 
-void PDFTranslator::parseForm(const FPDF_DOCUMENT doc, const FPDF_PAGE page, FPDF_PAGEOBJECT formObj)
+void PDFTranslator::parseObjectRecursive(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_PAGEOBJECT obj, const QTransform& parentPdfTf, bool insideForm)
 {
-    qDebug() << "parseForm";
-    m_pageHeightPt         = FPDF_GetPageHeight(page);
-    const int formObjCount = FPDFFormObj_CountObjects(formObj);
-
-    for (int i = 0; i < formObjCount; ++i)
+    if (!obj)
     {
-        FPDF_PAGEOBJECT obj = FPDFFormObj_GetObject(formObj, i);
-        if (!obj)
-        {
-            continue;
-        }
+        return;
+    }
 
-        switch (int type = FPDFPageObj_GetType(obj))
+    FS_MATRIX matrix;
+    FPDFPageObj_GetMatrix(obj, &matrix);
+    QTransform localPdfTf = fsMatrixToQTransform(matrix);
+    QTransform worldPdfTf = localPdfTf * parentPdfTf;
+
+    const int type = FPDFPageObj_GetType(obj);
+    switch (type)
+    {
+    case FPDF_PAGEOBJ_PATH:
+        parsePath(obj, worldPdfTf);
+        break;
+    case FPDF_PAGEOBJ_TEXT:
+        parseText(obj, worldPdfTf);
+        break;
+    case FPDF_PAGEOBJ_IMAGE:
+        parseImage(doc, page, obj, worldPdfTf, insideForm);
+        break;
+    case FPDF_PAGEOBJ_FORM:
+    {
+        const int count = FPDFFormObj_CountObjects(obj);
+        for (int i = 0; i < count; ++i)
         {
-        case FPDF_PAGEOBJ_PATH:
-            parsePath(obj);
-            break;
-        case FPDF_PAGEOBJ_TEXT:
-            parseText(obj);
-            break;
-        case FPDF_PAGEOBJ_IMAGE:
-            parseImage(doc, page, obj, true);
-            break;
-        case FPDF_PAGEOBJ_FORM:
-            parseForm(doc, page, obj);
-            break;
-        default:
-            break;
+            FPDF_PAGEOBJECT child = FPDFFormObj_GetObject(obj, i);
+            if (!child)
+            {
+                continue;
+            }
+            parseObjectRecursive(doc, page, child, worldPdfTf, true);
         }
+        break;
+    }
+    default:
+        break;
     }
 }
 
@@ -316,23 +296,41 @@ QPointF PDFTranslator::ConvertPDFPoint(const double x, const double y) const
     return {xMm, yMm};
 }
 
-QTransform PDFTranslator::pdfMatrixToQt(const FS_MATRIX& m, double pageHeightPt)
+QTransform PDFTranslator::fsMatrixToQTransform(const FS_MATRIX& m)
 {
-    QTransform flip(1, 0, 0, -1, 0, pageHeightPt);
-    QTransform t(m.a, m.b, m.c, m.d, m.e, m.f);
-    return flip * t;
+    return QTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+}
+
+bool PDFTranslator::isWhiteLike(const QColor& c, int threshold)
+{
+    return c.alpha() > 0 && c.red() >= threshold && c.green() >= threshold && c.blue() >= threshold;
+}
+
+QColor PDFTranslator::normalizePdfColor(const QColor& c)
+{
+    if (!c.isValid())
+    {
+        return QColor(Qt::black);
+    }
+    if (isWhiteLike(c))
+    {
+        return QColor(0, 0, 0, c.alpha());
+    }
+    return c;
 }
 
 QColor PDFTranslator::getFillColor(FPDF_PAGEOBJECT obj, bool& hasFill)
 {
     unsigned int r = 0, g = 0, b = 0, a = 255;
     hasFill = FPDFPageObj_GetFillColor(obj, &r, &g, &b, &a);
-    return QColor(r, g, b, a);
+    QColor c(r, g, b, a);
+    return normalizePdfColor(c);
 }
 
 QColor PDFTranslator::getStrokeColor(FPDF_PAGEOBJECT obj, bool& hasStroke)
 {
     unsigned int r = 0, g = 0, b = 0, a = 255;
     hasStroke = FPDFPageObj_GetStrokeColor(obj, &r, &g, &b, &a);
-    return QColor(r, g, b, a);
+    QColor c(r, g, b, a);
+    return normalizePdfColor(c);
 }
