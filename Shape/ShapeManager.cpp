@@ -195,7 +195,7 @@ namespace xcanvas {
         QRectF rect;
         bool   first = true;
 
-        for (Shape* shape : m_shapes)
+        for (const Shape* shape : m_shapes)
         {
             if (shape->isSelected())
             {

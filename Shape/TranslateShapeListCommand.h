@@ -6,11 +6,11 @@
 
 namespace xcanvas {
 
-    class TranslateShapesCommand : public QUndoCommand
+    class TranslateShapesCommand final : public QUndoCommand
     {
     public:
-        TranslateShapesCommand(const ShapeList& shapeList, const QPointF& offset, QUndoCommand* parent = nullptr)
-            : QUndoCommand(parent), m_shapeList(shapeList), m_offset(offset)
+        TranslateShapesCommand(ShapeList shapeList, const QPointF& offset, QUndoCommand* parent = nullptr)
+            : QUndoCommand(parent), m_shapeList(std::move(shapeList)), m_offset(offset)
         {
             setText("Translate ShapeList");
         }

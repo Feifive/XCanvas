@@ -11,19 +11,19 @@ class Shape;
 
 namespace xcanvas
 {
-class SelectTool : public DrawingTool
+class SelectTool final : public DrawingTool
 {
     Q_OBJECT
   public:
     explicit SelectTool(MyGraphicsView* view, Canvas* canvas);
-    virtual ~SelectTool() override;
+    ~SelectTool() override;
 
-    virtual void            mousePressEvent(QMouseEvent* event) override;
-    virtual void            mouseMoveEvent(QMouseEvent* event) override;
-    virtual void            mouseReleaseEvent(QMouseEvent* event) override;
-    virtual void            keyPressEvent(QKeyEvent* event) override;
-    virtual void            drawPreview(QPainter* painter) override;
-    virtual DrawingToolType toolType() override;
+    void            mousePressEvent(QMouseEvent* event) override;
+    void            mouseMoveEvent(QMouseEvent* event) override;
+    void            mouseReleaseEvent(QMouseEvent* event) override;
+    void            keyPressEvent(QKeyEvent* event) override;
+    void            drawPreview(QPainter* painter) override;
+    DrawingToolType toolType() override;
 
   private:
     int    hitTraceHandle(const QPointF& pos) const;
@@ -39,8 +39,11 @@ class SelectTool : public DrawingTool
     bool         m_bMovingItem;
     bool         m_rotating;
     QPointF      m_rotationCenter;
+    double       m_totalRotation;
     QPainterPath m_highlightPath;
     QPainterPath m_selectionRectPath;
+    int m_lastHitPos;
+    Shape* m_lastHighlightedShape;
 };
 }// namespace xcanvas
 

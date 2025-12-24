@@ -14,5 +14,6 @@
         <file>Resource/Icons/ZoomIn.svg</file>
         <file>Resource/Icons/ZoomOut.svg</file>
         <file>Resource/Icons/RotateHandle.svg</file>
+        <file>Resource/Icons/Rotate.svg</file>
     </qresource>
 </RCC>

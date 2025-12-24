@@ -5,12 +5,18 @@
 #include "Shape.h"
 #include "ShapeManager.h"
 #include "TranslateShapeListCommand.h"
-#include <QGraphicsPathItem>
+#include "RotateShapesCommand.h"
 #include <QMouseEvent>
 
 #include "MyMath.h"
 
-xcanvas::SelectTool::SelectTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas), m_bMovingItem(false), m_rotating(false)
+xcanvas::SelectTool::SelectTool(MyGraphicsView* view, Canvas* canvas) :
+    DrawingTool(view, canvas),
+    m_bMovingItem(false),
+    m_rotating(false),
+    m_totalRotation(0.0),
+    m_lastHitPos(-2),
+    m_lastHighlightedShape(nullptr)
 {
 }
 
@@ -37,18 +43,19 @@ void xcanvas::SelectTool::mousePressEvent(QMouseEvent* event)
     if (event->button() == Qt::LeftButton && hitTraceHandle(scenePos) == Rotate)
     {
         m_rotating       = true;
+        m_totalRotation  = 0.0;
+        m_dragStartPos   = scenePos;
         m_rotationCenter = m_canvas->shapeManager()->selectedBoundingRect().center();
     }
 }
 
 void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
 {
-    QPointF scenePos = m_canvasView->mapToScene(event->pos());
-    int     nHitPos  = -1;
+    const QPointF scenePos = m_canvasView->mapToScene(event->pos());
 
     if (m_state == State::Drawing)
     {
-        QRectF rect(qMin(m_mousePos.x(), scenePos.x()), qMin(m_mousePos.y(), scenePos.y()), qAbs(scenePos.x() - m_mousePos.x()), qAbs(scenePos.y() - m_mousePos.y()));
+        const QRectF rect(qMin(m_mousePos.x(), scenePos.x()), qMin(m_mousePos.y(), scenePos.y()), qAbs(scenePos.x() - m_mousePos.x()), qAbs(scenePos.y() - m_mousePos.y()));
 
         updateSelectionRect(rect);
 
@@ -58,7 +65,7 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
     {
         if (m_bMovingItem)
         {
-            QPointF delta = scenePos - m_mousePos;
+            const QPointF delta = scenePos - m_mousePos;
 
             ShapeList selectedShapeList = m_canvas->shapeManager()->selectedShapes();
             for (Shape* shape : selectedShapeList)
@@ -71,12 +78,13 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
         }
         else if (m_rotating)
         {
-            QRectF  rect   = m_canvas->shapeManager()->selectedBoundingRect();
-            QPointF center = rect.center();
+            const QRectF  rect   = m_canvas->shapeManager()->selectedBoundingRect();
+            const QPointF center = rect.center();
 
-            double oldAngle  = std::atan2(m_mousePos.y() - center.y(), m_mousePos.x() - center.x());
-            double newAngle  = std::atan2(scenePos.y() - center.y(), scenePos.x() - center.x());
-            double angleDiff = qRadiansToDegrees(newAngle - oldAngle);
+            const double oldAngle  = std::atan2(m_mousePos.y() - center.y(), m_mousePos.x() - center.x());
+            const double newAngle  = std::atan2(scenePos.y() - center.y(), scenePos.x() - center.x());
+            const double angleDiff = qRadiansToDegrees(newAngle - oldAngle);
+            m_totalRotation        += angleDiff;
 
             ShapeList selectedShapeList = m_canvas->shapeManager()->selectedShapes();
             for (Shape* shape : selectedShapeList)
@@ -89,26 +97,27 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
         }
         else
         {
-            nHitPos = hitTraceHandle(scenePos);
-            setCanvasCursorShape(nHitPos);
-            if (nHitPos == -1)
-            {
-                Shape* pShape = hitUnselectedShape(scenePos);
-                if (pShape)
-                {
-                    updateHighlight(*pShape);
-                }
-                else
-                {
-                    clearHighlight();
-                }
-            }
-            else
-            {
-                clearHighlight();
+            int hitPos  = -1;
+            hitPos = hitTraceHandle(scenePos);
+            if (hitPos != m_lastHitPos) {
+                setCanvasCursorShape(hitPos);
+                m_lastHitPos = hitPos;
             }
 
-            m_canvasView->requestFullUpdate();
+            Shape* currentShape = nullptr;
+            if (hitPos == -1) {
+                currentShape = hitUnselectedShape(scenePos);
+            }
+
+            if (currentShape != m_lastHighlightedShape) {
+                if (currentShape) {
+                    updateHighlight(*currentShape);
+                } else {
+                    clearHighlight();
+                }
+                m_lastHighlightedShape = currentShape;
+                m_canvasView->requestFullUpdate();
+            }
         }
     }
 }
@@ -163,6 +172,17 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
     if (m_rotating)
     {
         m_rotating = false;
+        if (std::abs(m_totalRotation) > 0.01)
+        {
+            ShapeList selectedShapeList = m_canvas->shapeManager()->selectedShapes();
+
+            for (Shape* shape : selectedShapeList) {
+                shape->rotate(-m_totalRotation, m_rotationCenter);
+            }
+
+            m_canvas->undoStack()->push(new RotateShapesCommand(selectedShapeList, m_totalRotation, m_rotationCenter));
+        }
+        m_canvasView->requestFullUpdate();
     }
 }
 
@@ -213,27 +233,30 @@ DrawingToolType xcanvas::SelectTool::toolType()
 int xcanvas::SelectTool::hitTraceHandle(const QPointF& pos) const
 {
     const QRectF rect = m_canvas->shapeManager()->selectedBoundingRect();
+    if (!rect.isValid()) {
+        return -1;
+    }
 
-    if (rect.isValid())
-    {
-        auto [resizeRects, rotateRect] = geometryMath::traceRects(rect, m_canvasView->zoomValue());
-        if (rotateRect.contains(pos))
-        {
-            return Rotate;
-        }
+    if (const QRectF probeRect = rect.adjusted(-40, -40, 40, 40); !probeRect.contains(pos)) {
+        return -1;
+    }
 
-        for (int i = 0; i < resizeRects.size(); ++i)
-        {
-            if (resizeRects[i].contains(pos))
-            {
-                return i;
-            }
-            if (rect.contains(pos))
-            {
-                return Center;
-            }
+    auto [resizeRects, rotateRect] = geometryMath::traceRects(rect, m_canvasView->zoomValue());
+
+    if (rotateRect.contains(pos)) {
+        return Rotate;
+    }
+
+    for (int i = 0; i < resizeRects.size(); ++i) {
+        if (resizeRects[i].contains(pos)) {
+            return i;
         }
     }
+
+    if (rect.contains(pos)) {
+        return Center;
+    }
+
     return -1;
 }
 
@@ -260,8 +283,11 @@ void xcanvas::SelectTool::setCanvasCursorShape(int nHitPos)
     case Center:
         m_canvasView->setCursor(Qt::SizeAllCursor);
         break;
-    case Rotate:
-        m_canvasView->setCursor(Qt::PointingHandCursor);
+    case Rotate: {
+        const QIcon rotateIcon(":/Resource/Icons/Rotate.svg");
+        const QPixmap pixmap = rotateIcon.pixmap(QSize(16, 16));
+        m_canvasView->setCursor(QCursor(pixmap));
+    }
         break;
     default:
         m_canvasView->setCursor(Qt::ArrowCursor);
@@ -293,7 +319,7 @@ void xcanvas::SelectTool::clearSelectionRect()
 
 xcanvas::Shape* xcanvas::SelectTool::hitUnselectedShape(QPointF pos)
 {
-    double        dScale  = m_canvasView->transform().m11();
+    double        dScale  = m_canvasView->zoomValue();
     ShapeManager* pShapes = m_canvas->shapeManager();
     for (int i = 0; i < pShapes->count(); ++i)
     {
