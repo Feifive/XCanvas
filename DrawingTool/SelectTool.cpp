@@ -10,7 +10,7 @@
 
 #include "MyMath.h"
 
-xcanvas::SelectTool::SelectTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas), m_bMovingItem(false)
+xcanvas::SelectTool::SelectTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas), m_bMovingItem(false), m_rotating(false)
 {
 }
 
@@ -33,6 +33,11 @@ void xcanvas::SelectTool::mousePressEvent(QMouseEvent* event)
     {
         m_bMovingItem  = true;
         m_dragStartPos = scenePos;
+    }
+    if (event->button() == Qt::LeftButton && hitTraceHandle(scenePos) == Rotate)
+    {
+        m_rotating       = true;
+        m_rotationCenter = m_canvas->shapeManager()->selectedBoundingRect().center();
     }
 }
 
@@ -59,6 +64,24 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
             for (Shape* shape : selectedShapeList)
             {
                 shape->translate(delta);
+            }
+
+            m_mousePos = scenePos;
+            m_canvasView->requestFullUpdate();
+        }
+        else if (m_rotating)
+        {
+            QRectF  rect   = m_canvas->shapeManager()->selectedBoundingRect();
+            QPointF center = rect.center();
+
+            double oldAngle  = std::atan2(m_mousePos.y() - center.y(), m_mousePos.x() - center.x());
+            double newAngle  = std::atan2(scenePos.y() - center.y(), scenePos.x() - center.x());
+            double angleDiff = qRadiansToDegrees(newAngle - oldAngle);
+
+            ShapeList selectedShapeList = m_canvas->shapeManager()->selectedShapes();
+            for (Shape* shape : selectedShapeList)
+            {
+                shape->rotate(angleDiff, m_rotationCenter);
             }
 
             m_mousePos = scenePos;
@@ -136,6 +159,11 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
 
         m_canvasView->requestFullUpdate();
     }
+
+    if (m_rotating)
+    {
+        m_rotating = false;
+    }
 }
 
 void xcanvas::SelectTool::keyPressEvent(QKeyEvent* event)
@@ -189,7 +217,8 @@ int xcanvas::SelectTool::hitTraceHandle(const QPointF& pos) const
     if (rect.isValid())
     {
         auto [resizeRects, rotateRect] = geometryMath::traceRects(rect, m_canvasView->zoomValue());
-        if (rotateRect.contains(pos)) {
+        if (rotateRect.contains(pos))
+        {
             return Rotate;
         }
 
@@ -277,14 +306,7 @@ xcanvas::Shape* xcanvas::SelectTool::hitUnselectedShape(QPointF pos)
         {
             continue;
         }
-        if (pShape->type() == ShapeType::Image)
-        {
-            if (pShape->boundingRect().contains(pos))
-            {
-                return pShape;
-            }
-        }
-        else if (pShape->isPointNearPath(pos, dScale))
+        if (pShape->isPointNearPath(pos, dScale))
         {
             return pShape;
         }

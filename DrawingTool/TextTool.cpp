@@ -77,6 +77,7 @@ void xcanvas::TextTool::cancelDrawing()
 void xcanvas::TextTool::startEdit()
 {
     m_pTextItem = new QGraphicsTextItem("HELLO");
+    m_pTextItem->document()->setDocumentMargin(0);
     m_pTextItem->setTextInteractionFlags(Qt::TextEditorInteraction);
     m_pTextItem->setPos(m_mousePos);
     m_pTextItem->setFont(m_font);

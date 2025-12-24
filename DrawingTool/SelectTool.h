@@ -37,6 +37,8 @@ class SelectTool : public DrawingTool
   private:
     QPointF      m_dragStartPos;
     bool         m_bMovingItem;
+    bool         m_rotating;
+    QPointF      m_rotationCenter;
     QPainterPath m_highlightPath;
     QPainterPath m_selectionRectPath;
 };

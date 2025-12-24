@@ -26,10 +26,16 @@ class Shape
     virtual void draw(QPainter* painter) const;
 
     virtual void setSelected(bool selected);
-    virtual bool isSelected() const { return m_selected;}
+    virtual bool isSelected() const
+    {
+        return m_selected;
+    }
 
     virtual void   setColor(const QColor& color);
-    virtual QColor color() const { return m_color;}
+    virtual QColor color() const;
+
+    virtual void   rotate(double angle, const QPointF& customCenter) = 0;
+    virtual double rotation() const;
 
     virtual QPainterPath& path() const;
     virtual QRectF        boundingRect() const;
@@ -38,8 +44,8 @@ class Shape
     virtual void      translate(const QPointF& offset) = 0;
     virtual ShapeType type() const                     = 0;
 
-    bool isDirty() const { return m_dirty;}
-    void setDirty(const bool dirty) const {m_dirty = dirty;}
+    bool isDirty() const;
+    void setDirty(const bool dirty) const;
 
   protected:
     virtual void updatePainterPath() = 0;
@@ -52,6 +58,7 @@ class Shape
     mutable QRectF       m_cachedBoundingRect;
     mutable QPainterPath m_path;
     QColor               m_color;
+    double               m_rotation = 0.0;
 };
 
 }// namespace xcanvas

@@ -361,10 +361,10 @@ void DXFTranslator::addEllipse(const DRW_Ellipse& data)
         QRectF rect(-major, -minor, 2 * major, 2 * minor);
         shape->segments() = xcanvas::geometryMath::buildEllipseSegments(rect);
 
-        QTransform t;
-        t.translate(center.x(), center.y());
-        t.rotate(rotationRad * 180.0 / M_PI);
-        shape->transform(t);
+        shape->translate(center);
+
+        double angleDeg = qRadiansToDegrees(rotationRad);
+        shape->rotate(angleDeg, center);
 
         shape->setSemantic(qFuzzyCompare(major, minor) ? xcanvas::VectorSemantic::Circle : xcanvas::VectorSemantic::Ellipse);
     }

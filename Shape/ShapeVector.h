@@ -1,12 +1,13 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-#include "Shape.h"
 #include "GeometryDefs.h"
+#include "Shape.h"
 
 namespace xcanvas
 {
-  enum class VectorSemantic {
+enum class VectorSemantic
+{
     Unknown,
     Polyline,
     Rectangle,
@@ -16,17 +17,17 @@ namespace xcanvas
     Curve,
     Polygon,
     Complex
-  };
+};
 
-  class ShapeVector final : public Shape
+class ShapeVector final : public Shape
 {
   public:
     explicit ShapeVector();
     ~ShapeVector() override;
     void      translate(const QPointF& offset) override;
+    void      rotate(double angle, const QPointF& customCenter) override;
     ShapeType type() const override;
 
-    void                    transform(const QTransform& transform);
     const QVector<Segment>& segments() const;
     QVector<Segment>&       segments();
     bool                    isEmpty() const;
@@ -41,6 +42,9 @@ namespace xcanvas
 
   protected:
     void updatePainterPath() override;
+
+  private:
+    void transform(const QTransform& transform);
 
   private:
     QVector<Segment> m_segments;

@@ -2,8 +2,8 @@
 #define GLOBAL_H
 
 #include <QDateTime>
-#include <QPen>
 #include <QFontDatabase>
+#include <QPen>
 
 #define qDebugTime() qDebug().noquote() << QDateTime::currentDateTime().toString("hh:mm:ss.zzz")
 
@@ -23,7 +23,7 @@ enum class DrawingToolType : uint8_t
     Rect,
     Ellipse,
     Text,
-	Polygon
+    Polygon
 };
 
 enum HandleType
@@ -63,7 +63,7 @@ inline QPen selectedPen()
     QPen pen(QColor(244, 155, 33));
     pen.setWidth(1);
     pen.setCosmetic(true);
-    pen.setStyle(Qt::DashLine);
+    pen.setStyle(Qt::SolidLine);
     return pen;
 }
 

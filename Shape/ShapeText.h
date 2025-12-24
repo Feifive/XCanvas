@@ -12,6 +12,7 @@ class ShapeText final : public Shape
     ShapeText();
     virtual ~ShapeText() override;
     void      translate(const QPointF& offset) override;
+    void      rotate(double angle, const QPointF& customCenter) override;
     ShapeType type() const override;
     void      setFont(QFont font);
     QFont     font() const;

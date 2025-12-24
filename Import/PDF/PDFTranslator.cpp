@@ -2,8 +2,8 @@
 #include "ShapeImage.h"
 #include "ShapeVector.h"
 #include "fpdf_edit.h"
-#include <QDebug>
 #include <QImage>
+#include <QtMath>
 
 static constexpr double PT_TO_MM = 25.4 / 72.0;
 
@@ -209,7 +209,6 @@ void PDFTranslator::parseImage(const FPDF_DOCUMENT doc, const FPDF_PAGE page, co
     }
 
     QImage img;
-    qDebug() << "bitmap format:" << format;
     if (format == FPDFBitmap_BGR)
     {
         img = QImage(buffer, width, height, stride, QImage::Format_BGR888).copy();
@@ -224,7 +223,7 @@ void PDFTranslator::parseImage(const FPDF_DOCUMENT doc, const FPDF_PAGE page, co
     }
     else
     {
-        qDebug() << "Unknown bitmap format:" << format;
+        // TODO 未处理的图片格式
     }
 
     FPDFBitmap_Destroy(bitmap);
@@ -234,15 +233,39 @@ void PDFTranslator::parseImage(const FPDF_DOCUMENT doc, const FPDF_PAGE page, co
         return;
     }
 
-    QRectF  unitRect(0, 0, 1, 1);
-    QRectF  worldRect  = worldPdfTf.mapRect(unitRect);
-    QPointF topLeftMm  = ConvertPDFPoint(worldRect.left(), worldRect.top());
-    QPointF botRightMm = ConvertPDFPoint(worldRect.right(), worldRect.bottom());
-    QRectF  rectMm(QPointF(topLeftMm.x(), topLeftMm.y()), QPointF(botRightMm.x(), botRightMm.y()));
-    rectMm = rectMm.normalized();
+    // 从矩阵提取旋转、位置和大小
+    // 获取 PDF 单元矩形的四个角在 mm 空间中的坐标
+    // PDF 图片定义在 (0,0) 到 (1,1) 的单位矩形中，通过 worldPdfTf 变换到页面位置
+    QPointF p0 = worldPdfTf.map(QPointF(0, 0));// 左下 (PDF 空间)
+    QPointF p1 = worldPdfTf.map(QPointF(1, 0));// 右下
+    QPointF p2 = worldPdfTf.map(QPointF(0, 1));// 左上
+
+    // 将 PDF 坐标点转换为Qt的 mm 坐标点
+    QPointF p0Mm = ConvertPDFPoint(p0.x(), p0.y());
+    QPointF p1Mm = ConvertPDFPoint(p1.x(), p1.y());
+    QPointF p2Mm = ConvertPDFPoint(p2.x(), p2.y());
+
+    // 计算旋转角度 (利用向量 p0Mm -> p1Mm)
+    // 由于 PDF 和 Qt 的 Y 轴方向相反，这里使用 atan2 计算
+    double angleRad = std::atan2(p1Mm.y() - p0Mm.y(), p1Mm.x() - p0Mm.x());
+    double angleDeg = qRadiansToDegrees(angleRad);
+
+    // 计算在 mm 空间下的真实宽度和高度 (向量长度)
+    double widthMm  = std::sqrt(std::pow(p1Mm.x() - p0Mm.x(), 2) + std::pow(p1Mm.y() - p0Mm.y(), 2));
+    double heightMm = std::sqrt(std::pow(p2Mm.x() - p0Mm.x(), 2) + std::pow(p2Mm.y() - p0Mm.y(), 2));
+
+    // 计算中心点
+    // 单元矩形的中心是 (0.5, 0.5)
+    QPointF pdfCenter = worldPdfTf.map(QPointF(0.5, 0.5));
+    QPointF centerMm  = ConvertPDFPoint(pdfCenter.x(), pdfCenter.y());
+
+    // 未旋转前的矩形（以中心点对齐）
+    QRectF rectMm(centerMm.x() - widthMm / 2.0, centerMm.y() - heightMm / 2.0, widthMm, heightMm);
 
     auto* imageShape = new xcanvas::ShapeImage(img);
     imageShape->setRect(rectMm);
+    imageShape->rotate(angleDeg, QPointF(0, 0));
+
     m_shapeList.append(imageShape);
 }
 

@@ -15,6 +15,7 @@ class ShapeImage final : public Shape
     ~ShapeImage() override;
     void      draw(QPainter* painter) const override;
     void      translate(const QPointF& offset) override;
+    void      rotate(double angle, const QPointF& customCenter) override;
     ShapeType type() const override;
     void      setRect(const QRectF& rect);
 
