@@ -49,7 +49,7 @@ void ShapeImage::translate(const QPointF& offset)
     markDirty();
 }
 
-void ShapeImage::rotate(double angle, const QPointF& customCenter)
+void ShapeImage::rotate(const double angle, const QPointF& customCenter)
 {
     if (qFuzzyIsNull(angle))
     {
@@ -63,6 +63,25 @@ void ShapeImage::rotate(double angle, const QPointF& customCenter)
     }
 
     markDirty();
+}
+
+bool ShapeImage::hitTest(const QPointF &point, double tolerance) const {
+    if (!isPointNearPath(point, tolerance)) {
+        return path().contains(point);
+    }
+    return true;
+}
+
+void ShapeImage::scale(double sx, double sy, std::optional<QPointF> center) {
+}
+
+void ShapeImage::resize(const QSizeF &targetSize, bool keepAspectRatio) {
+}
+
+std::unique_ptr<ShapeState> ShapeImage::createSnapshot() const {
+}
+
+void ShapeImage::restoreSnapshot(const ShapeState *state) {
 }
 
 ShapeType ShapeImage::type() const
@@ -89,7 +108,7 @@ void ShapeImage::updatePainterPath()
     rectPath.addRect(m_rect);
 
     QTransform transform;
-    QPointF    center = m_rect.center();
+    const QPointF    center = m_rect.center();
     transform.translate(center.x(), center.y());
     transform.rotate(m_rotation);
     transform.translate(-center.x(), -center.y());

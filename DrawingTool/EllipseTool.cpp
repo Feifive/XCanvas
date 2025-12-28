@@ -67,10 +67,8 @@ void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent* event)
         }
 
         shape->segments() = geometryMath::buildEllipseSegments(rect);
-        shape->setSelected(true);
-
-        m_canvas->shapeManager()->deselectAll();
         m_canvas->addShape(shape);
+        m_canvas->shapeManager()->selectShape(shape, true);
 
         cancelDrawing();
     }

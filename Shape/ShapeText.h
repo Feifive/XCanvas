@@ -13,6 +13,11 @@ class ShapeText final : public Shape
     virtual ~ShapeText() override;
     void      translate(const QPointF& offset) override;
     void      rotate(double angle, const QPointF& customCenter) override;
+    bool hitTest(const QPointF& point, double  tolerance) const override;
+    void scale(double sx, double sy, std::optional<QPointF> center) override;
+    void resize(const QSizeF& targetSize, bool keepAspectRatio) override;
+    std::unique_ptr<ShapeState> createSnapshot() const override;
+    void restoreSnapshot(const ShapeState* state) override;
     ShapeType type() const override;
     void      setFont(QFont font);
     QFont     font() const;

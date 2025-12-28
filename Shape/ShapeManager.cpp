@@ -5,7 +5,7 @@
 #include <QPainterPath>
 
 namespace xcanvas {
-    ShapeManager::ShapeManager()
+    ShapeManager::ShapeManager() : m_isSelectedRectDirty(true)
     {
     }
 
@@ -15,32 +15,69 @@ namespace xcanvas {
 
     void ShapeManager::addShape(Shape* shape)
     {
-        if (shape)
-        {
-            m_shapes.append(shape);
+        if (!shape) {
+            return;
+        }
+
+        m_shapes.append(shape);
+        if (shape->isSelected()) {
+            m_selectedShapes.insert(shape);
+            m_isSelectedRectDirty = true;
         }
     }
 
     void ShapeManager::append(const ShapeList& shapes)
     {
+        if (shapes.isEmpty()) {
+            return;
+        }
+
+        m_shapes.reserve(m_shapes.size() + shapes.size());
         m_shapes.append(shapes);
+
+        bool hasSelected = false;
+        m_selectedShapes.reserve(qMin(1000, shapes.size()));
+        for (Shape* shape : shapes)
+        {
+            if (shape->isSelected())
+            {
+                m_selectedShapes.insert(shape);
+                hasSelected = true;
+            }
+        }
+
+        if (hasSelected)
+        {
+            m_isSelectedRectDirty = true;
+        }
     }
 
     void ShapeManager::removeShape(Shape* shape)
     {
+        m_selectedShapes.remove(shape);
         m_shapes.removeOne(shape);
+        m_isSelectedRectDirty = true;
     }
 
-    void ShapeManager::removeAllShapes(const ShapeList &shapes) {
-        for (Shape* shape : shapes) {
-            m_shapes.removeOne(shape);
+    void ShapeManager::removeShapes(const ShapeList &shapes) {
+        for (Shape* s : shapes) {
+            m_selectedShapes.remove(s);
         }
+
+        const QSet<Shape*> toRemoveSet(shapes.begin(), shapes.end());
+
+        m_shapes.erase(std::remove_if(m_shapes.begin(), m_shapes.end(),
+            [&](Shape* s) { return toRemoveSet.contains(s); }), m_shapes.end());
+
+        m_isSelectedRectDirty = true;
     }
 
     void ShapeManager::deleteShape(Shape* shape)
     {
         if (m_shapes.removeOne(shape))
         {
+            m_selectedShapes.remove(shape);
+            m_isSelectedRectDirty = true;
             delete shape;
         }
     }
@@ -49,19 +86,32 @@ namespace xcanvas {
     {
         deleteAllShapes();
         m_shapes.clear();
+        m_selectedShapes.clear();
+        m_isSelectedRectDirty = true;
     }
 
     void ShapeManager::deleteAllShapes()
     {
-        for (Shape* shape : m_shapes)
+        for (const Shape* shape : m_shapes)
         {
             delete shape;
         }
     }
 
+    void ShapeManager::clearSelectionInternal() {
+        for (Shape* shape : m_selectedShapes) {
+            shape->setSelected(false);
+        }
+        m_selectedShapes.clear();
+    }
+
     int ShapeManager::count() const
     {
         return m_shapes.count();
+    }
+
+    int ShapeManager::shapeCount() const {
+        return count();
     }
 
     bool ShapeManager::isEmpty() const
@@ -78,19 +128,26 @@ namespace xcanvas {
         return nullptr;
     }
 
+    Shape * ShapeManager::operator[](int index) const {
+        return shapeAt(index);
+    }
+
     Shape* ShapeManager::shapeAt(const QPointF& point) const
     {
         for (int i = m_shapes.count() - 1; i >= 0; --i)
         {
             Shape* shape = m_shapes.at(i);
-            QRectF rect = shape->boundingRect();
-            if (rect.contains(point))
+            if (QRectF rect = shape->boundingRect(); rect.contains(point))
             {
                 return shape;
             }
         }
 
         return nullptr;
+    }
+
+    ShapeList ShapeManager::shapes() const {
+        return m_shapes;
     }
 
     QRectF ShapeManager::boundingRect() const
@@ -110,108 +167,140 @@ namespace xcanvas {
 
     void ShapeManager::selectAll()
     {
-        setAllSelected(true);
+        if (m_shapes.isEmpty()) {
+            return;
+        }
+
+        if (m_selectedShapes.size() == m_shapes.size()) {
+            return;
+        }
+
+        m_selectedShapes.reserve(m_shapes.size());
+        for (Shape* shape : m_shapes) {
+            if (!shape->isSelected()) {
+                shape->setSelected(true);
+                m_selectedShapes.insert(shape);
+            }
+        }
+
+        m_isSelectedRectDirty = true;
     }
 
     void ShapeManager::deselectAll()
     {
-        setAllSelected(false);
-    }
-
-    void ShapeManager::setAllSelected(bool selected)
-    {
-        for (Shape* shape : m_shapes)
-        {
-            shape->setSelected(selected);
+        if (m_selectedShapes.isEmpty()) {
+            return;
         }
+
+        for (Shape* shape : m_selectedShapes) {
+            shape->setSelected(false);
+        }
+        m_selectedShapes.clear();
+        m_isSelectedRectDirty = true;
     }
 
     void ShapeManager::selectInRect(const QRectF& rect)
     {
         deselectAll();
 
+        m_selectedShapes.reserve(qMin(1000, m_shapes.size()));
+
         for (Shape* shape : m_shapes)
         {
             if (rect.contains(shape->boundingRect()))
             {
                 shape->setSelected(true);
+                m_selectedShapes.insert(shape);
             }
         }
+        m_isSelectedRectDirty = true;
     }
 
     void ShapeManager::invertSelection()
     {
-        for (Shape* shape : m_shapes)
-        {
-            shape->setSelected(!shape->isSelected());
-        }
-    }
-
-    ShapeList ShapeManager::selectedShapes() const
-    {
-        ShapeList selected;
-
-        for (Shape* shape : m_shapes)
-        {
-            if (shape->isSelected())
-            {
-                selected.append(shape);
+        for (Shape* shape : m_shapes) {
+            if (shape->isSelected()) {
+                shape->setSelected(false);
+                m_selectedShapes.remove(shape);
+            } else {
+                shape->setSelected(true);
+                m_selectedShapes.insert(shape);
             }
         }
+        m_isSelectedRectDirty = true;
+    }
 
-        return selected;
+    const QSet<Shape *> & ShapeManager::selectedShapes() const{
+        return m_selectedShapes;
+    }
+
+    const ShapeList ShapeManager::selectedShapeList() const {
+        return {m_selectedShapes.begin(), m_selectedShapes.end()};
     }
 
     bool ShapeManager::hasSelection() const
     {
-        for (Shape* shape : m_shapes)
-        {
-            if (shape->isSelected())
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return !m_selectedShapes.isEmpty();
     }
 
     int ShapeManager::selectedCount() const
     {
-        int count = 0;
+        return m_selectedShapes.count();
+    }
 
-        for (Shape* shape : m_shapes)
-        {
-            if (shape->isSelected())
-            {
-                ++count;
-            }
+    void ShapeManager::selectShape(Shape *shape, const bool replace) {
+        if (!shape) {
+            return;
         }
 
-        return count;
+        if (replace) {
+            clearSelectionInternal(); // 如果是单选模式，先清空之前的
+        }
+
+        if (!m_selectedShapes.contains(shape)) {
+            shape->setSelected(true);
+            m_selectedShapes.insert(shape);
+            m_isSelectedRectDirty = true;
+        }
+    }
+
+    void ShapeManager::deselectShape(Shape *shape) {
+        if (m_selectedShapes.remove(shape)) {
+            shape->setSelected(false);
+            m_isSelectedRectDirty = true;
+        }
+    }
+
+    void ShapeManager::clearSelection() {
+        if (m_selectedShapes.isEmpty()) {
+            return;
+        }
+        clearSelectionInternal();
+        m_isSelectedRectDirty = true;
     }
 
     QRectF ShapeManager::selectedBoundingRect() const
     {
-        QRectF rect;
-        bool   first = true;
-
-        for (const Shape* shape : m_shapes)
-        {
-            if (shape->isSelected())
-            {
-                if (first)
-                {
-                    rect = shape->boundingRect();
-                    first = false;
-                }
-                else
-                {
-                    rect = rect.united(shape->boundingRect());
-                }
-            }
+        if (!m_isSelectedRectDirty) {
+            return m_cachedSelectedRect;
         }
 
-        return rect;
+        m_cachedSelectedRect = QRectF();
+        if (m_selectedShapes.isEmpty()) {
+            m_isSelectedRectDirty = false;
+            return m_cachedSelectedRect;
+        }
+
+        for (const Shape* shape : m_selectedShapes) {
+            m_cachedSelectedRect |= shape->boundingRect();
+        }
+
+        m_isSelectedRectDirty = false;
+        return m_cachedSelectedRect;
+    }
+
+    void ShapeManager::invalidateSelectedRect() {
+        m_isSelectedRectDirty = true;
     }
 
     void ShapeManager::translate(const QPointF& offset)
@@ -221,4 +310,57 @@ namespace xcanvas {
             shape->translate(offset);
         }
     }
+
+    void ShapeManager::translateSelected(const QPointF &offset,
+        const std::map<Shape *, std::unique_ptr<ShapeState>> &initialStates) {
+        if (offset.isNull() || initialStates.empty() || m_selectedShapes.isEmpty()) {
+            return;
+        }
+
+        for (auto const& [shape, state] : initialStates)
+        {
+            if (!shape || !state) {
+                continue;
+            }
+            shape->restoreSnapshot(state.get());
+            shape->translate(offset);
+        }
+        m_isSelectedRectDirty = true;
+    }
+
+    void ShapeManager::rotateSelected(double angle, const QPointF &center,
+        const std::map<Shape *, std::unique_ptr<ShapeState>> &initialStates) {
+        if (std::abs(angle) <= 0.01 || initialStates.empty() || m_selectedShapes.isEmpty()) {
+            return;
+        }
+        for (auto const& [shape, state] : initialStates)
+        {
+            if (!shape || !state) {
+                continue;
+            }
+            shape->restoreSnapshot(state.get());
+            shape->rotate(angle, center);
+        }
+        m_isSelectedRectDirty = true;
+    }
+
+    void ShapeManager::scaleSelected(double sx, double sy, const QPointF &anchor,
+        const std::map<Shape *, std::unique_ptr<ShapeState>> &initialStates) {
+        if (initialStates.empty() || m_selectedShapes.isEmpty())
+        {
+            return;
+        }
+
+        for (auto const& [shape, state] : initialStates)
+        {
+            if (!shape || !state) {
+                continue;
+            }
+            shape->restoreSnapshot(state.get());
+            shape->scale(sx, sy, anchor);
+        }
+
+        m_isSelectedRectDirty = true;
+    }
+
 } // namespace xcanvas

@@ -1,4 +1,5 @@
 #include "ShapeVector.h"
+#include "MyMath.h"
 
 namespace xcanvas
 {
@@ -41,6 +42,62 @@ void ShapeVector::rotate(double angle, const QPointF& customCenter)
     t.translate(-customCenter.x(), -customCenter.y());
 
     transform(t);
+}
+
+bool ShapeVector::hitTest(const QPointF &point, const double tolerance) const {
+    return isPointNearPath(point, tolerance);
+}
+
+void ShapeVector::scale(const double sx, const double sy, const std::optional<QPointF> center) {
+    if (qFuzzyCompare(sx, 1.0) && qFuzzyCompare(sy, 1.0)) {
+        return;
+    }
+
+    QPointF scalingCenter;
+    if (center.has_value()) {
+        scalingCenter = center.value();
+    } else {
+        scalingCenter = path().boundingRect().center();
+    }
+
+    QTransform t;
+    t.translate(scalingCenter.x(), scalingCenter.y());
+    t.scale(sx, sy);
+    t.translate(-scalingCenter.x(), -scalingCenter.y());
+
+    transform(t);
+}
+
+void ShapeVector::resize(const QSizeF &targetSize, const bool keepAspectRatio) {
+    const QRectF currentRect = path().boundingRect();
+    if (currentRect.width() <= 0 || currentRect.height() <= 0)
+    {
+        return;
+    }
+
+    double sx = targetSize.width() / currentRect.width();
+    double sy = targetSize.height() / currentRect.height();
+
+    if (keepAspectRatio)
+    {
+        const double factor = std::min(sx, sy);
+        sx = sy = factor;
+    }
+
+    scale(sx, sy, currentRect.topLeft());
+}
+
+std::unique_ptr<ShapeState> ShapeVector::createSnapshot() const {
+    auto state = std::make_unique<VectorShapeState>();
+    state->segments = m_segments;
+    return state;
+}
+
+void ShapeVector::restoreSnapshot(const ShapeState *state) {
+    if (const auto* vState = dynamic_cast<const VectorShapeState*>(state)) {
+        m_segments = vState->segments;
+        markDirty();
+    }
 }
 
 ShapeType ShapeVector::type() const

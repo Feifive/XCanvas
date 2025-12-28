@@ -92,11 +92,10 @@ void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
 
             auto* shape = new ShapeVector();
             shape->setSemantic(VectorSemantic::Polygon);
-            shape->setSelected(true);
             shape->segments() = geometryMath::buildPolylineSegments(points);
 
-            m_canvas->shapeManager()->deselectAll();
             m_canvas->addShape(shape);
+            m_canvas->shapeManager()->selectShape(shape, true);
         }
 
         cancelDrawing();

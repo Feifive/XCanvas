@@ -90,11 +90,9 @@ void xcanvas::PolylineTool::cancelDrawing()
     {
         auto* shape = new ShapeVector();
         shape->setSemantic(VectorSemantic::Polyline);
-        shape->setSelected(true);
         shape->segments() = geometryMath::buildPolylineSegments(m_points);
-
-        m_canvas->shapeManager()->deselectAll();
         m_canvas->addShape(shape);
+        m_canvas->shapeManager()->selectShape(shape, true);
     }
 
     DrawingTool::cancelDrawing();

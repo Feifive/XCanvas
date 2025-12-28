@@ -25,7 +25,7 @@ public:
 
     void redo() override
     {
-        m_shapesManager->removeAllShapes(m_shapesToRemove);
+        m_shapesManager->removeShapes(m_shapesToRemove);
         m_isRemoved = true;
     }
 

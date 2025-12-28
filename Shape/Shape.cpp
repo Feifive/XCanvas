@@ -3,7 +3,6 @@
 #include "MyMath.h"
 #include <QPainter>
 #include <QPainterPath>
-#include <QPolygonF>
 
 namespace xcanvas
 {
@@ -25,6 +24,36 @@ void Shape::draw(QPainter* painter) const
 void Shape::setSelected(bool selected)
 {
     m_selected = selected;
+}
+
+bool Shape::isPointNearPath(const QPointF &point, const double tolerance) const {
+    if (!boundingRect().adjusted(-tolerance, -tolerance, tolerance, tolerance).contains(point)) {
+        return false;
+    }
+
+    const QList<QPolygonF>& polygons = path().toSubpathPolygons();
+
+    for (const QPolygonF& polygon : polygons)
+    {
+        QRectF rect = polygon.boundingRect();
+        rect.adjust(-tolerance, -tolerance, tolerance, tolerance);
+        if (!rect.contains(point))
+        {
+            continue;
+        }
+        for (int j = 0; j < polygon.size() - 1; ++j)
+        {
+            if (geometryMath::point2Segment(polygon[j], polygon[j + 1], point) <= tolerance)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Shape::isSelected() const {
+    return m_selected;
 }
 
 void Shape::setColor(const QColor& color)
@@ -86,30 +115,6 @@ QRectF Shape::boundingRect() const
     m_cachedBoundingRect = QRectF(QPointF(left, top), QPointF(right, bottom));
 
     return m_cachedBoundingRect;
-}
-
-bool Shape::isPointNearPath(const QPointF& point, double dScale)
-{
-    const QList<QPolygonF>& polygons = path().toSubpathPolygons();
-    const double            maxDist  = 6 / dScale;
-
-    for (const QPolygonF& polygon : polygons)
-    {
-        QRectF rect = polygon.boundingRect();
-        rect.adjust(-maxDist, -maxDist, maxDist, maxDist);
-        if (!rect.contains(point))
-        {
-            continue;
-        }
-        for (int j = 0; j < polygon.size() - 1; ++j)
-        {
-            if (geometryMath::point2Segment(polygon[j], polygon[j + 1], point) <= maxDist)
-            {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 bool Shape::isDirty() const

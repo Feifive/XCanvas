@@ -31,7 +31,6 @@ xcanvas::ShapeList ImageImporter::importFile(const QString& filePath, const Impo
 
     auto* imageShape = new xcanvas::ShapeImage(image);
     imageShape->setRect(rectMm);
-    imageShape->setSelected(true);
 
     return {imageShape};
 }

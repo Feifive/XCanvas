@@ -228,9 +228,9 @@ void MyGraphicsView::drawSelectedShapes(QPainter* painter, const QRectF& visible
     painter->save();
 
     // 最后绘制选中的形状（显示在最上层）
-    QVector<xcanvas::Shape*> selected = m_canvas->shapeManager()->selectedShapes();
+    const QSet<xcanvas::Shape*> selected = m_canvas->shapeManager()->selectedShapes();
 
-    for (xcanvas::Shape* shape : selected)
+    for (const xcanvas::Shape* shape : selected)
     {
         if (!visibleRect.intersects(shape->boundingRect()))
         {

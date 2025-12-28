@@ -75,11 +75,9 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
 
         ShapeVector* shape = new ShapeVector();
         shape->setSemantic(VectorSemantic::Rectangle);
-        shape->setSelected(true);
         shape->segments() = geometryMath::buildPolylineSegments(points);
-
-        m_canvas->shapeManager()->deselectAll();
         m_canvas->addShape(shape);
+        m_canvas->shapeManager()->selectShape(shape, true);
 
         cancelDrawing();
     }

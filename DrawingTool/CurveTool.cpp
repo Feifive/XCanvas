@@ -82,9 +82,8 @@ void CurveTool::cancelDrawing()
             curve->segments() = geometryMath::buildCurveSegments(bezierPoints);
             shape = curve;
         }
-        shape->setSelected(true);
-        m_canvas->shapeManager()->deselectAll();
         m_canvas->addShape(shape);
+        m_canvas->shapeManager()->selectShape(shape, true);
     }
     DrawingTool::cancelDrawing();
 }

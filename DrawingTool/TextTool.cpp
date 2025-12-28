@@ -105,13 +105,12 @@ void xcanvas::TextTool::finishEdit()
     const QString plainText = m_pTextItem->toPlainText();
     if (!plainText.isEmpty())
     {
-        ShapeText* pShape = new ShapeText();
-        pShape->setText(plainText);
-        pShape->setPosition(m_pTextItem->pos());
-        pShape->setFont(m_font);
-        pShape->setSelected(true);
-        m_canvas->shapeManager()->deselectAll();
-        m_canvas->addShape(pShape);
+        ShapeText* shape = new ShapeText();
+        shape->setText(plainText);
+        shape->setPosition(m_pTextItem->pos());
+        shape->setFont(m_font);
+        m_canvas->addShape(shape);
+        m_canvas->shapeManager()->selectShape(shape, true);
 
         m_canvasView->requestFullUpdate();
     }

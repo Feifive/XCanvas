@@ -40,6 +40,25 @@ void ShapeText::rotate(double angle, const QPointF& customCenter)
     markDirty();
 }
 
+bool ShapeText::hitTest(const QPointF &point, const double tolerance) const {
+    if (!isPointNearPath(point, tolerance)) {
+        return path().contains(point);
+    }
+    return true;
+}
+
+void ShapeText::scale(double sx, double sy, std::optional<QPointF> center) {
+}
+
+void ShapeText::resize(const QSizeF &targetSize, bool keepAspectRatio) {
+}
+
+std::unique_ptr<ShapeState> ShapeText::createSnapshot() const {
+}
+
+void ShapeText::restoreSnapshot(const ShapeState *state) {
+}
+
 ShapeType ShapeText::type() const
 {
     return ShapeType::Text;

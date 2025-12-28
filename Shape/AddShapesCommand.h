@@ -35,10 +35,7 @@ namespace xcanvas {
 
         void undo() override
         {
-            for (Shape* shape : m_shapesToAdd)
-            {
-                m_shapesManager->removeShape(shape);
-            }
+            m_shapesManager->removeShapes(m_shapesToAdd);
             m_isRedone = false;
         }
 

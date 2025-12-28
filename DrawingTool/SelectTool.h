@@ -7,6 +7,7 @@
 namespace xcanvas
 {
 class Shape;
+struct ShapeState;
 }
 
 namespace xcanvas
@@ -33,17 +34,24 @@ class SelectTool final : public DrawingTool
     void   clearHighlight();
     void   updateSelectionRect(const QRectF& rect);
     void   clearSelectionRect();
+    QPointF getAnchorPoint(int handle, QRectF rect) const;
 
   private:
     QPointF      m_dragStartPos;
     bool         m_bMovingItem;
     bool         m_rotating;
     QPointF      m_rotationCenter;
-    double       m_totalRotation;
+    bool         m_resizing;
+    int          m_resizeHandle;
+    double       m_startClickDistX;
+    double       m_startClickDistY;
+    QPointF      m_anchorPoint;
+    QRectF       m_initialSelectedRect;
     QPainterPath m_highlightPath;
     QPainterPath m_selectionRectPath;
     int m_lastHitPos;
     Shape* m_lastHighlightedShape;
+    std::map<Shape*, std::unique_ptr<ShapeState>> m_initialStates;
 };
 }// namespace xcanvas
 
