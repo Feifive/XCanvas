@@ -13,11 +13,8 @@ Shape::~Shape()
 void Shape::draw(QPainter* painter) const
 {
     painter->save();
-
     painter->setPen(m_selected ? selectedPen() : normalPen(m_color));
-
     painter->drawPath(path());
-
     painter->restore();
 }
 
@@ -67,9 +64,52 @@ QColor Shape::color() const
     return m_color;
 }
 
-double Shape::rotation() const
-{
-    return m_rotation;
+void Shape::setTransform(const QTransform &transform) {
+    m_transform = transform;
+    markDirty();
+}
+
+void Shape::translate(const QPointF &offset) {
+    if (qFuzzyIsNull(offset)) {
+        return;
+    }
+    QTransform delta;
+    delta.translate(offset.x(), offset.y());
+    setTransform(m_transform * delta);
+}
+
+void Shape::rotate(const double angle, const QPointF &center) {
+    if (qFuzzyIsNull(angle)) {
+        return;
+    }
+    QTransform delta;
+    delta.translate(center.x(), center.y());
+    delta.rotate(angle);
+    delta.translate(-center.x(), -center.y());
+    setTransform(m_transform * delta);
+}
+
+void Shape::scale(const double sx, const double sy, const QPointF &anchor) {
+    if (qFuzzyCompare(sx, 1.0) && qFuzzyCompare(sy, 1.0)) {
+        return;
+    }
+
+    constexpr double minScale = 1e-6;
+    double safeSx = sx;
+    double safeSy = sy;
+
+    if (qAbs(sx) < minScale) {
+        safeSx = (sx >= 0 ? minScale : -minScale);
+    }
+    if (qAbs(sy) < minScale) {
+        safeSy = (sy >= 0 ? minScale : -minScale);
+    }
+
+    QTransform delta;
+    delta.translate(anchor.x(), anchor.y());
+    delta.scale(safeSx, safeSy);
+    delta.translate(-anchor.x(), -anchor.y());
+    setTransform(m_transform * delta);
 }
 
 QPainterPath& Shape::path() const
@@ -78,6 +118,7 @@ QPainterPath& Shape::path() const
     {
         m_dirty = false;
         const_cast<Shape*>(this)->updatePainterPath();
+        m_path = m_transform.map(m_originalPath);
     }
 
     return m_path;
@@ -90,7 +131,7 @@ QRectF Shape::boundingRect() const
         return m_cachedBoundingRect;
     }
 
-    QRectF rawRect = path().boundingRect();
+    const QRectF rawRect = path().boundingRect();
 
     qreal left   = rawRect.left();
     qreal top    = rawRect.top();

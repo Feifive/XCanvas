@@ -61,9 +61,9 @@ void xcanvas::SelectTool::mousePressEvent(QMouseEvent* event)
             isTransforming = true;
         }
         if (isTransforming) {
-            m_initialStates.clear();
+            m_initialTransforms.clear();
             for (Shape* shape : m_canvas->shapeManager()->selectedShapeList()) {
-                m_initialStates[shape] = shape->createSnapshot();
+                m_initialTransforms[shape] = shape->transform();
             }
         }
     }
@@ -83,19 +83,24 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
     }
     else
     {
+        QTransform deltaTransform;
+        bool isTransforming = false;
+
         if (m_bMovingItem)
         {
             const QPointF totalDelta = scenePos - m_dragStartPos;
-            m_canvas->shapeManager()->translateSelected(totalDelta, m_initialStates);
-            m_canvasView->requestFullUpdate();
+            deltaTransform.translate(totalDelta.x(), totalDelta.y());
+            isTransforming = true;
         }
         else if (m_rotating)
         {
             const double startAngle   = std::atan2(m_dragStartPos.y() - m_rotationCenter.y(), m_dragStartPos.x() - m_rotationCenter.x());
             const double currentAngle = std::atan2(scenePos.y() - m_rotationCenter.y(), scenePos.x() - m_rotationCenter.x());
-            double totalRotation = qRadiansToDegrees(currentAngle - startAngle);
-            m_canvas->shapeManager()->rotateSelected(totalRotation, m_rotationCenter, m_initialStates);
-            m_canvasView->requestFullUpdate();
+            const double angleDiff = qRadiansToDegrees(currentAngle - startAngle);
+            deltaTransform.translate(m_rotationCenter.x(), m_rotationCenter.y());
+            deltaTransform.rotate(angleDiff);
+            deltaTransform.translate(-m_rotationCenter.x(), -m_rotationCenter.y());
+            isTransforming = true;
         }
         else if (m_resizing) {
             if (const QRectF initialRect = m_initialSelectedRect; !initialRect.isValid() || initialRect.width() <= 0 || initialRect.height() <= 0) {
@@ -129,7 +134,17 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
                 }
             }
 
-            m_canvas->shapeManager()->scaleSelected(sx, sy, m_anchorPoint, m_initialStates);
+            deltaTransform.translate(m_anchorPoint.x(), m_anchorPoint.y());
+            deltaTransform.scale(sx, sy);
+            deltaTransform.translate(-m_anchorPoint.x(), -m_anchorPoint.y());
+            isTransforming = true;
+        }
+
+        if (isTransforming) {
+            for (auto const& [shape, initMatrix] : m_initialTransforms) {
+                shape->setTransform(initMatrix * deltaTransform);
+            }
+            m_canvas->shapeManager()->invalidateSelectedRect();
             m_canvasView->requestFullUpdate();
         }
         else
@@ -186,15 +201,15 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
 
         m_canvasView->requestFullUpdate();
     }
-    else if ((m_bMovingItem || m_rotating || m_resizing) && !m_initialStates.empty()) {
+    else if ((m_bMovingItem || m_rotating || m_resizing) && !m_initialTransforms.empty()) {
         QString text;
         if (m_bMovingItem) text = "Translate Shapes";
         else if (m_rotating) text = "Rotate Shapes";
         else if (m_resizing) text = "Resize Shapes";
 
-        m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), std::move(m_initialStates), text));
+        m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), std::move(m_initialTransforms), text));
         m_bMovingItem = m_rotating = m_resizing = false;
-        m_initialStates.clear();
+        m_initialTransforms.clear();
         m_canvasView->requestFullUpdate();
     }
 }

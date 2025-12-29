@@ -60,12 +60,8 @@ class ShapeManager
     int             selectedCount() const;
     void            clearSelection();
     QRectF          selectedBoundingRect() const;
-    void invalidateSelectedRect();
-
+    void invalidateSelectedRect() const;
     void translate(const QPointF& offset);
-    void translateSelected(const QPointF& offset, const std::map<Shape*, std::unique_ptr<ShapeState>>& initialStates);
-    void rotateSelected(double angle, const QPointF& center, const std::map<Shape*, std::unique_ptr<ShapeState>>& initialStates);
-    void scaleSelected(double sx, double sy, const QPointF &anchor, const std::map<Shape*, std::unique_ptr<ShapeState>>& initialStates);
 
   private:
     void deleteAllShapes();

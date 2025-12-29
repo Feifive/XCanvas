@@ -15,7 +15,7 @@ namespace xcanvas
 class SelectTool final : public DrawingTool
 {
     Q_OBJECT
-  public:
+public:
     explicit SelectTool(MyGraphicsView* view, Canvas* canvas);
     ~SelectTool() override;
 
@@ -26,7 +26,7 @@ class SelectTool final : public DrawingTool
     void            drawPreview(QPainter* painter) override;
     DrawingToolType toolType() override;
 
-  private:
+private:
     int    hitTraceHandle(const QPointF& pos) const;
     void   setCanvasCursorShape(int nHitPos);
     Shape* hitUnselectedShape(QPointF pos);
@@ -36,7 +36,7 @@ class SelectTool final : public DrawingTool
     void   clearSelectionRect();
     QPointF getAnchorPoint(int handle, QRectF rect) const;
 
-  private:
+private:
     QPointF      m_dragStartPos;
     bool         m_bMovingItem;
     bool         m_rotating;
@@ -51,7 +51,7 @@ class SelectTool final : public DrawingTool
     QPainterPath m_selectionRectPath;
     int m_lastHitPos;
     Shape* m_lastHighlightedShape;
-    std::map<Shape*, std::unique_ptr<ShapeState>> m_initialStates;
+    std::map<Shape*, QTransform> m_initialTransforms;
 };
 }// namespace xcanvas
 

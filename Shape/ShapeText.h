@@ -11,19 +11,12 @@ class ShapeText final : public Shape
   public:
     ShapeText();
     virtual ~ShapeText() override;
-    void      translate(const QPointF& offset) override;
-    void      rotate(double angle, const QPointF& customCenter) override;
     bool hitTest(const QPointF& point, double  tolerance) const override;
-    void scale(double sx, double sy, std::optional<QPointF> center) override;
-    void resize(const QSizeF& targetSize, bool keepAspectRatio) override;
-    std::unique_ptr<ShapeState> createSnapshot() const override;
-    void restoreSnapshot(const ShapeState* state) override;
     ShapeType type() const override;
-    void      setFont(QFont font);
+    void      setFont(const QFont &font);
     QFont     font() const;
     void      setText(const QString& text);
     QString   text() const;
-    void      setPosition(const QPointF& position);
     QPointF   position() const;
 
   protected:
@@ -32,7 +25,6 @@ class ShapeText final : public Shape
   private:
     QFont   m_font;
     QString m_text;
-    QPointF m_position;
 };
 }// namespace xcanvas
 

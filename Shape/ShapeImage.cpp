@@ -14,55 +14,21 @@ ShapeImage::~ShapeImage()
 
 void ShapeImage::draw(QPainter* painter) const
 {
-    if (m_image.isNull())
+    if (m_image.isNull()) {
         return;
+    }
 
     painter->save();
-
-    // 1. 设置渲染抗锯齿（使旋转后的边缘平滑）
-    // painter->setRenderHint(QPainter::SmoothPixmapTransform);
-
-    // 2. 坐标变换：绕矩形中心旋转
-    QPointF center = m_rect.center();
-    painter->translate(center);// 将原点移至图片中心
-    painter->rotate(m_rotation);// 执行旋转
-
-    // 3. 绘制图片
-    // 因为原点已经移到中心，所以绘制矩形需要偏移回左上角
-    QRectF drawRect(-m_rect.width() / 2.0, -m_rect.height() / 2.0, m_rect.width(), m_rect.height());
+    painter->setTransform(m_transform, true);
+    const auto drawRect = QRectF(0, 0, m_imageSize.width(), m_imageSize.height());
     painter->drawImage(drawRect, m_image);
-
-    // 4. 绘制选中框
     if (m_selected)
     {
         painter->setPen(selectedPen());
-        // 此时坐标系已旋转，直接绘制 drawRect 即可对应旋转后的路径
         painter->drawRect(drawRect);
     }
 
     painter->restore();
-}
-
-void ShapeImage::translate(const QPointF& offset)
-{
-    m_rect.translate(offset);
-    markDirty();
-}
-
-void ShapeImage::rotate(const double angle, const QPointF& customCenter)
-{
-    if (qFuzzyIsNull(angle))
-    {
-        return;
-    }
-
-    m_rotation = fmod(m_rotation + angle, 360.0);
-    if (m_rotation < 0)
-    {
-        m_rotation += 360.0;
-    }
-
-    markDirty();
 }
 
 bool ShapeImage::hitTest(const QPointF &point, double tolerance) const {
@@ -72,47 +38,23 @@ bool ShapeImage::hitTest(const QPointF &point, double tolerance) const {
     return true;
 }
 
-void ShapeImage::scale(double sx, double sy, std::optional<QPointF> center) {
-}
-
-void ShapeImage::resize(const QSizeF &targetSize, bool keepAspectRatio) {
-}
-
-std::unique_ptr<ShapeState> ShapeImage::createSnapshot() const {
-}
-
-void ShapeImage::restoreSnapshot(const ShapeState *state) {
-}
-
 ShapeType ShapeImage::type() const
 {
     return ShapeType::Image;
 }
 
-void ShapeImage::setRect(const QRectF& rect)
-{
-    m_rect = rect;
-    markDirty();
+void ShapeImage::setSize(const QSizeF &size) {
+    m_imageSize = size;
 }
 
 void ShapeImage::updatePainterPath()
 {
-    if (!m_rect.isValid() || m_image.isNull())
+    if (!m_imageSize.isValid() || m_image.isNull())
     {
         return;
     }
 
-    m_path = QPainterPath();
-
-    QPainterPath rectPath;
-    rectPath.addRect(m_rect);
-
-    QTransform transform;
-    const QPointF    center = m_rect.center();
-    transform.translate(center.x(), center.y());
-    transform.rotate(m_rotation);
-    transform.translate(-center.x(), -center.y());
-
-    m_path = transform.map(rectPath);
+    m_originalPath = QPainterPath();
+    m_originalPath.addRect(QRectF(0, 0, m_imageSize.width(), m_imageSize.height()));
 }
 }// namespace xcanvas

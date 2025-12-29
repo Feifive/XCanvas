@@ -260,11 +260,12 @@ void PDFTranslator::parseImage(const FPDF_DOCUMENT doc, const FPDF_PAGE page, co
     QPointF centerMm  = ConvertPDFPoint(pdfCenter.x(), pdfCenter.y());
 
     // 未旋转前的矩形（以中心点对齐）
-    QRectF rectMm(centerMm.x() - widthMm / 2.0, centerMm.y() - heightMm / 2.0, widthMm, heightMm);
+    const QRectF rectMm(centerMm.x() - widthMm / 2.0, centerMm.y() - heightMm / 2.0, widthMm, heightMm);
 
     auto* imageShape = new xcanvas::ShapeImage(img);
-    imageShape->setRect(rectMm);
-    imageShape->rotate(angleDeg, QPointF(0, 0));
+    imageShape->setSize(rectMm.size());
+    imageShape->translate(rectMm.topLeft());
+    imageShape->rotate(angleDeg, rectMm.center());
 
     m_shapeList.append(imageShape);
 }

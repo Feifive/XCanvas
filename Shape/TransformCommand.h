@@ -5,41 +5,36 @@
 #include "ShapeManager.h"
 
 namespace xcanvas {
-    class TransformCommand : public QUndoCommand {
-        public:
-        TransformCommand(ShapeManager* manager, std::map<Shape*, std::unique_ptr<ShapeState>> beforeStates, const QString& cmdText, QUndoCommand* parent = nullptr) :
-        m_manager(manager), m_beforeStates(std::move(beforeStates)){
-            setText(cmdText);
-            for (auto const& [shape, state] : m_beforeStates) {
-                if (shape) {
-                    m_afterStates[shape] = shape->createSnapshot();
-                }
-            }
+class TransformCommand final : public QUndoCommand {
+public:
+    TransformCommand(ShapeManager* manager, std::map<Shape*, QTransform> beforeTransform, const QString& cmdText, QUndoCommand* parent = nullptr) :
+    QUndoCommand(parent), m_manager(manager), m_beforeTransform(std::move(beforeTransform))
+    {
+        setText(cmdText);
+        for (auto const& [shape, transform] : m_beforeTransform) {
+            m_afterTransform[shape] = shape->transform();
         }
+    }
 
-        void undo() override {
-            for (auto const& [shape, state] : m_beforeStates) {
-                if (shape && state) {
-                    shape->restoreSnapshot(state.get());
-                }
-            }
-            m_manager->invalidateSelectedRect();
+    void undo() override {
+        for (auto const& [shape, transform] : m_beforeTransform) {
+            shape->setTransform(transform);
         }
+        m_manager->invalidateSelectedRect();
+    }
 
-        void redo() override {
-            for (auto const& [shape, state] : m_afterStates) {
-                if (shape && state) {
-                    shape->restoreSnapshot(state.get());
-                }
-            }
-            m_manager->invalidateSelectedRect();
+    void redo() override {
+        for (auto const& [shape, transform] : m_afterTransform) {
+            shape->setTransform(transform);
         }
+        m_manager->invalidateSelectedRect();
+    }
 
-        private:
-        ShapeManager* m_manager;
-        std::map<Shape*, std::unique_ptr<ShapeState>> m_beforeStates;
-        std::map<Shape*, std::unique_ptr<ShapeState>> m_afterStates;
-    };
+private:
+    ShapeManager* m_manager;
+    std::map<Shape*, QTransform> m_beforeTransform;
+    std::map<Shape*, QTransform> m_afterTransform;
+};
 }
 
 #endif //TRANSFORMCOMMAND_H

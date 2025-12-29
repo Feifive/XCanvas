@@ -30,7 +30,7 @@ xcanvas::ShapeList ImageImporter::importFile(const QString& filePath, const Impo
     QRectF rectMm = ImageDpiUtil::imageRectMm(image, ctx.defaultDpi);
 
     auto* imageShape = new xcanvas::ShapeImage(image);
-    imageShape->setRect(rectMm);
+    imageShape->setSize(rectMm.size());
 
     return {imageShape};
 }

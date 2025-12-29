@@ -299,7 +299,7 @@ namespace xcanvas {
         return m_cachedSelectedRect;
     }
 
-    void ShapeManager::invalidateSelectedRect() {
+    void ShapeManager::invalidateSelectedRect() const {
         m_isSelectedRectDirty = true;
     }
 
@@ -309,58 +309,6 @@ namespace xcanvas {
         {
             shape->translate(offset);
         }
-    }
-
-    void ShapeManager::translateSelected(const QPointF &offset,
-        const std::map<Shape *, std::unique_ptr<ShapeState>> &initialStates) {
-        if (offset.isNull() || initialStates.empty() || m_selectedShapes.isEmpty()) {
-            return;
-        }
-
-        for (auto const& [shape, state] : initialStates)
-        {
-            if (!shape || !state) {
-                continue;
-            }
-            shape->restoreSnapshot(state.get());
-            shape->translate(offset);
-        }
-        m_isSelectedRectDirty = true;
-    }
-
-    void ShapeManager::rotateSelected(double angle, const QPointF &center,
-        const std::map<Shape *, std::unique_ptr<ShapeState>> &initialStates) {
-        if (std::abs(angle) <= 0.01 || initialStates.empty() || m_selectedShapes.isEmpty()) {
-            return;
-        }
-        for (auto const& [shape, state] : initialStates)
-        {
-            if (!shape || !state) {
-                continue;
-            }
-            shape->restoreSnapshot(state.get());
-            shape->rotate(angle, center);
-        }
-        m_isSelectedRectDirty = true;
-    }
-
-    void ShapeManager::scaleSelected(double sx, double sy, const QPointF &anchor,
-        const std::map<Shape *, std::unique_ptr<ShapeState>> &initialStates) {
-        if (initialStates.empty() || m_selectedShapes.isEmpty())
-        {
-            return;
-        }
-
-        for (auto const& [shape, state] : initialStates)
-        {
-            if (!shape || !state) {
-                continue;
-            }
-            shape->restoreSnapshot(state.get());
-            shape->scale(sx, sy, anchor);
-        }
-
-        m_isSelectedRectDirty = true;
     }
 
 } // namespace xcanvas
