@@ -6,6 +6,7 @@
 #include <QSvgRenderer>
 
 class BottomFloatingToolBar;
+class SelectionHudBar;
 namespace xcanvas
 {
 class DrawingTool;
@@ -22,6 +23,7 @@ class MyGraphicsView : public QGraphicsView
 
     double zoomValue();
     void   requestFullUpdate();
+    void   updateSelectionHud();
 
   signals:
     void mouseMovePos(QPointF pos);
@@ -42,6 +44,7 @@ class MyGraphicsView : public QGraphicsView
     void onZoomOut();
     void onUndo();
     void onRedo();
+    void onSelectionChanged();
 
   private:
     void drawShapes(QPainter* painter, const QRectF& visibleRect);
@@ -55,6 +58,7 @@ class MyGraphicsView : public QGraphicsView
     double gridStep(double scale) const;
     void   ImportFile();
     void   updateBottomFloatingToolBarPos();
+    void   updateSelectionHudBarPos();
     void   zoomIn(const QPointF& zoomCenterPoint);
     void   zoomOut(const QPointF& zoomCenterPoint);
     void   zoomTo(qreal zoomValue);
@@ -69,6 +73,7 @@ class MyGraphicsView : public QGraphicsView
     bool                   m_bDragging;
     double                 m_dScaleFactor;
     BottomFloatingToolBar* m_pFloatingToolBar;
+    SelectionHudBar*       m_pSelectionHudBar;
     std::unique_ptr<xcanvas::ToolManager> m_toolMgr;
     QSvgRenderer m_rotateHandle;
 };

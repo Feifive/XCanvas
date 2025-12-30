@@ -28,8 +28,8 @@ public:
     // 绘制预览
     void drawPreview(QPainter* painter);
 
-    signals:
-        void toolChanged(DrawingToolType type);
+signals:
+    void toolChanged(DrawingToolType type);
 
 private:
     std::unique_ptr<DrawingTool> createTool(DrawingToolType type);

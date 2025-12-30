@@ -63,6 +63,7 @@ set(PROJECT_SOURCES
     main.cpp
     mainwindow.cpp mainwindow.h mainwindow.ui
     BottomFloatingToolBar.cpp BottomFloatingToolBar.h
+    SelectionHudBar.cpp SelectionHudBar.h
     MyGraphicsView.cpp MyGraphicsView.h
     DrawingToolsBar.cpp DrawingToolsBar.h
     RulerWidget.cpp RulerWidget.h

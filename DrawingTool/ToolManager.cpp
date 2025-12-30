@@ -37,8 +37,7 @@ void ToolManager::setTool(const DrawingToolType type)
             emit EventBus::instance().finishDrawing();
         });
     }
-
-        emit toolChanged(type);
+    emit toolChanged(type);
 }
 
 std::unique_ptr<DrawingTool> ToolManager::createTool(const DrawingToolType type)

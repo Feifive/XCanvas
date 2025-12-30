@@ -1,5 +1,6 @@
 #include "MyGraphicsView.h"
 #include "BottomFloatingToolBar.h"
+#include "SelectionHudBar.h"
 #include "Canvas/Canvas.h"
 #include "EventBus.h"
 #include "Import/DXF/DXFImporter.h"
@@ -9,6 +10,7 @@
 #include "Shape/Shape.h"
 #include "ToolManager.h"
 #include <QDebug>
+#include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
@@ -35,6 +37,8 @@ MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPo
     ImportManager::instance().registerImporter(std::make_unique<ImageImporter>());
     ImportManager::instance().registerImporter(std::make_unique<PDFImporter>());
 
+    connect(m_canvas->shapeManager(), &xcanvas::ShapeManager::selectionChanged, this, &MyGraphicsView::onSelectionChanged);
+
     m_toolMgr = std::make_unique<xcanvas::ToolManager>(this, m_canvas);
     connect(&EventBus::instance(), &EventBus::switchTool, m_toolMgr.get(), &xcanvas::ToolManager::setTool);
 
@@ -54,9 +58,13 @@ MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPo
     connect(m_canvas->undoStack(), &QUndoStack::canRedoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
     connect(&EventBus::instance(), &EventBus::importFileRequested, this, &MyGraphicsView::ImportFile);
 
+    m_pSelectionHudBar = new SelectionHudBar(this);
+    m_pSelectionHudBar->adjustSize();
+
     QTimer::singleShot(0, this, [this]() { fitCanvas(); });
     updateBottomFloatingToolBarPos();
     m_pFloatingToolBar->show();
+    m_pSelectionHudBar->setVisible(false);
 
     m_rotateHandle.load(QStringLiteral(":/Resource/Icons/RotateHandle.svg"));
 }
@@ -144,12 +152,14 @@ void MyGraphicsView::resizeEvent(QResizeEvent* event)
 {
     QGraphicsView::resizeEvent(event);
     updateBottomFloatingToolBarPos();
+    updateSelectionHudBarPos();
 }
 void MyGraphicsView::scrollContentsBy(int dx, int dy)
 {
     QGraphicsView::scrollContentsBy(dx, dy);
 
     updateBottomFloatingToolBarPos();
+    updateSelectionHudBarPos();
 }
 
 void MyGraphicsView::drawBackground(QPainter* painter, const QRectF& rect)
@@ -190,6 +200,33 @@ void MyGraphicsView::onRedo()
 {
     m_canvas->undoStack()->redo();
     requestFullUpdate();
+}
+
+void MyGraphicsView::onSelectionChanged() {
+    if (!m_pSelectionHudBar || !m_canvas || !m_canvas->shapeManager()) {
+        return;
+    }
+
+    const auto* shapeManager = m_canvas->shapeManager();
+    const bool hasSelection = shapeManager->hasSelection();
+    m_pSelectionHudBar->setVisible(hasSelection);
+    if (hasSelection) {
+        updateSelectionHud();
+        updateSelectionHudBarPos();
+    }
+}
+
+void MyGraphicsView::updateSelectionHud() {
+    if (!m_pSelectionHudBar || !m_canvas || !m_canvas->shapeManager() || !m_pSelectionHudBar->isVisible()) {
+        return;
+    }
+
+    const QRectF selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
+    const QPointF canvasPos    = sceneToCanvas(selectionRect.topLeft());
+    m_pSelectionHudBar->spinX()->setValue(canvasPos.x());
+    m_pSelectionHudBar->spinY()->setValue(canvasPos.y());
+    m_pSelectionHudBar->spinW()->setValue(selectionRect.width());
+    m_pSelectionHudBar->spinH()->setValue(selectionRect.height());
 }
 
 void MyGraphicsView::drawShapes(QPainter* painter, const QRectF& visibleRect)
@@ -462,6 +499,19 @@ void MyGraphicsView::updateBottomFloatingToolBarPos()
     int y = height() - barSize.height() - margin;
 
     m_pFloatingToolBar->move(x, y);
+}
+
+void MyGraphicsView::updateSelectionHudBarPos() {
+    if (!m_pSelectionHudBar && !m_pSelectionHudBar->isVisible()) {
+        return;
+    }
+
+    constexpr int marginTop = 12;
+    const QSize   barSize = m_pSelectionHudBar->sizeHint();
+    const int x = (width() - barSize.width()) / 2;
+    constexpr int y = marginTop;
+
+    m_pSelectionHudBar->move(x, y);
 }
 
 void MyGraphicsView::zoomIn(const QPointF& zoomCenterPoint)

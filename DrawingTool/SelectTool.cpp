@@ -146,6 +146,7 @@ void xcanvas::SelectTool::mouseMoveEvent(QMouseEvent* event)
             }
             m_canvas->shapeManager()->invalidateSelectedRect();
             m_canvasView->requestFullUpdate();
+            m_canvasView->updateSelectionHud();
         }
         else
         {

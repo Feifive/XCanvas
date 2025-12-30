@@ -5,8 +5,7 @@
 #include <QPainterPath>
 
 namespace xcanvas {
-    ShapeManager::ShapeManager() : m_isSelectedRectDirty(true)
-    {
+    ShapeManager::ShapeManager(QObject *parent) : QObject(parent), m_isSelectedRectDirty(true) {
     }
 
     ShapeManager::~ShapeManager()
@@ -23,6 +22,7 @@ namespace xcanvas {
         if (shape->isSelected()) {
             m_selectedShapes.insert(shape);
             m_isSelectedRectDirty = true;
+            emit selectionChanged();
         }
     }
 
@@ -49,6 +49,7 @@ namespace xcanvas {
         if (hasSelected)
         {
             m_isSelectedRectDirty = true;
+            emit selectionChanged();
         }
     }
 
@@ -57,6 +58,7 @@ namespace xcanvas {
         m_selectedShapes.remove(shape);
         m_shapes.removeOne(shape);
         m_isSelectedRectDirty = true;
+        emit selectionChanged();
     }
 
     void ShapeManager::removeShapes(const ShapeList &shapes) {
@@ -70,6 +72,7 @@ namespace xcanvas {
             [&](Shape* s) { return toRemoveSet.contains(s); }), m_shapes.end());
 
         m_isSelectedRectDirty = true;
+        emit selectionChanged();
     }
 
     void ShapeManager::deleteShape(Shape* shape)
@@ -184,6 +187,7 @@ namespace xcanvas {
         }
 
         m_isSelectedRectDirty = true;
+        emit selectionChanged();
     }
 
     void ShapeManager::deselectAll()
@@ -197,6 +201,7 @@ namespace xcanvas {
         }
         m_selectedShapes.clear();
         m_isSelectedRectDirty = true;
+        emit selectionChanged();
     }
 
     void ShapeManager::selectInRect(const QRectF& rect)
@@ -214,6 +219,7 @@ namespace xcanvas {
             }
         }
         m_isSelectedRectDirty = true;
+        emit selectionChanged();
     }
 
     void ShapeManager::invertSelection()
@@ -228,6 +234,7 @@ namespace xcanvas {
             }
         }
         m_isSelectedRectDirty = true;
+        emit selectionChanged();
     }
 
     const QSet<Shape *> & ShapeManager::selectedShapes() const{
@@ -261,6 +268,7 @@ namespace xcanvas {
             shape->setSelected(true);
             m_selectedShapes.insert(shape);
             m_isSelectedRectDirty = true;
+            emit selectionChanged();
         }
     }
 
@@ -268,6 +276,7 @@ namespace xcanvas {
         if (m_selectedShapes.remove(shape)) {
             shape->setSelected(false);
             m_isSelectedRectDirty = true;
+            emit selectionChanged();
         }
     }
 
@@ -277,6 +286,7 @@ namespace xcanvas {
         }
         clearSelectionInternal();
         m_isSelectedRectDirty = true;
+        emit selectionChanged();
     }
 
     QRectF ShapeManager::selectedBoundingRect() const

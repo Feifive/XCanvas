@@ -6,7 +6,7 @@
 #include <QVector>
 #include <QSet>
 #include <map>
-#include <memory>
+#include <QObject>
 
 namespace xcanvas
 {
@@ -18,11 +18,12 @@ namespace xcanvas
 {
     using ShapeList = QVector<Shape*>;
 
-class ShapeManager
+class ShapeManager final : public QObject
 {
+    Q_OBJECT
   public:
-    ShapeManager();
-    ~ShapeManager();
+    explicit ShapeManager(QObject* parent = nullptr);
+    ~ShapeManager() override;
 
     // 禁止拷贝（因为涉及指针管理）
     ShapeManager(const ShapeManager&)            = delete;
@@ -62,6 +63,9 @@ class ShapeManager
     QRectF          selectedBoundingRect() const;
     void invalidateSelectedRect() const;
     void translate(const QPointF& offset);
+
+signals:
+    void selectionChanged();
 
   private:
     void deleteAllShapes();

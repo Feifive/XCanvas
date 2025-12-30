@@ -13,6 +13,7 @@
 #define MAX_ZOOM 100.0
 
 const double BOUNDING_BOX_TOLERANCE = 0.001;
+constexpr qreal CANVAS_ORIGIN = 10000.0;
 
 enum class DrawingToolType : uint8_t
 {
@@ -79,6 +80,10 @@ inline QPen highlightPen()
 inline qreal sign1(qreal v)
 {
     return v < 0 ? -1.0 : 1.0;
+}
+
+inline QPointF sceneToCanvas(const QPointF& scenePos) {
+    return scenePos - QPointF(CANVAS_ORIGIN, CANVAS_ORIGIN);
 }
 
 #endif// GLOBAL_H

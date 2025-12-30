@@ -16,24 +16,22 @@ constexpr int DELAY_TIME = 20;
 
 BottomFloatingToolBar::BottomFloatingToolBar(QWidget *parent) : QWidget(parent), m_pCloseTimer(nullptr), m_pZoomMenu(nullptr) {
     setAttribute(Qt::WA_StyledBackground, true);
+    setObjectName("BottomFloatingToolBar");
     init();
     initMenu();
     styleSheet();
 }
 
-BottomFloatingToolBar::~BottomFloatingToolBar() {
-}
+BottomFloatingToolBar::~BottomFloatingToolBar() = default;
 
-void BottomFloatingToolBar::setCanUndo(bool canUndo)
-{
+void BottomFloatingToolBar::setCanUndo(const bool canUndo) const {
     if (m_pUndo)
     {
 		m_pUndo->setEnabled(canUndo);
     }
 }
 
-void BottomFloatingToolBar::setCanRedo(bool canRedo)
-{
+void BottomFloatingToolBar::setCanRedo(bool canRedo) const {
     if (m_pRedo)
     {
         m_pRedo->setEnabled(canRedo);
@@ -209,7 +207,7 @@ void BottomFloatingToolBar::onCloseTimerTimeout()
 void BottomFloatingToolBar::styleSheet()
 {
     setStyleSheet(R"(
-        BottomFloatingToolBar {
+        #BottomFloatingToolBar {
             background-color: #FFF;
             border-radius: 5px;
             border: 1px solid #E7E9ED;
