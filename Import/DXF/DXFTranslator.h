@@ -169,6 +169,7 @@ class DXFTranslator : public DRW_Interface
     QColor  convertTrueColorToQColor(int trueColorCode) const;
     QColor  convertAciToQColor(int aci) const;
     bool    isHugePseudoSpline(const DRW_Spline* s) const;
+    void    addBulgeArc(xcanvas::ShapeVector* shape, const QPointF& p1, const QPointF& p2, double bulge);
 
   private:
     xcanvas::ShapeList            m_shapeList;

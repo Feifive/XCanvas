@@ -17,6 +17,9 @@ class PolygonTool : public DrawingTool
     virtual void            mouseMoveEvent(QMouseEvent* event) override;
     virtual void            mouseReleaseEvent(QMouseEvent* event) override;
     virtual DrawingToolType toolType() override;
+
+  private:
+    QRectF m_previewRect;
 };
 
 }// namespace xcanvas

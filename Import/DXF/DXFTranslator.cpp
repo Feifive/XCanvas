@@ -297,6 +297,8 @@ void DXFTranslator::linkImage(const DRW_ImageDef* data)
 
 void DXFTranslator::addLine(const DRW_Line& data)
 {
+    qDebug() << "[DXF] addLine";
+
     QVector<QPointF> points;
     points.append(ConvertDXFPoint(data.basePoint.x, data.basePoint.y));
     points.append(ConvertDXFPoint(data.secPoint.x, data.secPoint.y));
@@ -421,63 +423,124 @@ void DXFTranslator::addDimOrdinate(const DRW_DimOrdinate* data)
 
 void DXFTranslator::addLWPolyline(const DRW_LWPolyline& data)
 {
-    QVector<QPointF> rawPoints;
-    rawPoints.reserve(data.vertlist.size());
-    for (const auto& v : data.vertlist)
-    {
-        rawPoints.append(ConvertDXFPoint(v->x, v->y));
-    }
-
-    if (rawPoints.isEmpty())
+    if (data.vertlist.empty())
     {
         return;
     }
 
+    auto* shape = new xcanvas::ShapeVector;
+    shape->setColor(color(data));
+    shape->setSemantic(xcanvas::VectorSemantic::Complex);
+
     bool isClosed = (data.flags & 0x01u) != 0;
 
-    QVector<QPointF> optimizedPoints = PolylineOptimizer::Optimize(rawPoints, isClosed);
+    // 起点
+    QPointF pStart = ConvertDXFPoint(data.vertlist[0]->x, data.vertlist[0]->y);
+    shape->moveTo(pStart);
 
-    if (optimizedPoints.size() > 1)
+    for (size_t i = 0; i < data.vertlist.size(); ++i)
     {
-        auto* shape = new xcanvas::ShapeVector;
-        shape->setColor(color(data));
-        shape->segments() = xcanvas::geometryMath::buildPolylineSegments(optimizedPoints);
+        const auto& vCurr = data.vertlist[i];
+        QPointF     p1    = ConvertDXFPoint(vCurr->x, vCurr->y);
 
+        QPointF p2;
+        if (i + 1 < data.vertlist.size())
+        {
+            p2 = ConvertDXFPoint(data.vertlist[i + 1]->x, data.vertlist[i + 1]->y);
+        }
+        else if (isClosed)
+        {
+            p2 = pStart;
+        }
+        else
+        {
+            break;// 非闭合线的最后一个点不需要处理 Bulge
+        }
+
+        if (std::abs(vCurr->bulge) < 1e-6)
+        {
+            shape->lineTo(p2);
+        }
+        else
+        {
+            double bulge = vCurr->bulge;
+            bulge        = -bulge;
+            addBulgeArc(shape, p1, p2, bulge);
+        }
+    }
+
+    if (!shape->isEmpty())
+    {
         m_shapeList.append(shape);
+    }
+    else
+    {
+        delete shape;
     }
 }
 
 void DXFTranslator::addPolyline(const DRW_Polyline& data)
 {
-    // 1. 转换原始数据
-    QVector<QPointF> rawPoints;
-    rawPoints.reserve(data.vertlist.size());
-    for (const auto& v : data.vertlist)
-    {
-        rawPoints.append(ConvertDXFPoint(v->basePoint.x, v->basePoint.y));
-    }
-
-    if (rawPoints.isEmpty())
+    if (data.vertlist.empty())
     {
         return;
     }
 
+    auto* shape = new xcanvas::ShapeVector;
+    shape->setColor(color(data));
+    shape->setSemantic(xcanvas::VectorSemantic::Complex);
+
     bool isClosed = (data.flags & 0x01u) != 0;
 
-    QVector<QPointF> optimizedPoints = PolylineOptimizer::Optimize(rawPoints, isClosed);
+    // 起点
+    QPointF pStart = ConvertDXFPoint(data.vertlist[0]->basePoint.x, data.vertlist[0]->basePoint.y);
+    shape->moveTo(pStart);
 
-    if (optimizedPoints.size() > 1)
+    for (size_t i = 0; i < data.vertlist.size(); ++i)
     {
-        auto* shape = new xcanvas::ShapeVector;
-        shape->setColor(color(data));
-        shape->segments() = xcanvas::geometryMath::buildPolylineSegments(optimizedPoints);
+        const auto& vCurr = data.vertlist[i];
+        QPointF     p1    = ConvertDXFPoint(vCurr->basePoint.x, vCurr->basePoint.y);
 
+        QPointF p2;
+        if (i + 1 < data.vertlist.size())
+        {
+            p2 = ConvertDXFPoint(data.vertlist[i + 1]->basePoint.x, data.vertlist[i + 1]->basePoint.y);
+        }
+        else if (isClosed)
+        {
+            p2 = pStart;
+        }
+        else
+        {
+            break;// 非闭合线的最后一个点不需要处理 Bulge
+        }
+
+        if (std::abs(vCurr->bulge) < 1e-6)
+        {
+            shape->lineTo(p2);
+        }
+        else
+        {
+            double bulge = vCurr->bulge;
+            bulge        = -bulge;
+            addBulgeArc(shape, p1, p2, bulge);
+        }
+    }
+
+    if (!shape->isEmpty())
+    {
         m_shapeList.append(shape);
+    }
+    else
+    {
+        delete shape;
     }
 }
 
 void DXFTranslator::addSpline(const DRW_Spline* data)
 {
+    qDebug() << "[DXF] addSpline";
+
     if (data->controllist.empty() || data->knotslist.empty())
         return;
 
@@ -805,4 +868,79 @@ bool DXFTranslator::isHugePseudoSpline(const DRW_Spline* s) const
         return true;
 
     return false;
+}
+
+void DXFTranslator::addBulgeArc(xcanvas::ShapeVector* shape, const QPointF& p1, const QPointF& p2, double bulge)
+{
+    if (std::abs(bulge) < 1e-6)
+    {
+        shape->lineTo(p2);
+        return;
+    }
+
+    // ===== 弦向量 =====
+    const double dx = p2.x() - p1.x();
+    const double dy = p2.y() - p1.y();
+    const double L  = std::hypot(dx, dy);
+    if (L < 1e-9)
+    {
+        return;
+    }
+
+    // ===== 半径 =====
+    // R = L * (1 + bulge^2) / (4 |bulge|)
+    const double absB = std::abs(bulge);
+    const double R    = L * (1.0 + bulge * bulge) / (4.0 * absB);
+
+    // ===== 圆心（中点 + 垂线偏移）=====
+    const QPointF mid = (p1 + p2) * 0.5;
+
+    // 单位法向量（左法线）
+    double nx = -dy / L;
+    double ny = dx / L;
+
+    // 中点到圆心距离
+    double h2 = R * R - (L * 0.5) * (L * 0.5);
+    if (h2 < 0.0)
+    {
+        h2 = 0.0;
+    }
+    const double h = std::sqrt(h2);
+
+    // bulge > 0 ：左侧鼓； bulge < 0 ：右侧鼓
+    const double  dir    = (bulge > 0.0) ? 1.0 : -1.0;
+    const QPointF center = mid + dir * h * QPointF(nx, ny);
+
+    // ===== 起始角 & 扫描角 =====
+    const double startAngle = std::atan2(p1.y() - center.y(), p1.x() - center.x());
+    const double sweepAngle = 4.0 * std::atan(bulge);// 保留符号
+
+    // ===== 分段（≤ 90°）=====
+    const int    segments = std::max(1, int(std::ceil(std::abs(sweepAngle) / (M_PI / 2.0))));
+    const double step     = sweepAngle / segments;
+
+    // ===== 贝塞尔拟合 =====
+    for (int i = 0; i < segments; ++i)
+    {
+        const double a0 = startAngle + i * step;
+        const double a1 = a0 + step;
+
+        // k = 4/3 * tan(Δθ / 4) * R
+        const double k = (4.0 / 3.0) * std::tan((a1 - a0) * 0.25) * R;
+
+        QPointF s(center.x() + R * std::cos(a0), center.y() + R * std::sin(a0));
+
+        QPointF e(center.x() + R * std::cos(a1), center.y() + R * std::sin(a1));
+
+        // 最后一段强制落在 p2，消除浮点误差
+        if (i == segments - 1)
+        {
+            e = p2;
+        }
+
+        // 切线方向控制点
+        QPointF c1(s.x() - k * std::sin(a0), s.y() + k * std::cos(a0));
+        QPointF c2(e.x() + k * std::sin(a1), e.y() - k * std::cos(a1));
+        shape->cubicTo(c1, c2, e);
+    }
 }

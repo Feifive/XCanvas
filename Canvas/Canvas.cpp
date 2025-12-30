@@ -5,7 +5,7 @@
 
 namespace xcanvas
 {
-Canvas::Canvas(QObject* parent) : QObject(parent), m_canvasRect(QRectF(10000, 10000, 1280, 720)), m_undoStack(new QUndoStack(this)), m_shapeManager(new ShapeManager)
+Canvas::Canvas(QObject* parent) : QObject(parent), m_canvasRect(QRectF(10000, 10000, 900, 600)), m_undoStack(new QUndoStack(this)), m_shapeManager(new ShapeManager)
 {
 }
 

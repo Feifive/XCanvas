@@ -45,8 +45,22 @@ void PolygonTool::mouseMoveEvent(QMouseEvent* event)
     if (m_state == State::Drawing)
     {
         QPointF currentPos = m_canvasView->mapToScene(event->pos());
-        QRectF  rect(m_mousePos, currentPos);
-        rect = rect.normalized();
+
+        if (event->modifiers().testFlag(Qt::ShiftModifier))
+        {
+            const qreal dx   = currentPos.x() - m_mousePos.x();
+            const qreal dy   = currentPos.y() - m_mousePos.y();
+            const qreal side = std::min(std::abs(dx), std::abs(dy));
+            const qreal sx   = (dx == 0.0) ? 1.0 : sign1(dx);
+            const qreal sy   = (dy == 0.0) ? 1.0 : sign1(dy);
+
+            currentPos.setX(m_mousePos.x() + sx * side);
+            currentPos.setY(m_mousePos.y() + sy * side);
+        }
+
+        QRectF rect(m_mousePos, currentPos);
+        rect          = rect.normalized();
+        m_previewRect = rect;
 
         QVector<QPointF> pts = geometryMath::buildRegularPolygon(rect, 5);
 
@@ -73,17 +87,13 @@ void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
 
     if (m_state == State::Drawing)
     {
-        QPointF currentPos = m_canvasView->mapToScene(event->pos());
-        QRectF  rect(m_mousePos, currentPos);
-        rect = rect.normalized();
-
-        if (!rect.isValid())
+        if (!m_previewRect.isValid())
         {
             cancelDrawing();
             return;
         }
 
-        if (QVector<QPointF> points = geometryMath::buildRegularPolygon(rect, 5); !points.isEmpty())
+        if (QVector<QPointF> points = geometryMath::buildRegularPolygon(m_previewRect, 5); !points.isEmpty())
         {
             if (points.first() != points.last())
             {

@@ -33,6 +33,7 @@ find_package(Qt6 REQUIRED COMPONENTS Svg)
 # ============================================================
 
 add_subdirectory(3rdparty/pdfium)
+add_subdirectory(3rdparty/Clipper2Lib)
 
 # ============================================================
 # 源文件
@@ -174,6 +175,7 @@ target_link_libraries(XCanvas PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     libdxfrw
     thirdparty_pdfium
+    clipper2lib
 )
 target_link_libraries(XCanvas PRIVATE Qt6::Svg)
 

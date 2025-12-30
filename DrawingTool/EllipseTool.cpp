@@ -36,6 +36,18 @@ void xcanvas::EllipseTool::mouseMoveEvent(QMouseEvent* event)
     {
         QPointF currentPos = m_canvasView->mapToScene(event->pos());
 
+        if (event->modifiers().testFlag(Qt::ShiftModifier))
+        {
+            const qreal dx   = currentPos.x() - m_mousePos.x();
+            const qreal dy   = currentPos.y() - m_mousePos.y();
+            const qreal side = std::min(std::abs(dx), std::abs(dy));
+            const qreal sx   = (dx == 0.0) ? 1.0 : sign1(dx);
+            const qreal sy   = (dy == 0.0) ? 1.0 : sign1(dy);
+
+            currentPos.setX(m_mousePos.x() + sx * side);
+            currentPos.setY(m_mousePos.y() + sy * side);
+        }
+
         QRectF rect(qMin(m_mousePos.x(), currentPos.x()), qMin(m_mousePos.y(), currentPos.y()), qAbs(currentPos.x() - m_mousePos.x()), qAbs(currentPos.y() - m_mousePos.y()));
 
         m_previewPath = QPainterPath();
@@ -57,12 +69,14 @@ void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent* event)
 
     if (m_state == State::Drawing)
     {
-        const QRectF rect = m_previewPath.boundingRect();
-        auto* shape = new ShapeVector();
-        if (qFuzzyCompare(rect.width(), rect.height())) {
+        const QRectF rect  = m_previewPath.boundingRect();
+        auto*        shape = new ShapeVector();
+        if (qFuzzyCompare(rect.width(), rect.height()))
+        {
             shape->setSemantic(VectorSemantic::Circle);
         }
-        else {
+        else
+        {
             shape->setSemantic(VectorSemantic::Ellipse);
         }
 

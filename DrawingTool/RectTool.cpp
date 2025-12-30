@@ -2,8 +2,8 @@
 #include "../MyGraphicsView.h"
 #include "Canvas.h"
 #include "Global.h"
-#include "ShapeVector.h"
 #include "MyMath.h"
+#include "ShapeVector.h"
 #include <QGraphicsView>
 #include <QMouseEvent>
 
@@ -36,6 +36,18 @@ void xcanvas::RectTool::mouseMoveEvent(QMouseEvent* event)
     {
         QPointF currentPos = m_canvasView->mapToScene(event->pos());
 
+        if (event->modifiers().testFlag(Qt::ShiftModifier))
+        {
+            const qreal dx   = currentPos.x() - m_mousePos.x();
+            const qreal dy   = currentPos.y() - m_mousePos.y();
+            const qreal side = std::min(std::abs(dx), std::abs(dy));
+            const qreal sx   = (dx == 0.0) ? 1.0 : sign1(dx);
+            const qreal sy   = (dy == 0.0) ? 1.0 : sign1(dy);
+
+            currentPos.setX(m_mousePos.x() + sx * side);
+            currentPos.setY(m_mousePos.y() + sy * side);
+        }
+
         QPointF p1 = m_mousePos;
         QPointF p2(currentPos.x(), m_mousePos.y());
         QPointF p3 = currentPos;
@@ -63,11 +75,10 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
 
     if (m_state == State::Drawing)
     {
-        const QPointF endPos = m_canvasView->mapToScene(event->pos());
+        QRectF           rect = m_previewPath.boundingRect();
+        QVector<QPointF> points{rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft(), rect.topLeft()};
 
-        QVector<QPointF> points{m_mousePos, QPointF(endPos.x(), m_mousePos.y()), endPos, QPointF(m_mousePos.x(), endPos.y()), m_mousePos};
-
-        if (points[0] == points[2])
+        if (qFuzzyCompare(points[0], points[2]))
         {
             cancelDrawing();
             return;

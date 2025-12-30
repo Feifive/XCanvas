@@ -76,14 +76,9 @@ inline QPen highlightPen()
     return pen;
 }
 
-inline bool IsEqual(double a, double b, double eps = 1e-6)
+inline qreal sign1(qreal v)
 {
-    return std::fabs(a - b) <= eps;
-}
-
-inline bool IsEqual(const QPointF& a, const QPointF& b, double eps = 1e-6)
-{
-    return (std::fabs(a.x() - b.x()) < eps) && (std::fabs(a.y() - b.y()) < eps);
+    return v < 0 ? -1.0 : 1.0;
 }
 
 #endif// GLOBAL_H
