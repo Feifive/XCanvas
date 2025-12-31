@@ -68,6 +68,8 @@ set(PROJECT_SOURCES
     DrawingToolsBar.cpp DrawingToolsBar.h
     RulerWidget.cpp RulerWidget.h
     CanvasWidget.cpp CanvasWidget.h
+    HoverMenuHelper.h HoverMenuHelper.cpp
+    SafeDropShadowEffect.h SafeDropShadowEffect.cpp
 
     ${DRAWINGTOOL}
     ${SHAPE}

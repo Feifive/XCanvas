@@ -1,20 +1,20 @@
 #include "BottomFloatingToolBar.h"
 #include "EventBus.h"
-
+#include "HoverMenuHelper.h"
 #include <QCoreApplication>
-#include <QHBoxLayout>
-#include <QToolButton>
-#include <QPushButton>
-#include <QFrame>
-#include <QMenu>
-#include <QGraphicsDropShadowEffect>
-#include <QEvent>
 #include <QCursor>
-#include <QTimer>
+#include <QEvent>
+#include <QFrame>
+#include <QGraphicsDropShadowEffect>
+#include <QHBoxLayout>
+#include <QMenu>
+#include <QPushButton>
+#include <QToolButton>
 
 constexpr int DELAY_TIME = 20;
 
-BottomFloatingToolBar::BottomFloatingToolBar(QWidget *parent) : QWidget(parent), m_pCloseTimer(nullptr), m_pZoomMenu(nullptr) {
+BottomFloatingToolBar::BottomFloatingToolBar(QWidget* parent) : QWidget(parent), m_pZoomMenu(nullptr)
+{
     setAttribute(Qt::WA_StyledBackground, true);
     setObjectName("BottomFloatingToolBar");
     init();
@@ -24,21 +24,24 @@ BottomFloatingToolBar::BottomFloatingToolBar(QWidget *parent) : QWidget(parent),
 
 BottomFloatingToolBar::~BottomFloatingToolBar() = default;
 
-void BottomFloatingToolBar::setCanUndo(const bool canUndo) const {
+void BottomFloatingToolBar::setCanUndo(const bool canUndo) const
+{
     if (m_pUndo)
     {
-		m_pUndo->setEnabled(canUndo);
+        m_pUndo->setEnabled(canUndo);
     }
 }
 
-void BottomFloatingToolBar::setCanRedo(bool canRedo) const {
+void BottomFloatingToolBar::setCanRedo(bool canRedo) const
+{
     if (m_pRedo)
     {
         m_pRedo->setEnabled(canRedo);
-	}
+    }
 }
 
-void BottomFloatingToolBar::init() {
+void BottomFloatingToolBar::init()
+{
     QHBoxLayout* pHLayout = new QHBoxLayout(this);
     pHLayout->setContentsMargins(6, 4, 6, 4);
     pHLayout->setSpacing(4);
@@ -57,8 +60,8 @@ void BottomFloatingToolBar::init() {
     m_pUndo = MakeButton(":/Resource/Icons/Undo.svg");
     m_pRedo = MakeButton(":/Resource/Icons/Redo.svg");
 
-	m_pUndo->setEnabled(false);
-	m_pRedo->setEnabled(false);
+    m_pUndo->setEnabled(false);
+    m_pRedo->setEnabled(false);
 
     QFrame* pSeparator = new QFrame(this);
     pSeparator->setFrameShape(QFrame::VLine);
@@ -72,39 +75,40 @@ void BottomFloatingToolBar::init() {
     m_pZoomIn   = MakeButton(":/Resource/Icons/ZoomIn.svg");
 
     QAction* zoomInAction = new QAction(this);
-    zoomInAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Equal));  // Ctrl + =
+    zoomInAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Equal));// Ctrl + =
     addAction(zoomInAction);
-    connect(zoomInAction, &QAction::triggered, [this](){ emit zoomIn(); });
+    connect(zoomInAction, &QAction::triggered, [this]() { emit zoomIn(); });
 
     QAction* zoomOutAction = new QAction(this);
-    zoomOutAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Minus)); // Ctrl + -
+    zoomOutAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Minus));// Ctrl + -
     addAction(zoomOutAction);
-    connect(zoomOutAction, &QAction::triggered, [this](){ emit zoomOut(); });
+    connect(zoomOutAction, &QAction::triggered, [this]() { emit zoomOut(); });
 
     QAction* undoAction = new QAction(this);
-    undoAction->setShortcut(QKeySequence(QKeySequence::Undo));  // Ctrl + Z
+    undoAction->setShortcut(QKeySequence(QKeySequence::Undo));// Ctrl + Z
     addAction(undoAction);
-    connect(undoAction, &QAction::triggered, [this](){ emit undo(); });
+    connect(undoAction, &QAction::triggered, [this]() { emit undo(); });
 
     QAction* redoAction = new QAction(this);
-    redoAction->setShortcut(QKeySequence(QKeySequence::Redo));  // Ctrl + Shift + Z / Ctrl + Y
+    redoAction->setShortcut(QKeySequence(QKeySequence::Redo));// Ctrl + Shift + Z / Ctrl + Y
     addAction(redoAction);
-    connect(redoAction, &QAction::triggered, [this](){ emit redo(); });
+    connect(redoAction, &QAction::triggered, [this]() { emit redo(); });
 
     const QFontMetrics metrics(m_pZoomTool->font());
-    const int textWidth = metrics.horizontalAdvance("10000%");
+    const int          textWidth = metrics.horizontalAdvance("10000%");
     m_pZoomTool->setMinimumWidth(textWidth);
     m_pZoomTool->setText("100%");
 
-    connect(m_pZoomIn, &QToolButton::clicked, [this](){emit zoomIn();});
-    connect(m_pZoomOut, &QToolButton::clicked, [this](){emit zoomOut();});
-    connect(m_pZoomTool, &QToolButton::clicked, [this](){emit fitCanvas();});
-    connect(m_pUndo, &QToolButton::clicked, [this](){emit undo();});
-    connect(m_pRedo, &QToolButton::clicked, [this](){emit redo();});
+    connect(m_pZoomIn, &QToolButton::clicked, [this]() { emit zoomIn(); });
+    connect(m_pZoomOut, &QToolButton::clicked, [this]() { emit zoomOut(); });
+    connect(m_pZoomTool, &QToolButton::clicked, [this]() { emit fitCanvas(); });
+    connect(m_pUndo, &QToolButton::clicked, [this]() { emit undo(); });
+    connect(m_pRedo, &QToolButton::clicked, [this]() { emit redo(); });
     connect(&EventBus::instance(), &EventBus::zoomChanged, this, &BottomFloatingToolBar::onZoomChanged);
 }
 
-void BottomFloatingToolBar::initMenu() {
+void BottomFloatingToolBar::initMenu()
+{
     m_pZoomMenu = new QMenu(this);
 
     // 添加缩放选项
@@ -112,67 +116,22 @@ void BottomFloatingToolBar::initMenu() {
 
     for (qreal& value : zoomList)
     {
-        QString zoom = QString("%1%").arg(value * 100);
+        QString        zoom   = QString("%1%").arg(value * 100);
         const QAction* action = m_pZoomMenu->addAction(zoom);
-        connect(action, &QAction::triggered, this, [this, value]() {emit zoomTo(value); });
+        connect(action, &QAction::triggered, this, [this, value]() { emit zoomTo(value); });
     }
 
     const QAction* action = m_pZoomMenu->addAction("适应宽度");
-    connect(action, &QAction::triggered, [this](){emit fitWidth();});
+    connect(action, &QAction::triggered, [this]() { emit fitWidth(); });
     action = m_pZoomMenu->addAction("适应高度");
-    connect(action, &QAction::triggered, [this](){emit fitHeight();});
+    connect(action, &QAction::triggered, [this]() { emit fitHeight(); });
     action = m_pZoomMenu->addAction("适应画布");
-    connect(action, &QAction::triggered, [this](){emit fitCanvas();});
+    connect(action, &QAction::triggered, [this]() { emit fitCanvas(); });
     action = m_pZoomMenu->addAction("适应图形");
-    connect(action, &QAction::triggered, [this](){emit fitShapes();});
+    connect(action, &QAction::triggered, [this]() { emit fitShapes(); });
 
-    m_pZoomTool->installEventFilter(this);
-    m_pZoomMenu->installEventFilter(this);
-
-    m_pCloseTimer = new QTimer(this);
-    m_pCloseTimer->setSingleShot(true);
-    connect(m_pCloseTimer, &QTimer::timeout, this, &BottomFloatingToolBar::onCloseTimerTimeout);
-}
-
-bool BottomFloatingToolBar::eventFilter(QObject* obj, QEvent* event)
-{
-    if (obj == m_pZoomTool)
-    {
-        if (event->type() == QEvent::Enter)
-        {
-            if (m_pZoomMenu)
-            {
-                if (m_pZoomIn->isActiveWindow()) {
-                    m_pCloseTimer->stop();
-                    const QPoint pos = m_pZoomTool->mapToGlobal(QPoint(-30, -m_pZoomMenu->sizeHint().height() - 10));
-                    m_pZoomMenu->popup(pos);
-                }
-            }
-        }
-        else if (event->type() == QEvent::Leave) {
-            m_pCloseTimer->start(DELAY_TIME);
-        }
-    }
-    else if (obj == m_pZoomMenu)
-    {
-        if (event->type() == QEvent::Enter) {
-            m_pCloseTimer->stop();
-        }
-
-        if (event->type() == QEvent::MouseMove) {
-            if (!m_pZoomTool->rect().contains(m_pZoomTool->mapFromGlobal(QCursor::pos()))) {
-                QEvent leaveEvent = QEvent(QEvent::Leave);
-                qApp->sendEvent(m_pZoomTool, &leaveEvent);
-            }
-        }
-
-        if (event->type() == QEvent::MouseButtonPress) {
-            if (m_pZoomTool->rect().contains(m_pZoomTool->mapFromGlobal(QCursor::pos()))) {
-                fitCanvas();
-            }
-        }
-    }
-    return QWidget::eventFilter(obj, event);
+    auto* hoverHelper = new HoverMenuHelper(m_pZoomTool, m_pZoomMenu, HoverMenuHelper::PopupOrientation::Top);
+    hoverHelper->setGap(10);
 }
 
 void BottomFloatingToolBar::onZoomChanged(const qreal zoomValue)
@@ -189,18 +148,6 @@ void BottomFloatingToolBar::onZoomChanged(const qreal zoomValue)
         }
         const int value = std::round(zoomValue * 100);
         m_pZoomTool->setText(QString::number(value) + "%");
-    }
-}
-
-void BottomFloatingToolBar::onCloseTimerTimeout()
-{
-    if (m_pZoomMenu && m_pZoomTool && m_pZoomMenu->isVisible())
-    {
-        if (!m_pZoomMenu->rect().contains(m_pZoomMenu->mapFromGlobal(QCursor::pos()))
-            && !m_pZoomTool->rect().contains(m_pZoomTool->mapFromGlobal(QCursor::pos()))) 
-        {
-            m_pZoomMenu->hide();
-        }
     }
 }
 

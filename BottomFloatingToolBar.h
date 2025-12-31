@@ -10,13 +10,13 @@ class QTimer;
 class BottomFloatingToolBar final : public QWidget
 {
     Q_OBJECT
-public:
+  public:
     explicit BottomFloatingToolBar(QWidget* parent = nullptr);
     ~BottomFloatingToolBar() override;
-	void setCanUndo(bool canUndo) const;
-	void setCanRedo(bool canRedo) const;
+    void setCanUndo(bool canUndo) const;
+    void setCanRedo(bool canRedo) const;
 
-signals:
+  signals:
     void zoomIn();
     void zoomOut();
     void zoomTo(qreal zoomValue);
@@ -27,27 +27,20 @@ signals:
     void redo();
     void undo();
 
-protected:
-    bool eventFilter(QObject* obj, QEvent* event) override;
+  private slots:
+    void onZoomChanged(qreal zoomValue);
 
-private slots:
-	void onZoomChanged(qreal zoomValue);
-	void onCloseTimerTimeout();
-
-private:
+  private:
     void init();
     void initMenu();
     void styleSheet();
 
-    QToolButton* m_pUndo{};
-    QToolButton* m_pRedo{};
-    QToolButton* m_pZoomIn{};
-    QToolButton* m_pZoomOut{};
-    QToolButton* m_pZoomTool{};
+    QToolButton* m_pUndo;
+    QToolButton* m_pRedo;
+    QToolButton* m_pZoomIn;
+    QToolButton* m_pZoomOut;
+    QToolButton* m_pZoomTool;
     QMenu*       m_pZoomMenu;
-    QTimer*      m_pCloseTimer;
 };
 
-
-
-#endif //BOTTOMFLOATINGTOOLBAR_H
+#endif//BOTTOMFLOATINGTOOLBAR_H
