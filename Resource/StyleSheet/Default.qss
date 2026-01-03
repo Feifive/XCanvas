@@ -1,0 +1,87 @@
+QToolBar {
+    background: transparent;
+    spacing: 8px;
+    border: none;
+}
+
+QToolButton {
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 5px;
+    font-size: 10px;
+}
+
+QToolButton::menu-indicator {
+    width: 0px;
+}
+
+QToolButton:hover {
+    background: #F6F6F9;
+}
+
+QToolButton:checked {
+    background: #EEEEF3;
+}
+
+QMenu {
+    border-radius: 5px;
+    padding: 4px;
+    background-color: white;
+}
+
+QMenu::item {
+    border: none;
+    border-radius: 5px;
+    background-color: transparent;
+    color: black;
+    min-height: 30px;
+    font-size: 12px;
+    padding-left: 12px;
+}
+
+QMenu::icon {
+    left: 8px;
+}
+
+QMenu::item:selected {
+    margin: 2px 0px;
+    background-color: #F3F3F5;
+}
+
+QWidget#BottomFloatingToolBar {
+    background-color: #FFF;
+    border-radius: 5px;
+    border: 1px solid #E7E9ED;
+}
+
+QWidget#SelectionHudBar {
+    background-color: #FFFFFF;
+    border-radius: 10px;
+    border: 1px solid #E6E6E6;
+}
+
+QLabel#HudLabel {
+    color: #848B95;
+    font-size: 12px;
+}
+
+QDoubleSpinBox#HudSpin {
+    background: transparent;
+    border: none;
+    color: #111111;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+QDoubleSpinBox#HudSpin:hover {
+    background-color: #F0F0F5;
+}
+
+QDoubleSpinBox#HudSpin:focus {
+    background-color: #E7E8F0;
+}
+
+QFrame#HudSeparator {
+    color: #D9DCE4;
+}
