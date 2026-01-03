@@ -1,13 +1,13 @@
-#pragma once
+#ifndef SELECTIONHUDBAR_H
+#define SELECTIONHUDBAR_H
 
+#include "SelectionSummary.h"
 #include <QWidget>
 
 class QDoubleSpinBox;
+class QToolButton;
+class QGridLayout;
 
-/**
- * @brief 画布选中态悬浮工具栏（Selection HUD）
- * 仅包含：X / Y / W / H / Angle
- */
 class SelectionHudBar final : public QWidget
 {
     Q_OBJECT
@@ -15,21 +15,28 @@ class SelectionHudBar final : public QWidget
 public:
     explicit SelectionHudBar(QWidget *parent = nullptr);
     ~SelectionHudBar() override;
+    void setSummary(const SelectionSummary& summary);
 
-    // ====== 对外访问接口（后续你绑定 Shape 时会用到） ======
     QDoubleSpinBox* spinX() const     { return m_spinX; }
     QDoubleSpinBox* spinY() const     { return m_spinY; }
     QDoubleSpinBox* spinW() const     { return m_spinW; }
     QDoubleSpinBox* spinH() const     { return m_spinH; }
     QDoubleSpinBox* spinAngle() const { return m_spinAngle; }
 
-protected:
-    void applyStyleSheet();
+signals:
+    void booleanUnion();
 
 private:
+    void hideGridColumn(int col, bool hide);
+
+private:
+    QGridLayout* m_gridLayout;
     QDoubleSpinBox* m_spinX     = nullptr;
     QDoubleSpinBox* m_spinY     = nullptr;
     QDoubleSpinBox* m_spinW     = nullptr;
     QDoubleSpinBox* m_spinH     = nullptr;
     QDoubleSpinBox* m_spinAngle = nullptr;
+
+    QToolButton* m_booleanTool;
 };
+#endif

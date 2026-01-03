@@ -1,6 +1,6 @@
 #include "SelectionHudBar.h"
-#include "HoverMenuHelper.h"
 #include "SafeDropShadowEffect.h"
+#include "XHoverMenu.h"
 #include <QDoubleSpinBox>
 #include <QGraphicsDropShadowEffect>
 #include <QGridLayout>
@@ -8,10 +8,9 @@
 #include <QLabel>
 #include <QMenu>
 #include <QPixmap>
-#include <QStyleFactory>
 #include <QToolButton>
 
-SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent)
+SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent), m_booleanTool(nullptr)
 {
     setObjectName("SelectionHudBar");
     setAttribute(Qt::WA_StyledBackground, true);
@@ -20,12 +19,9 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent)
     mainLayout->setContentsMargins(10, 6, 10, 6);
     mainLayout->setSpacing(12);
 
-    // =====================
-    // Transform grid (X/Y/W/H/Angle)
-    // =====================
-    auto* grid = new QGridLayout;
-    grid->setHorizontalSpacing(5);
-    grid->setVerticalSpacing(4);
+    m_gridLayout = new QGridLayout;
+    m_gridLayout->setHorizontalSpacing(5);
+    m_gridLayout->setVerticalSpacing(4);
 
     auto makeLabel = [](const QString& text)
     {
@@ -55,17 +51,17 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent)
     m_spinAngle->setSuffix("°");
     m_spinAngle->setRange(-360.0, 360.0);
 
-    grid->addWidget(makeLabel("X"), 0, 0);
-    grid->addWidget(m_spinX, 0, 1);
-    grid->addWidget(makeLabel("Y"), 0, 2);
-    grid->addWidget(m_spinY, 0, 3);
+    m_gridLayout->addWidget(makeLabel("X"), 0, 0);
+    m_gridLayout->addWidget(m_spinX, 0, 1);
+    m_gridLayout->addWidget(makeLabel("Y"), 0, 2);
+    m_gridLayout->addWidget(m_spinY, 0, 3);
 
     auto* separator1 = new QFrame;
     separator1->setFixedHeight(40);
     separator1->setFrameShape(QFrame::VLine);
     separator1->setFrameShadow(QFrame::Plain);
     separator1->setObjectName("HudSeparator");
-    grid->addWidget(separator1, 0, 4, 2, 1);
+    m_gridLayout->addWidget(separator1, 0, 4, 2, 1);
 
     auto* angleIcon = new QLabel;
     angleIcon->setObjectName("HudAngleIcon");
@@ -73,123 +69,95 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent)
     const QIcon   icon(":/Resource/Icons/Angle.svg");
     const QPixmap anglePix = icon.pixmap(14, 14);
     angleIcon->setPixmap(anglePix);
-    grid->addWidget(angleIcon, 0, 5);
-    grid->addWidget(m_spinAngle, 0, 6);
+    m_gridLayout->addWidget(angleIcon, 0, 5);
+    m_gridLayout->addWidget(m_spinAngle, 0, 6);
 
-    grid->addWidget(makeLabel("W"), 1, 0);
-    grid->addWidget(m_spinW, 1, 1);
-    grid->addWidget(makeLabel("H"), 1, 2);
-    grid->addWidget(m_spinH, 1, 3);
+    m_gridLayout->addWidget(makeLabel("W"), 1, 0);
+    m_gridLayout->addWidget(m_spinW, 1, 1);
+    m_gridLayout->addWidget(makeLabel("H"), 1, 2);
+    m_gridLayout->addWidget(m_spinH, 1, 3);
 
     auto* separator2 = new QFrame;
     separator2->setFixedHeight(40);
     separator2->setFrameShape(QFrame::VLine);
     separator2->setFrameShadow(QFrame::Plain);
     separator2->setObjectName("HudSeparator");
-    grid->addWidget(separator2, 0, 7, 2, 1);
+    m_gridLayout->addWidget(separator2, 0, 7, 2, 1);
 
-    auto* btnMerge = new QToolButton(parent);
-    btnMerge->setIcon(QIcon(":/Resource/Icons/Angle.svg"));
-    btnMerge->setFixedSize(40, 40);
-    btnMerge->setText(tr("合并"));
-    btnMerge->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    btnMerge->setArrowType(Qt::NoArrow);
+    auto* alignTool = new QToolButton(parent);
+    alignTool->setIcon(QIcon(":/Resource/Icons/AlignLeft.svg"));
+    alignTool->setFixedSize(40, 40);
+    alignTool->setText(tr("对齐"));
+    alignTool->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    alignTool->setArrowType(Qt::NoArrow);
+    m_gridLayout->addWidget(alignTool, 0,  8, 2, 1);
+    auto* alignMenu = new XHoverMenu(alignTool, XHoverMenu::PopupOrientation::Bottom, this);
+    alignMenu->setGap(15);
+    alignMenu->addAction(QIcon(":/Resource/Icons/AlignLeft.svg"), tr("左对齐"));
+    alignMenu->addAction(QIcon(":/Resource/Icons/HorizontalAlignCenter.svg"), tr("水平居中"));
+    alignMenu->addAction(QIcon(":/Resource/Icons/AlignRight.svg"), tr("右对齐"));
+    alignMenu->addAction(QIcon(":/Resource/Icons/AlignTop.svg"), tr("顶部对齐"));
+    alignMenu->addAction(QIcon(":/Resource/Icons/VerticalAlignCenter.svg"), tr("垂直居中"));
+    alignMenu->addAction(QIcon(":/Resource/Icons/AlignBottom.svg"), tr("底部对齐"));
 
-    auto* menu = new QMenu(this);
-    menu->setWindowFlags(menu->windowFlags() | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
-    menu->setAttribute(Qt::WA_TranslucentBackground, true);
-    auto* shadow = new SafeDropShadowEffect(this);
-    shadow->setOffset(0, 2);
-    shadow->setColor(QColor(0, 0, 0, 80));
-    shadow->setBlurRadius(20);
-    menu->setGraphicsEffect(shadow);
-    auto* hoverHelper = new HoverMenuHelper(btnMerge, menu);
-    menu->addAction(QIcon(":/Resource/Icons/Angle.svg"), tr("合并图形"));
-    menu->addAction(QIcon(":/Resource/Icons/Angle.svg"), tr("排除顶层"));
-    menu->addAction(QIcon(":/Resource/Icons/Angle.svg"), tr("图形相交"));
-    menu->addAction(QIcon(":/Resource/Icons/Angle.svg"), tr("排除相交"));
-    grid->addWidget(btnMerge, 0, 8, 2, 1);
+    auto* mirrorTool = new QToolButton(parent);
+    mirrorTool->setIcon(QIcon(":/Resource/Icons/MirrorHorizontally.svg"));
+    mirrorTool->setFixedSize(40, 40);
+    mirrorTool->setText(tr("镜像"));
+    mirrorTool->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    mirrorTool->setArrowType(Qt::NoArrow);
+    m_gridLayout->addWidget(mirrorTool, 0,  9, 2, 1);
+    auto* mirrorMenu = new XHoverMenu(mirrorTool, XHoverMenu::PopupOrientation::Bottom, this);
+    mirrorMenu->setGap(15);
+    mirrorMenu->addAction(QIcon(":/Resource/Icons/MirrorHorizontally.svg"), tr("水平镜像"));
+    mirrorMenu->addAction(QIcon(":/Resource/Icons/MirrorVertically.svg"), tr("垂直镜像"));
 
-    mainLayout->addLayout(grid);
+    m_booleanTool = new QToolButton(parent);
+    m_booleanTool->setIcon(QIcon(":/Resource/Icons/Union.svg"));
+    m_booleanTool->setFixedSize(40, 40);
+    m_booleanTool->setText(tr("合并"));
+    m_booleanTool->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    m_booleanTool->setArrowType(Qt::NoArrow);
+    m_gridLayout->addWidget(m_booleanTool, 0, 10, 2, 1);
+    auto* mergeMenu = new XHoverMenu(m_booleanTool, XHoverMenu::PopupOrientation::Bottom, this);
+    mergeMenu->setGap(15);
+    mergeMenu->addAction(QIcon(":/Resource/Icons/Union.svg"), tr("图形合并"), this, &SelectionHudBar::booleanUnion);
+    mergeMenu->addAction(QIcon(":/Resource/Icons/Intersection.svg"), tr("图形相交"));
+    mergeMenu->addAction(QIcon(":/Resource/Icons/SubtractA.svg"), tr("图形相减"));
+    mergeMenu->addAction(QIcon(":/Resource/Icons/SubtractB.svg"), tr("图形相减"));
+
+    mainLayout->addLayout(m_gridLayout);
     mainLayout->addStretch();
-
-    applyStyleSheet();
 }
 
 SelectionHudBar::~SelectionHudBar() = default;
 
-void SelectionHudBar::applyStyleSheet()
-{
-    setStyleSheet(R"(
-        #SelectionHudBar {
-            background-color: #FFFFFF;
-            border-radius: 10px;
-            border: 1px solid #E6E6E6;
+void SelectionHudBar::setSummary(const SelectionSummary &summary) {
+    hideGridColumn(10, !(summary.onlyVector() && summary.vectorCount == 2));
+    adjustSize();
+}
+
+void SelectionHudBar::hideGridColumn(int col, bool hide) {
+    if (!m_gridLayout) {
+        return;
+    }
+
+    for (int row = 0; row < m_gridLayout->rowCount(); ++row)
+    {
+        const QLayoutItem* item = m_gridLayout->itemAtPosition(row, col);
+        if (!item) {
+            continue;
         }
 
-        QLabel#HudLabel {
-            color: #848B95;
-            font-size: 12px;
+        if (QWidget* widget = item->widget())
+        {
+            widget->setVisible(!hide);
         }
+    }
 
-        QDoubleSpinBox#HudSpin {
-            background: transparent;
-            border: none;
-            color: #111111;
-            font-size: 12px;
-            border-radius: 4px;
-        }
-
-        QDoubleSpinBox#HudSpin:hover {
-            background-color: #F0F0F5;
-        }
-
-        QDoubleSpinBox#HudSpin:focus {
-            background-color: #E7E8F0;
-        }
-
-        QFrame#HudSeparator {
-            color: #D9DCE4;
-        }
-
-        QToolButton {
-            border: none;
-            border-radius: 5px;
-            font-size: 10px;
-        }
-
-        QToolButton::menu-indicator {
-            width: 0px;
-        }
-
-        QToolButton:hover {
-            background: #F6F6F9;
-        }
-
-        QMenu {
-            border-radius: 5px;
-            background-color: white;
-            padding: 4px;
-            margin: 20px;
-        }
-
-        QMenu::item {
-            border-radius: 5px;
-            border: 0px solid transparent;
-            background-color: transparent;
-            color: black;
-            min-height: 30px;
-            font-size: 12px;
-            padding-left: 12px;
-        }
-
-        QMenu::icon {
-            left: 8px;
-        }
-
-        QMenu::item:selected {
-            margin: 2px 0px;
-            background-color: #F3F3F5;
-        }
-    )");
+    if (hide)
+    {
+        m_gridLayout->setColumnMinimumWidth(col, 0);
+        m_gridLayout->setColumnStretch(col, 0);
+    }
 }

@@ -18,6 +18,9 @@ bool ShapeText::hitTest(const QPointF &point, const double tolerance) const {
     return true;
 }
 
+Shape * ShapeText::clone() {
+}
+
 ShapeType ShapeText::type() const
 {
     return ShapeType::Text;

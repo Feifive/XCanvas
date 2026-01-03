@@ -1,14 +1,12 @@
 #include "BottomFloatingToolBar.h"
 #include "EventBus.h"
-#include "HoverMenuHelper.h"
+#include  "XHoverMenu.h"
 #include <QCoreApplication>
-#include <QCursor>
 #include <QEvent>
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QMenu>
-#include <QPushButton>
 #include <QToolButton>
 
 constexpr int DELAY_TIME = 20;
@@ -19,7 +17,6 @@ BottomFloatingToolBar::BottomFloatingToolBar(QWidget* parent) : QWidget(parent),
     setObjectName("BottomFloatingToolBar");
     init();
     initMenu();
-    styleSheet();
 }
 
 BottomFloatingToolBar::~BottomFloatingToolBar() = default;
@@ -109,7 +106,8 @@ void BottomFloatingToolBar::init()
 
 void BottomFloatingToolBar::initMenu()
 {
-    m_pZoomMenu = new QMenu(this);
+    m_pZoomMenu = new XHoverMenu(m_pZoomTool, XHoverMenu::PopupOrientation::Top, this);
+    m_pZoomMenu->setGap(10);
 
     // 添加缩放选项
     qreal zoomList[] = {80, 40, 10, 8, 6, 4, 2, 1, 0.75, 0.5, 0.25};
@@ -129,9 +127,6 @@ void BottomFloatingToolBar::initMenu()
     connect(action, &QAction::triggered, [this]() { emit fitCanvas(); });
     action = m_pZoomMenu->addAction("适应图形");
     connect(action, &QAction::triggered, [this]() { emit fitShapes(); });
-
-    auto* hoverHelper = new HoverMenuHelper(m_pZoomTool, m_pZoomMenu, HoverMenuHelper::PopupOrientation::Top);
-    hoverHelper->setGap(10);
 }
 
 void BottomFloatingToolBar::onZoomChanged(const qreal zoomValue)
@@ -148,51 +143,5 @@ void BottomFloatingToolBar::onZoomChanged(const qreal zoomValue)
         }
         const int value = std::round(zoomValue * 100);
         m_pZoomTool->setText(QString::number(value) + "%");
-    }
-}
-
-void BottomFloatingToolBar::styleSheet()
-{
-    setStyleSheet(R"(
-        #BottomFloatingToolBar {
-            background-color: #FFF;
-            border-radius: 5px;
-            border: 1px solid #E7E9ED;
-        }
-
-        QToolButton {
-            border: none;
-            border-radius: 5px;
-        }
-
-        QToolButton::menu-indicator {
-            width: 0px;
-        }
-
-        QToolButton:hover {
-            background: #F6F6F9;
-        }
-    )");
-
-    if (m_pZoomMenu)
-    {
-        m_pZoomMenu->setStyleSheet(R"(
-            QMenu {
-                background: #FFFFFF;
-                border-radius: 5px;
-                padding: 4px;
-            }
-
-            QMenu::item {
-                font-size: 12px;
-                padding: 8px 20px;
-                color: #000;
-                border-radius: 5px;
-            }
-
-            QMenu::item:selected {
-                background: #F3F3F5;
-            }
-        )");
     }
 }

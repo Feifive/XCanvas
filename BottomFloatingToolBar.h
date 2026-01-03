@@ -4,7 +4,7 @@
 #include <QWidget>
 
 class QToolButton;
-class QMenu;
+class XHoverMenu;
 class QTimer;
 
 class BottomFloatingToolBar final : public QWidget
@@ -33,14 +33,13 @@ class BottomFloatingToolBar final : public QWidget
   private:
     void init();
     void initMenu();
-    void styleSheet();
 
     QToolButton* m_pUndo;
     QToolButton* m_pRedo;
     QToolButton* m_pZoomIn;
     QToolButton* m_pZoomOut;
     QToolButton* m_pZoomTool;
-    QMenu*       m_pZoomMenu;
+    XHoverMenu*  m_pZoomMenu;
 };
 
 #endif//BOTTOMFLOATINGTOOLBAR_H

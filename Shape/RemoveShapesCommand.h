@@ -9,8 +9,8 @@ namespace xcanvas {
 class RemoveShapesCommand : public QUndoCommand
 {
 public:
-    RemoveShapesCommand(ShapeManager* shapesManager, const ShapeList &shapesToRemove, QUndoCommand* parent = nullptr)
-        : QUndoCommand(parent), m_shapesManager(shapesManager), m_shapesToRemove(shapesToRemove)
+    RemoveShapesCommand(ShapeManager* shapesManager, ShapeList shapesToRemove, QUndoCommand* parent = nullptr)
+        : QUndoCommand(parent), m_shapesManager(shapesManager), m_shapesToRemove(std::move(shapesToRemove))
     {
         setText("Remove ShapeList");
     }

@@ -12,6 +12,7 @@ class ShapeText final : public Shape
     ShapeText();
     virtual ~ShapeText() override;
     bool hitTest(const QPointF& point, double  tolerance) const override;
+    Shape* clone() override;
     ShapeType type() const override;
     void      setFont(const QFont &font);
     QFont     font() const;

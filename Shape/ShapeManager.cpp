@@ -309,6 +309,20 @@ namespace xcanvas {
         return m_cachedSelectedRect;
     }
 
+    SelectionSummary ShapeManager::selectionSummary() const {
+        SelectionSummary summary;
+        summary.total = m_selectedShapes.size();
+        for (const Shape* shape : m_selectedShapes) {
+            switch (shape->type()) {
+                case ShapeType::Vector: summary.vectorCount++; break;
+                case ShapeType::Text: summary.textCount++; break;
+                case ShapeType::Image: summary.imageCount++; break;
+                default: break;
+            }
+        }
+        return summary;
+    }
+
     void ShapeManager::invalidateSelectedRect() const {
         m_isSelectedRectDirty = true;
     }

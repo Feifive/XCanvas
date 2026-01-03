@@ -4,7 +4,6 @@
 #include <QDebug>
 #include <QFileDialog>
 #include <QMenu>
-#include <QPushButton>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -14,29 +13,6 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
     setIconSize(QSize(24, 24));
     setMovable(false);
     setFloatable(false);
-
-    setStyleSheet(R"(
-        QToolBar {
-            background: transparent;
-            spacing: 8px;
-            border: none;
-        }
-
-        QToolButton {
-            padding: 0;
-            margin: 0;
-            border: none;
-            border-radius: 5px;
-        }
-
-        QToolButton:hover {
-            background: #F6F6F9;
-        }
-
-        QToolButton:checked {
-            background: #EEEEF3;
-        }
-    )");
 
     m_pGroup = new QButtonGroup(this);
     m_pGroup->setExclusive(true);

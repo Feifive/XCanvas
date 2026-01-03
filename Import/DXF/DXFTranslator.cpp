@@ -4,124 +4,6 @@
 #include "libdxfrw.h"
 
 #include <QDebug>
-#include <QTransform>
-
-namespace PolylineOptimizer
-{
-
-// 精度设置
-constexpr double TOLERANCE_DUPLICATE = 0.001;// 去重阈值
-constexpr double TOLERANCE_RDP       = 0.01;// RDP 简化阈值
-
-// 计算点到线段的垂直距离
-double PerpendicularDistance(const QPointF& p, const QPointF& lineStart, const QPointF& lineEnd)
-{
-    double dx  = lineEnd.x() - lineStart.x();
-    double dy  = lineEnd.y() - lineStart.y();
-    double mag = std::hypot(dx, dy);
-
-    // 如果端点重合（或极近），退化为点到点的距离
-    if (mag < 1e-9)
-    {
-        return std::hypot(p.x() - lineStart.x(), p.y() - lineStart.y());
-    }
-
-    // 面积法求高: Area / Base
-    return std::abs(dy * p.x() - dx * p.y() + lineEnd.x() * lineStart.y() - lineEnd.y() * lineStart.x()) / mag;
-}
-
-// RDP 递归逻辑
-void RDPRecursive(const QVector<QPointF>& pointList, int start, int end, double epsilon, QVector<bool>& outMask)
-{
-    if (start + 1 >= end)
-        return;
-
-    double maxDist = 0.0;
-    int    index   = -1;
-
-    const QPointF& firstPoint = pointList[start];
-    const QPointF& lastPoint  = pointList[end];
-
-    for (int i = start + 1; i < end; ++i)
-    {
-        double dist = PerpendicularDistance(pointList[i], firstPoint, lastPoint);
-        if (dist > maxDist)
-        {
-            maxDist = dist;
-            index   = i;
-        }
-    }
-
-    if (maxDist > epsilon)
-    {
-        outMask[index] = true;
-        RDPRecursive(pointList, start, index, epsilon, outMask);
-        RDPRecursive(pointList, index, end, epsilon, outMask);
-    }
-}
-
-// 核心优化函数
-QVector<QPointF> Optimize(const QVector<QPointF>& inputPoints, bool closed)
-{
-    if (inputPoints.size() < 2)
-        return inputPoints;
-
-    // --- 第一步：简单去重 (过滤掉 < 0.001mm 的微小抖动) ---
-    QVector<QPointF> noDuplicates;
-    noDuplicates.reserve(inputPoints.size());
-    noDuplicates.append(inputPoints.first());
-
-    double dupThreshSq = TOLERANCE_DUPLICATE * TOLERANCE_DUPLICATE;
-    for (int i = 1; i < inputPoints.size(); ++i)
-    {
-        double dx = inputPoints[i].x() - noDuplicates.last().x();
-        double dy = inputPoints[i].y() - noDuplicates.last().y();
-        if (dx * dx + dy * dy > dupThreshSq)
-        {
-            noDuplicates.append(inputPoints[i]);
-        }
-    }
-
-    // 处理闭合：如果源数据要求闭合，确保去重后的首尾一致
-    if (closed && noDuplicates.size() > 2)
-    {
-        double dx = noDuplicates.first().x() - noDuplicates.last().x();
-        double dy = noDuplicates.first().y() - noDuplicates.last().y();
-        // 如果首尾不重合，手动补上
-        if (dx * dx + dy * dy > dupThreshSq)
-        {
-            noDuplicates.append(noDuplicates.first());
-        }
-        else
-        {
-            // 如果已经非常接近，强制让最后一个点等于第一个点（为了数学精确）
-            noDuplicates.last() = noDuplicates.first();
-        }
-    }
-
-    if (noDuplicates.size() < 3)
-        return noDuplicates;
-
-    // --- 第二步：RDP 算法 (保证 0.01mm 精度) ---
-    QVector<bool> keepFlags(noDuplicates.size(), false);
-    keepFlags[0]                       = true;
-    keepFlags[noDuplicates.size() - 1] = true;
-
-    RDPRecursive(noDuplicates, 0, noDuplicates.size() - 1, TOLERANCE_RDP, keepFlags);
-
-    QVector<QPointF> finalPoints;
-    finalPoints.reserve(noDuplicates.size());
-    for (int i = 0; i < noDuplicates.size(); ++i)
-    {
-        if (keepFlags[i])
-        {
-            finalPoints.append(noDuplicates[i]);
-        }
-    }
-
-    return finalPoints;
-}
-}// namespace PolylineOptimizer
 
 // 辅助结构：齐次坐标点 (wx, wy, w)
 struct HomogeneousPoint
@@ -556,7 +438,7 @@ void DXFTranslator::addSpline(const DRW_Spline* data)
 
         bool isClosed = (data->flags & 0x01u) != 0;
 
-        QVector<QPointF> optimizedPoints = PolylineOptimizer::Optimize(rawPoints, isClosed);
+        QVector<QPointF> optimizedPoints = xcanvas::geometryMath::Optimize(rawPoints, isClosed);
 
         if (optimizedPoints.size() > 1)
         {

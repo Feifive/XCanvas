@@ -23,8 +23,10 @@ class ShapeVector final : public Shape
 {
 public:
     explicit ShapeVector();
+    ShapeVector(const ShapeVector& other);
     ~ShapeVector() override;
     bool      hitTest(const QPointF& point, double  tolerance) const override;
+    Shape* clone() override;
     ShapeType type() const override;
     const QVector<Segment>& segments() const;
     QVector<Segment>&       segments();
@@ -36,6 +38,7 @@ public:
     void lineTo(const QPointF& p);
     void quadTo(const QPointF& c, const QPointF& end);
     void cubicTo(const QPointF& c1, const QPointF& c2, const QPointF& end);
+    void setSegments(QVector<Segment> segments);
     void clear();
 
 protected:

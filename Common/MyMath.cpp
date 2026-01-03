@@ -115,7 +115,7 @@ QVector<Segment> buildCurveSegments(const QVector<QPointF> &points) {
     return segments;
 }
 
-QVector<xcanvas::Segment> buildEllipseSegments(const QRectF& rect)
+QVector<Segment> buildEllipseSegments(const QRectF& rect)
 {
     QVector<Segment> segments;
 
@@ -127,10 +127,10 @@ QVector<xcanvas::Segment> buildEllipseSegments(const QRectF& rect)
     const double oy = ry * KAPPA;
 
     // 四个端点（顺时针）
-    QPointF p0(c.x() + rx, c.y());// 右
-    QPointF p1(c.x(), c.y() + ry);// 下
-    QPointF p2(c.x() - rx, c.y());// 左
-    QPointF p3(c.x(), c.y() - ry);// 上
+    const QPointF p0(c.x() + rx, c.y());// 右
+    const QPointF p1(c.x(), c.y() + ry);// 下
+    const QPointF p2(c.x() - rx, c.y());// 左
+    const QPointF p3(c.x(), c.y() - ry);// 上
 
     segments.reserve(5);
 
@@ -150,6 +150,139 @@ QVector<xcanvas::Segment> buildEllipseSegments(const QRectF& rect)
     segments.append(Segment::cubicTo(QPointF(p3.x() + ox, p3.y()), QPointF(p0.x(), p0.y() - oy), p0));
 
     return segments;
+}
+
+double PerpendicularDistance(const QPointF& p, const QPointF& lineStart, const QPointF& lineEnd)
+{
+    double dx  = lineEnd.x() - lineStart.x();
+    double dy  = lineEnd.y() - lineStart.y();
+    double mag = std::hypot(dx, dy);
+
+    // 如果端点重合（或极近），退化为点到点的距离
+    if (mag < 1e-9)
+    {
+        return std::hypot(p.x() - lineStart.x(), p.y() - lineStart.y());
+    }
+
+    // 面积法求高: Area / Base
+    return std::abs(dy * p.x() - dx * p.y() + lineEnd.x() * lineStart.y() - lineEnd.y() * lineStart.x()) / mag;
+}
+
+// RDP 递归逻辑
+void RDPRecursive(const QVector<QPointF>& pointList, int start, int end, double epsilon, QVector<bool>& outMask)
+{
+    if (start + 1 >= end)
+        return;
+
+    double maxDist = 0.0;
+    int    index   = -1;
+
+    const QPointF& firstPoint = pointList[start];
+    const QPointF& lastPoint  = pointList[end];
+
+    for (int i = start + 1; i < end; ++i)
+    {
+        double dist = PerpendicularDistance(pointList[i], firstPoint, lastPoint);
+        if (dist > maxDist)
+        {
+            maxDist = dist;
+            index   = i;
+        }
+    }
+
+    if (maxDist > epsilon)
+    {
+        outMask[index] = true;
+        RDPRecursive(pointList, start, index, epsilon, outMask);
+        RDPRecursive(pointList, index, end, epsilon, outMask);
+    }
+}
+
+QVector<QPointF> Optimize(const QVector<QPointF> &inputPoints, const bool closed) {
+    if (inputPoints.size() < 2)
+        return inputPoints;
+
+    // --- 简单去重 ---
+    QVector<QPointF> noDuplicates;
+    noDuplicates.reserve(inputPoints.size());
+    noDuplicates.append(inputPoints.first());
+
+    constexpr double dupThreshSq = TOLERANCE_DUPLICATE * TOLERANCE_DUPLICATE;
+    for (int i = 1; i < inputPoints.size(); ++i)
+    {
+        double dx = inputPoints[i].x() - noDuplicates.last().x();
+        double dy = inputPoints[i].y() - noDuplicates.last().y();
+        if (dx * dx + dy * dy > dupThreshSq)
+        {
+            noDuplicates.append(inputPoints[i]);
+        }
+    }
+
+    // 处理闭合：如果源数据要求闭合，确保去重后的首尾一致
+    if (closed && noDuplicates.size() > 2)
+    {
+        const double dx = noDuplicates.first().x() - noDuplicates.last().x();
+        const double dy = noDuplicates.first().y() - noDuplicates.last().y();
+        // 如果首尾不重合，手动补上
+        if (dx * dx + dy * dy > dupThreshSq)
+        {
+            if (noDuplicates.first() != noDuplicates.last()) {
+                noDuplicates.append(noDuplicates.first());
+            }
+        }
+        else
+        {
+            // 如果已经非常接近，强制让最后一个点等于第一个点（为了数学精确）
+            noDuplicates.last() = noDuplicates.first();
+        }
+    }
+
+    if (noDuplicates.size() < 3)
+        return noDuplicates;
+
+    // --- 第二步：RDP 算法 (保证 0.01mm 精度) ---
+    QVector<bool> keepFlags(noDuplicates.size(), false);
+    keepFlags[0]                       = true;
+    keepFlags[noDuplicates.size() - 1] = true;
+
+    RDPRecursive(noDuplicates, 0, noDuplicates.size() - 1, TOLERANCE_RDP, keepFlags);
+
+    QVector<QPointF> finalPoints;
+    finalPoints.reserve(noDuplicates.size());
+    for (int i = 0; i < noDuplicates.size(); ++i)
+    {
+        if (keepFlags[i])
+        {
+            finalPoints.append(noDuplicates[i]);
+        }
+    }
+
+    return finalPoints;
+}
+
+QVector<Segment> Optimize(const QVector<Segment> &segments) {
+    QVector<Segment> resultSegments;
+    if (segments.isEmpty()) {
+        return resultSegments;
+    }
+
+    QVector<QPointF> points;
+    for (const auto& seg : segments) {
+        points.push_back(seg.end());
+    }
+
+    const bool isClosed = (points.size() > 2 && points.first() == points.last());
+    if (QVector<QPointF> optimizedPoints = Optimize(points, isClosed); !optimizedPoints.isEmpty()) {
+        resultSegments.push_back(Segment::moveTo(optimizedPoints.first()));
+        for (int i = 1; i < optimizedPoints.size(); ++i) {
+            resultSegments.push_back(Segment::lineTo(optimizedPoints[i]));
+        }
+        if (isClosed && optimizedPoints.last() != optimizedPoints.first()) {
+            resultSegments.push_back(Segment::lineTo(optimizedPoints.first()));
+        }
+    }
+
+    return resultSegments;
 }
 
 }// namespace xcanvas::geometryMath

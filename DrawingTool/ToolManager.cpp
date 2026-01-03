@@ -19,6 +19,8 @@ ToolManager::ToolManager(MyGraphicsView* view, xcanvas::Canvas* canvas)
     , m_canvas(canvas)
 {
     setTool(DrawingToolType::Select);
+    m_shapeEditor.reset();
+    m_shapeEditor = std::make_unique<ShapeEditor>(m_view, m_canvas);
 }
 
 void ToolManager::setTool(const DrawingToolType type)
@@ -62,6 +64,10 @@ std::unique_ptr<DrawingTool> ToolManager::createTool(const DrawingToolType type)
             break;
     }
     return nullptr;
+}
+
+bool ToolManager::booleanUnion() {
+    return m_shapeEditor->booleanUnion();
 }
 
 void ToolManager::mousePressEvent(QMouseEvent* e)

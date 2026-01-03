@@ -38,6 +38,10 @@ bool ShapeImage::hitTest(const QPointF &point, double tolerance) const {
     return true;
 }
 
+Shape * ShapeImage::clone() {
+    return nullptr;
+}
+
 ShapeType ShapeImage::type() const
 {
     return ShapeType::Image;

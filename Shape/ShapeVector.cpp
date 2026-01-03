@@ -3,7 +3,16 @@
 
 namespace xcanvas
 {
-ShapeVector::ShapeVector() : m_semantic(VectorSemantic::Unknown)
+ShapeVector::ShapeVector() :
+    Shape(),
+    m_semantic(VectorSemantic::Unknown)
+{
+}
+
+ShapeVector::ShapeVector(const ShapeVector& other) :
+    Shape(other),
+    m_segments(other.m_segments),
+    m_semantic(other.m_semantic)
 {
 }
 
@@ -13,6 +22,10 @@ ShapeVector::~ShapeVector()
 
 bool ShapeVector::hitTest(const QPointF &point, const double tolerance) const {
     return isPointNearPath(point, tolerance);
+}
+
+Shape * ShapeVector::clone() {
+    return new ShapeVector(*this);
 }
 
 ShapeType ShapeVector::type() const
@@ -38,6 +51,11 @@ void ShapeVector::quadTo(const QPointF& c, const QPointF& end)
 void ShapeVector::cubicTo(const QPointF& c1, const QPointF& c2, const QPointF& end)
 {
     m_segments.append(Segment::cubicTo(c1, c2, end));
+}
+
+void ShapeVector::setSegments(QVector<Segment> segments) {
+    m_segments = std::move(segments);
+    markDirty();
 }
 
 void ShapeVector::clear()

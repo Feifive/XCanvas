@@ -1,4 +1,7 @@
 #include "mainwindow.h"
+
+#include <qfile.h>
+
 #include "./ui_mainwindow.h"
 
 #include "CanvasWidget.h"
@@ -19,7 +22,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::init()
 {
-    ui->widget_toolbar->setStyleSheet("background-color: white");
+    // ui->widget_toolbar->setStyleSheet("background-color: white");
+
+    if (QFile qssFile(":/Resource/StyleSheet/Default.qss"); qssFile.open(QFile::ReadOnly)) {
+        const QString styleSheet = qssFile.readAll();
+        qApp->setStyleSheet(styleSheet);
+    }
+
 
     // 左侧工具栏
     m_pDrawingToolsBar = new DrawingToolsBar(this);

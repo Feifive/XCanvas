@@ -72,8 +72,8 @@ class MyGraphicsView : public QGraphicsView
     QPointF                m_startPos;
     bool                   m_bDragging;
     double                 m_dScaleFactor;
-    BottomFloatingToolBar* m_pFloatingToolBar;
-    SelectionHudBar*       m_pSelectionHudBar;
+    BottomFloatingToolBar* m_bottomFloatingToolBar;
+    SelectionHudBar*       m_selectionHudBar;
     std::unique_ptr<xcanvas::ToolManager> m_toolMgr;
     QSvgRenderer m_rotateHandle;
 };

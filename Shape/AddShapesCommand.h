@@ -10,8 +10,8 @@ namespace xcanvas {
     class AddShapesCommand final : public QUndoCommand
     {
     public:
-        AddShapesCommand(ShapeManager* shapesManager, const ShapeList &shapesToAdd, QUndoCommand* parent = nullptr)
-            : QUndoCommand(parent), m_shapesManager(shapesManager), m_shapesToAdd(shapesToAdd)
+        AddShapesCommand(ShapeManager* shapesManager, ShapeList shapesToAdd, QUndoCommand* parent = nullptr)
+            : QUndoCommand(parent), m_shapesManager(shapesManager), m_shapesToAdd(std::move(shapesToAdd))
         {
             setText("Add ShapeList");
         }

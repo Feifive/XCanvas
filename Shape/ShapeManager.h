@@ -1,6 +1,7 @@
 #ifndef SHAPES_H
 #define SHAPES_H
 
+#include "SelectionSummary.h"
 #include <QPointF>
 #include <QRectF>
 #include <QVector>
@@ -61,6 +62,7 @@ class ShapeManager final : public QObject
     int             selectedCount() const;
     void            clearSelection();
     QRectF          selectedBoundingRect() const;
+    SelectionSummary selectionSummary() const;
     void invalidateSelectedRect() const;
     void translate(const QPointF& offset);
 

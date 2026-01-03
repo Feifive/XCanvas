@@ -21,7 +21,7 @@
 
 #include "MyMath.h"
 
-MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPos(-1, -1), m_bDragging(false), m_canvas(new xcanvas::Canvas(this)), QGraphicsView{parent}, m_pFloatingToolBar(nullptr)
+MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPos(-1, -1), m_bDragging(false), m_canvas(new xcanvas::Canvas(this)), QGraphicsView{parent}, m_bottomFloatingToolBar(nullptr)
 {
     setTransformationAnchor(QGraphicsView::NoAnchor);
     setResizeAnchor(QGraphicsView::NoAnchor);
@@ -42,29 +42,30 @@ MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPo
     m_toolMgr = std::make_unique<xcanvas::ToolManager>(this, m_canvas);
     connect(&EventBus::instance(), &EventBus::switchTool, m_toolMgr.get(), &xcanvas::ToolManager::setTool);
 
-    m_pFloatingToolBar = new BottomFloatingToolBar(this);
-    m_pFloatingToolBar->adjustSize();
+    m_bottomFloatingToolBar = new BottomFloatingToolBar(this);
+    m_bottomFloatingToolBar->adjustSize();
 
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomIn, this, &MyGraphicsView::onZoomIn);
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomOut, this, &MyGraphicsView::onZoomOut);
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::zoomTo, this, &MyGraphicsView::zoomTo);
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitWidth, this, &MyGraphicsView::fitWidth);
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitHeight, this, &MyGraphicsView::fitHeight);
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitCanvas, this, &MyGraphicsView::fitCanvas);
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::fitShapes, this, &MyGraphicsView::fitShapes);
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::undo, this, &MyGraphicsView::onUndo);
-    connect(m_pFloatingToolBar, &BottomFloatingToolBar::redo, this, &MyGraphicsView::onRedo);
-    connect(m_canvas->undoStack(), &QUndoStack::canUndoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
-    connect(m_canvas->undoStack(), &QUndoStack::canRedoChanged, m_pFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::zoomIn, this, &MyGraphicsView::onZoomIn);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::zoomOut, this, &MyGraphicsView::onZoomOut);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::zoomTo, this, &MyGraphicsView::zoomTo);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitWidth, this, &MyGraphicsView::fitWidth);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitHeight, this, &MyGraphicsView::fitHeight);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitCanvas, this, &MyGraphicsView::fitCanvas);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitShapes, this, &MyGraphicsView::fitShapes);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::undo, this, &MyGraphicsView::onUndo);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::redo, this, &MyGraphicsView::onRedo);
+    connect(m_canvas->undoStack(), &QUndoStack::canUndoChanged, m_bottomFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
+    connect(m_canvas->undoStack(), &QUndoStack::canRedoChanged, m_bottomFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
     connect(&EventBus::instance(), &EventBus::importFileRequested, this, &MyGraphicsView::ImportFile);
 
-    m_pSelectionHudBar = new SelectionHudBar(this);
-    m_pSelectionHudBar->adjustSize();
+    m_selectionHudBar = new SelectionHudBar(this);
+    connect(m_selectionHudBar, &SelectionHudBar::booleanUnion, m_toolMgr.get(), &xcanvas::ToolManager::booleanUnion);
+    m_selectionHudBar->adjustSize();
 
     QTimer::singleShot(0, this, [this]() { fitCanvas(); });
     updateBottomFloatingToolBarPos();
-    m_pFloatingToolBar->show();
-    m_pSelectionHudBar->setVisible(false);
+    m_bottomFloatingToolBar->show();
+    m_selectionHudBar->setVisible(false);
 
     m_rotateHandle.load(QStringLiteral(":/Resource/Icons/RotateHandle.svg"));
 }
@@ -203,30 +204,31 @@ void MyGraphicsView::onRedo()
 }
 
 void MyGraphicsView::onSelectionChanged() {
-    if (!m_pSelectionHudBar || !m_canvas || !m_canvas->shapeManager()) {
+    if (!m_selectionHudBar || !m_canvas || !m_canvas->shapeManager()) {
         return;
     }
 
     const auto* shapeManager = m_canvas->shapeManager();
     const bool hasSelection = shapeManager->hasSelection();
-    m_pSelectionHudBar->setVisible(hasSelection);
+    m_selectionHudBar->setVisible(hasSelection);
     if (hasSelection) {
+        m_selectionHudBar->setSummary(shapeManager->selectionSummary());
         updateSelectionHud();
         updateSelectionHudBarPos();
     }
 }
 
 void MyGraphicsView::updateSelectionHud() {
-    if (!m_pSelectionHudBar || !m_canvas || !m_canvas->shapeManager() || !m_pSelectionHudBar->isVisible()) {
+    if (!m_selectionHudBar || !m_canvas || !m_canvas->shapeManager() || !m_selectionHudBar->isVisible()) {
         return;
     }
 
     const QRectF selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
     const QPointF canvasPos    = sceneToCanvas(selectionRect.topLeft());
-    m_pSelectionHudBar->spinX()->setValue(canvasPos.x());
-    m_pSelectionHudBar->spinY()->setValue(canvasPos.y());
-    m_pSelectionHudBar->spinW()->setValue(selectionRect.width());
-    m_pSelectionHudBar->spinH()->setValue(selectionRect.height());
+    m_selectionHudBar->spinX()->setValue(canvasPos.x());
+    m_selectionHudBar->spinY()->setValue(canvasPos.y());
+    m_selectionHudBar->spinW()->setValue(selectionRect.width());
+    m_selectionHudBar->spinH()->setValue(selectionRect.height());
 }
 
 void MyGraphicsView::drawShapes(QPainter* painter, const QRectF& visibleRect)
@@ -487,31 +489,31 @@ void MyGraphicsView::ImportFile()
 
 void MyGraphicsView::updateBottomFloatingToolBarPos()
 {
-    if (!m_pFloatingToolBar)
+    if (!m_bottomFloatingToolBar)
     {
         return;
     }
 
     constexpr int margin  = 12;
-    const QSize   barSize = m_pFloatingToolBar->sizeHint();
+    const QSize   barSize = m_bottomFloatingToolBar->sizeHint();
 
     int x = width() - barSize.width() - margin;
     int y = height() - barSize.height() - margin;
 
-    m_pFloatingToolBar->move(x, y);
+    m_bottomFloatingToolBar->move(x, y);
 }
 
 void MyGraphicsView::updateSelectionHudBarPos() {
-    if (!m_pSelectionHudBar && !m_pSelectionHudBar->isVisible()) {
+    if (!m_selectionHudBar && !m_selectionHudBar->isVisible()) {
         return;
     }
 
     constexpr int marginTop = 12;
-    const QSize   barSize = m_pSelectionHudBar->sizeHint();
+    const QSize   barSize = m_selectionHudBar->sizeHint();
     const int x = (width() - barSize.width()) / 2;
     constexpr int y = marginTop;
 
-    m_pSelectionHudBar->move(x, y);
+    m_selectionHudBar->move(x, y);
 }
 
 void MyGraphicsView::zoomIn(const QPointF& zoomCenterPoint)

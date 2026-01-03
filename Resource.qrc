@@ -16,5 +16,18 @@
         <file>Resource/Icons/RotateHandle.svg</file>
         <file>Resource/Icons/Rotate.svg</file>
         <file>Resource/Icons/Angle.svg</file>
+        <file>Resource/Icons/Union.svg</file>
+        <file>Resource/Icons/Intersection.svg</file>
+        <file>Resource/Icons/SubtractA.svg</file>
+        <file>Resource/Icons/SubtractB.svg</file>
+        <file>Resource/Icons/MirrorHorizontally.svg</file>
+        <file>Resource/Icons/MirrorVertically.svg</file>
+        <file>Resource/StyleSheet/Default.qss</file>
+        <file>Resource/Icons/AlignBottom.svg</file>
+        <file>Resource/Icons/AlignLeft.svg</file>
+        <file>Resource/Icons/AlignRight.svg</file>
+        <file>Resource/Icons/AlignTop.svg</file>
+        <file>Resource/Icons/HorizontalAlignCenter.svg</file>
+        <file>Resource/Icons/VerticalAlignCenter.svg</file>
     </qresource>
 </RCC>
