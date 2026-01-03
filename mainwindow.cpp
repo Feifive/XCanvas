@@ -24,6 +24,12 @@ void MainWindow::init()
 {
     // ui->widget_toolbar->setStyleSheet("background-color: white");
 
+    if (const int fontId = QFontDatabase::addApplicationFont(":/Resource/Font/MiSans-Medium.ttf"); fontId != -1) {
+        QFont font("MiSans");
+        font.setPixelSize(15);
+        QApplication::setFont(font);
+    }
+
     if (QFile qssFile(":/Resource/StyleSheet/Default.qss"); qssFile.open(QFile::ReadOnly)) {
         const QString styleSheet = qssFile.readAll();
         qApp->setStyleSheet(styleSheet);
@@ -37,9 +43,4 @@ void MainWindow::init()
     // 画布
     CanvasWidget* pCanvasWidget = new CanvasWidget(ui->widget_canvas);
     ui->verticalLayout_canvas->addWidget(pCanvasWidget);
-
-    // 设置字体
-    QFont font("PingFang SC");
-    font.setPixelSize(15);
-    qApp->setFont(font);
 }

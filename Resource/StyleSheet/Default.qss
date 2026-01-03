@@ -1,3 +1,7 @@
+* {
+    font-family: "MiSans";
+}
+
 QToolBar {
     background: transparent;
     spacing: 8px;

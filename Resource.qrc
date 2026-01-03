@@ -29,5 +29,6 @@
         <file>Resource/Icons/AlignTop.svg</file>
         <file>Resource/Icons/HorizontalAlignCenter.svg</file>
         <file>Resource/Icons/VerticalAlignCenter.svg</file>
+        <file>Resource/Font/MiSans-Medium.ttf</file>
     </qresource>
 </RCC>

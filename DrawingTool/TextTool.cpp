@@ -10,7 +10,7 @@
 
 xcanvas::TextTool::TextTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas), m_pTextItem(nullptr)
 {
-    m_font.setFamily("PingFang SC");
+    m_font.setFamily("MiSans");
     m_font.setPixelSize(24);
 }
 

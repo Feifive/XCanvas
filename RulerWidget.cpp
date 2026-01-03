@@ -18,7 +18,7 @@ RulerWidget::RulerWidget(Qt::Orientation orientation, QWidget* parent)
         setFixedWidth(24);
     }
 
-    m_font.setFamily("PingFang SC");
+    m_font.setFamily("MiSans");
     m_font.setPixelSize(8);
 }
 
