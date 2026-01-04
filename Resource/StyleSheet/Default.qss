@@ -30,26 +30,52 @@ QToolButton:checked {
 
 QMenu {
     border-radius: 5px;
-    padding: 4px;
+    padding: 0px 4px;
     background-color: white;
 }
 
+QMenu::right-arrow {
+    image: url(:/Resource/Icons/RightArrow.svg);
+    width: 8px;
+    height: 8px;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #E9E9E7;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+
 QMenu::item {
+    min-height: 34px;
     border: none;
     border-radius: 5px;
     background-color: transparent;
     color: black;
-    min-height: 30px;
-    font-size: 12px;
-    padding-left: 12px;
-}
-
-QMenu::icon {
-    left: 8px;
+    padding: 0px 4px;
 }
 
 QMenu::item:selected {
     margin: 2px 0px;
+    background-color: #F3F3F5;
+}
+
+QMenu#menu_iconMenu::item {
+    padding: 0px 12px;
+}
+QMenu#menu_iconMenu::icon {
+    left: 8px;
+}
+
+QLabel#menuSection {
+    min-height: 30px;
+    margin: 2px 0;
+    padding-left: 2px;
+    border-radius: 5px;
+}
+
+QLabel#menuSection:hover {
     background-color: #F3F3F5;
 }
 

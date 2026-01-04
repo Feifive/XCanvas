@@ -30,5 +30,7 @@
         <file>Resource/Icons/HorizontalAlignCenter.svg</file>
         <file>Resource/Icons/VerticalAlignCenter.svg</file>
         <file>Resource/Font/MiSans-Medium.ttf</file>
+        <file>Resource/Icons/RightArrow.svg</file>
+        <file>Resource/Icons/PickOn.svg</file>
     </qresource>
 </RCC>

@@ -6,6 +6,8 @@
 #include <QMenu>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <QWidgetAction>
+#include <QLabel>
 
 DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
 {
@@ -40,8 +42,33 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
     m_pEllipseTool  = MakeButton(":/Resource/Icons/Ellipse.svg");
     m_pPolygonTool  = MakeButton(":/Resource/Icons/Polygon.svg");
     m_pText         = MakeButton(":/Resource/Icons/Text.svg");
+
+    m_pMainMenu->setPopupMode(QToolButton::InstantPopup);
+
+    auto* mainMenu = new QMenu(this);
+    mainMenu->setMinimumSize(180, 30);
+    auto* gridSetting = new QMenu("画布和网格", this);
+    gridSetting->setMinimumSize(150, 30);
+    auto* showGrid = new QWidgetAction(this);
+    auto* label = new QLabel(this);
+    label->setObjectName("menuSection");
+    label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    label->setText(tr("显示/隐藏网格"));
+    showGrid->setDefaultWidget(label);
+    gridSetting->addAction(showGrid);
+    gridSetting->addSeparator();
+    gridSetting->addAction(QIcon(":/Resource/Icons/PickOn.svg"), "网格-强");
+    gridSetting->addAction("网格-中");
+    gridSetting->addAction("网格-弱");
+    auto* fileMenu = new QMenu("文件", this);
+    auto* editeMenu = new QMenu("编辑", this);
+    mainMenu->addMenu(fileMenu);
+    mainMenu->addMenu(editeMenu);
+    mainMenu->addMenu(gridSetting);
+    m_pMainMenu->setMenu(mainMenu);
+
     // 垂直弹簧
-    QWidget* pSpring = new QWidget(this);
+    auto* pSpring = new QWidget(this);
     pSpring->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     addWidget(pSpring);
     m_pSelectTool = MakeButton(":/Resource/Icons/Select.svg");

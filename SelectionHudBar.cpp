@@ -92,6 +92,7 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent), m_booleanTo
     alignTool->setArrowType(Qt::NoArrow);
     m_gridLayout->addWidget(alignTool, 0,  8, 2, 1);
     auto* alignMenu = new XHoverMenu(alignTool, XHoverMenu::PopupOrientation::Bottom, this);
+    alignMenu->setObjectName("menu_iconMenu");
     alignMenu->setGap(15);
     alignMenu->addAction(QIcon(":/Resource/Icons/AlignLeft.svg"), tr("左对齐"));
     alignMenu->addAction(QIcon(":/Resource/Icons/HorizontalAlignCenter.svg"), tr("水平居中"));
@@ -108,6 +109,7 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent), m_booleanTo
     mirrorTool->setArrowType(Qt::NoArrow);
     m_gridLayout->addWidget(mirrorTool, 0,  9, 2, 1);
     auto* mirrorMenu = new XHoverMenu(mirrorTool, XHoverMenu::PopupOrientation::Bottom, this);
+    mirrorMenu->setObjectName("menu_iconMenu");
     mirrorMenu->setGap(15);
     mirrorMenu->addAction(QIcon(":/Resource/Icons/MirrorHorizontally.svg"), tr("水平镜像"));
     mirrorMenu->addAction(QIcon(":/Resource/Icons/MirrorVertically.svg"), tr("垂直镜像"));
@@ -120,6 +122,7 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent), m_booleanTo
     m_booleanTool->setArrowType(Qt::NoArrow);
     m_gridLayout->addWidget(m_booleanTool, 0, 10, 2, 1);
     auto* mergeMenu = new XHoverMenu(m_booleanTool, XHoverMenu::PopupOrientation::Bottom, this);
+    mergeMenu->setObjectName("menu_iconMenu");
     mergeMenu->setGap(15);
     mergeMenu->addAction(QIcon(":/Resource/Icons/Union.svg"), tr("图形合并"), this, &SelectionHudBar::booleanUnion);
     mergeMenu->addAction(QIcon(":/Resource/Icons/Intersection.svg"), tr("图形相交"));
