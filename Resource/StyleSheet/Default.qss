@@ -30,7 +30,7 @@ QToolButton:checked {
 
 QMenu {
     border-radius: 5px;
-    padding: 0px 4px;
+    padding: 2px 4px;
     background-color: white;
 }
 
@@ -43,8 +43,7 @@ QMenu::right-arrow {
 QMenu::separator {
     height: 1px;
     background: #E9E9E7;
-    margin-left: 0px;
-    margin-right: 0px;
+    margin: 2px 0px;
 }
 
 QMenu::item {

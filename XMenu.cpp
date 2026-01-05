@@ -35,5 +35,5 @@ void XMenu::initMenuStyle()
     shadow->setColor(QColor(0, 0, 0, 80));
     shadow->setBlurRadius(blurRadius);
     setGraphicsEffect(shadow);
-    setStyleSheet(QString("margin: %1px").arg(blurRadius));
+    setStyleSheet(QString("XMenu { margin: %1px; }").arg(blurRadius));
 }
