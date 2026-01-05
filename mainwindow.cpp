@@ -7,6 +7,7 @@
 #include "CanvasWidget.h"
 #include "DrawingToolsBar.h"
 
+#include <QFileSystemWatcher>
 #include <QFontDatabase>
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -22,19 +23,30 @@ MainWindow::~MainWindow()
 
 void MainWindow::init()
 {
-    // ui->widget_toolbar->setStyleSheet("background-color: white");
-
-    if (const int fontId = QFontDatabase::addApplicationFont(":/Resource/Font/MiSans-Medium.ttf"); fontId != -1) {
+    if (const int fontId = QFontDatabase::addApplicationFont(":/Resource/Font/MiSans-Medium.ttf"); fontId != -1)
+    {
         QFont font("MiSans");
         font.setPixelSize(15);
         QApplication::setFont(font);
     }
 
-    if (QFile qssFile(":/Resource/StyleSheet/Default.qss"); qssFile.open(QFile::ReadOnly)) {
+    if (QFile qssFile(":/Resource/StyleSheet/Default.qss"); qssFile.open(QFile::ReadOnly))
+    {
         const QString styleSheet = qssFile.readAll();
         qApp->setStyleSheet(styleSheet);
     }
 
+    // QFileSystemWatcher* fileWatcher = new QFileSystemWatcher(this);
+    // fileWatcher->addPath("D:\\code\\XCanvas\\Resource\\StyleSheet\\Default.qss");
+    // connect(fileWatcher, &QFileSystemWatcher::fileChanged, this,
+    //         [this]()
+    //         {
+    //             if (QFile qssFile("D:\\code\\XCanvas\\Resource\\StyleSheet\\Default.qss"); qssFile.open(QFile::ReadOnly))
+    //             {
+    //                 const QString styleSheet = qssFile.readAll();
+    //                 qApp->setStyleSheet(styleSheet);
+    //             }
+    //         });
 
     // 左侧工具栏
     m_pDrawingToolsBar = new DrawingToolsBar(this);

@@ -79,6 +79,14 @@ QLabel#menuSection:hover {
     background-color: #F3F3F5;
 }
 
+QWidget#widget_toolbar {
+    background-color: white;
+}
+
+QGraphicsView#MyGraphicsView {
+    border: none;
+}
+
 QWidget#BottomFloatingToolBar {
     background-color: #FFF;
     border-radius: 5px;

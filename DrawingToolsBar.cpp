@@ -1,16 +1,20 @@
 #include "DrawingToolsBar.h"
+#include "AppSettings.h"
 #include "EventBus.h"
+#include "XMenu.h"
+#include <QActionGroup>
 #include <QButtonGroup>
 #include <QDebug>
 #include <QFileDialog>
+#include <QLabel>
 #include <QMenu>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidgetAction>
-#include <QLabel>
 
 DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
 {
+    setObjectName("DrawingToolsBar");
     setOrientation(Qt::Vertical);
     setIconSize(QSize(24, 24));
     setMovable(false);
@@ -45,23 +49,24 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
 
     m_pMainMenu->setPopupMode(QToolButton::InstantPopup);
 
-    auto* mainMenu = new QMenu(this);
+    auto* mainMenu = new XMenu(this);
     mainMenu->setMinimumSize(180, 30);
-    auto* gridSetting = new QMenu("画布和网格", this);
+    auto* gridSetting = new XMenu("画布和网格", this);
     gridSetting->setMinimumSize(150, 30);
     auto* showGrid = new QWidgetAction(this);
-    auto* label = new QLabel(this);
+    auto* label    = new QLabel(this);
     label->setObjectName("menuSection");
     label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    label->setText(tr("显示/隐藏网格"));
+    label->setText(tr("浅色/深色背景"));
     showGrid->setDefaultWidget(label);
     gridSetting->addAction(showGrid);
     gridSetting->addSeparator();
-    gridSetting->addAction(QIcon(":/Resource/Icons/PickOn.svg"), "网格-强");
-    gridSetting->addAction("网格-中");
-    gridSetting->addAction("网格-弱");
-    auto* fileMenu = new QMenu("文件", this);
-    auto* editeMenu = new QMenu("编辑", this);
+    gridSetting->addAction(QIcon(":/Resource/Icons/PickOn.svg"), "网格-强", []() { AppSettings::instance().setGridContrast(AppSettings::GridContrast::High); });
+    gridSetting->addAction("网格-中", []() { AppSettings::instance().setGridContrast(AppSettings::GridContrast::Medium); });
+    gridSetting->addAction("网格-弱", []() { AppSettings::instance().setGridContrast(AppSettings::GridContrast::Low); });
+    gridSetting->addAction("网格-关闭", []() { AppSettings::instance().setGridContrast(AppSettings::GridContrast::Off); });
+    auto* fileMenu  = new XMenu("文件", this);
+    auto* editeMenu = new XMenu("编辑", this);
     mainMenu->addMenu(fileMenu);
     mainMenu->addMenu(editeMenu);
     mainMenu->addMenu(gridSetting);
@@ -74,7 +79,7 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
     m_pSelectTool = MakeButton(":/Resource/Icons/Select.svg");
 
     connect(m_pSelectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Select); });
-    connect(m_pImport, &QToolButton::clicked, this, [=] { emit EventBus::instance().importFileRequested();});
+    connect(m_pImport, &QToolButton::clicked, this, [=] { emit EventBus::instance().importFileRequested(); });
     connect(m_pText, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Text); });
     connect(m_pRectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Rect); });
     connect(m_pPolylineTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Polyline); });

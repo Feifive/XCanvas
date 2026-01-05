@@ -11,14 +11,18 @@ ShapeText::~ShapeText()
 {
 }
 
-bool ShapeText::hitTest(const QPointF &point, const double tolerance) const {
-    if (!isPointNearPath(point, tolerance)) {
+bool ShapeText::hitTest(const QPointF& point, const double tolerance) const
+{
+    if (!isPointNearPath(point, tolerance))
+    {
         return path().contains(point);
     }
     return true;
 }
 
-Shape * ShapeText::clone() {
+Shape* ShapeText::clone()
+{
+    return nullptr;
 }
 
 ShapeType ShapeText::type() const
@@ -26,7 +30,7 @@ ShapeType ShapeText::type() const
     return ShapeType::Text;
 }
 
-void ShapeText::setFont(const QFont &font)
+void ShapeText::setFont(const QFont& font)
 {
     m_font = font;
     markDirty();
@@ -51,7 +55,8 @@ QString ShapeText::text() const
 void ShapeText::updatePainterPath()
 {
     m_originalPath = QPainterPath();
-    if (m_text.isEmpty()) {
+    if (m_text.isEmpty())
+    {
         return;
     }
 

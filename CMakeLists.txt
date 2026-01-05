@@ -68,7 +68,9 @@ set(PROJECT_SOURCES
     DrawingToolsBar.cpp DrawingToolsBar.h
     RulerWidget.cpp RulerWidget.h
     CanvasWidget.cpp CanvasWidget.h
-        SafeDropShadowEffect.h SafeDropShadowEffect.cpp
+    SafeDropShadowEffect.h SafeDropShadowEffect.cpp
+    XMenu.h XMenu.cpp
+    XHoverMenu.cpp XHoverMenu.h
 
     ${DRAWINGTOOL}
     ${SHAPE}
@@ -79,12 +81,6 @@ set(PROJECT_SOURCES
     ${IMPORT_IMG}
     ${IMPORT_PDF}
     ${IMPORT_UTILS}
-        XHoverMenu.cpp
-        XHoverMenu.h
-        Shape/SelectionSummary.h
-        DrawingTool/ShapeEditor.cpp
-        DrawingTool/ShapeEditor.h
-        Shape/ReplaceCommand.h
 )
 
 # ============================================================

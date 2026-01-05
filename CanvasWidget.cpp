@@ -1,8 +1,8 @@
 #include "CanvasWidget.h"
+#include "EventBus.h"
 #include "Global.h"
 #include "MyGraphicsView.h"
 #include "RulerWidget.h"
-#include "EventBus.h"
 #include <QGraphicsScene>
 #include <QGridLayout>
 #include <QScrollBar>
@@ -38,13 +38,10 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
     pGridLayout->setContentsMargins(0, 0, 0, 0);
 
     // 滚动或缩放后，标尺会在 paintEvent 里自动通过 mapToScene / transform() 重新计算
-    connect(m_pGraphicsView->horizontalScrollBar(), &QScrollBar::valueChanged,
-            m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
-    connect(m_pGraphicsView->verticalScrollBar(), &QScrollBar::valueChanged,
-            m_pRulerVertical,   QOverload<>::of(&RulerWidget::update));
+    connect(m_pGraphicsView->horizontalScrollBar(), &QScrollBar::valueChanged, m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
+    connect(m_pGraphicsView->verticalScrollBar(), &QScrollBar::valueChanged, m_pRulerVertical, QOverload<>::of(&RulerWidget::update));
 
-    connect(&EventBus::instance(), &EventBus::zoomChanged,   // Qt6 才有；没有的话你在 zoom 那里手动调用
+    connect(&EventBus::instance(), &EventBus::zoomChanged,// Qt6 才有；没有的话你在 zoom 那里手动调用
             m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
-    connect(&EventBus::instance(), &EventBus::zoomChanged,
-            m_pRulerVertical,   QOverload<>::of(&RulerWidget::update));
+    connect(&EventBus::instance(), &EventBus::zoomChanged, m_pRulerVertical, QOverload<>::of(&RulerWidget::update));
 }

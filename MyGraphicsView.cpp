@@ -1,12 +1,13 @@
 #include "MyGraphicsView.h"
+#include "AppSettings.h"
 #include "BottomFloatingToolBar.h"
-#include "SelectionHudBar.h"
 #include "Canvas/Canvas.h"
 #include "EventBus.h"
 #include "Import/DXF/DXFImporter.h"
 #include "Import/Image/ImageImporter.h"
 #include "Import/ImportManager.h"
 #include "Import/PDF/PDFImporter.h"
+#include "SelectionHudBar.h"
 #include "Shape/Shape.h"
 #include "ToolManager.h"
 #include <QDebug>
@@ -21,8 +22,10 @@
 
 #include "MyMath.h"
 
-MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPos(-1, -1), m_bDragging(false), m_canvas(new xcanvas::Canvas(this)), QGraphicsView{parent}, m_bottomFloatingToolBar(nullptr)
+MyGraphicsView::MyGraphicsView(QWidget* parent)
+    : m_dScaleFactor(1.0), m_startPos(-1, -1), m_bDragging(false), m_canvas(new xcanvas::Canvas(this)), QGraphicsView{parent}, m_bottomFloatingToolBar(nullptr)
 {
+    setObjectName("MyGraphicsView");
     setTransformationAnchor(QGraphicsView::NoAnchor);
     setResizeAnchor(QGraphicsView::NoAnchor);
 
@@ -32,6 +35,8 @@ MyGraphicsView::MyGraphicsView(QWidget* parent) : m_dScaleFactor(1.0), m_startPo
     setRenderHint(QPainter::SmoothPixmapTransform, false);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    connect(&AppSettings::instance(), &AppSettings::gridContrastChanged, this, [this]() { requestFullUpdate(); });
 
     ImportManager::instance().registerImporter(std::make_unique<DXFImporter>());
     ImportManager::instance().registerImporter(std::make_unique<ImageImporter>());
@@ -203,28 +208,33 @@ void MyGraphicsView::onRedo()
     requestFullUpdate();
 }
 
-void MyGraphicsView::onSelectionChanged() {
-    if (!m_selectionHudBar || !m_canvas || !m_canvas->shapeManager()) {
+void MyGraphicsView::onSelectionChanged()
+{
+    if (!m_selectionHudBar || !m_canvas || !m_canvas->shapeManager())
+    {
         return;
     }
 
     const auto* shapeManager = m_canvas->shapeManager();
-    const bool hasSelection = shapeManager->hasSelection();
+    const bool  hasSelection = shapeManager->hasSelection();
     m_selectionHudBar->setVisible(hasSelection);
-    if (hasSelection) {
+    if (hasSelection)
+    {
         m_selectionHudBar->setSummary(shapeManager->selectionSummary());
         updateSelectionHud();
         updateSelectionHudBarPos();
     }
 }
 
-void MyGraphicsView::updateSelectionHud() {
-    if (!m_selectionHudBar || !m_canvas || !m_canvas->shapeManager() || !m_selectionHudBar->isVisible()) {
+void MyGraphicsView::updateSelectionHud()
+{
+    if (!m_selectionHudBar || !m_canvas || !m_canvas->shapeManager() || !m_selectionHudBar->isVisible())
+    {
         return;
     }
 
-    const QRectF selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
-    const QPointF canvasPos    = sceneToCanvas(selectionRect.topLeft());
+    const QRectF  selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
+    const QPointF canvasPos     = sceneToCanvas(selectionRect.topLeft());
     m_selectionHudBar->spinX()->setValue(canvasPos.x());
     m_selectionHudBar->spinY()->setValue(canvasPos.y());
     m_selectionHudBar->spinW()->setValue(selectionRect.width());
@@ -290,7 +300,7 @@ void MyGraphicsView::drawSelectedShapes(QPainter* painter, const QRectF& visible
 
 void MyGraphicsView::drawGrid(QPainter* p)
 {
-    if (!scene())
+    if (!scene() || AppSettings::instance().gridContrast() == AppSettings::GridContrast::Off)
     {
         return;
     }
@@ -309,8 +319,32 @@ void MyGraphicsView::drawGrid(QPainter* p)
     const double step       = gridStep(scale);// 网格步长（场景单位）
     const int    majorCount = 10;
 
-    const QColor minorColor(230, 230, 230);
-    const QColor majorColor(200, 200, 200);
+    QColor minorColor;
+    QColor majorColor;
+
+    switch (AppSettings::instance().gridContrast())
+    {
+    case AppSettings::GridContrast::Low:
+    {
+        majorColor = QColor("#E0E0E0");
+        minorColor = QColor("#ECECEC");
+    }
+    break;
+    case AppSettings::GridContrast::Medium:
+    {
+        majorColor = QColor("#D0D0D0");
+        minorColor = QColor("#E4E4E4");
+    }
+    break;
+    case AppSettings::GridContrast::High:
+    {
+        majorColor = QColor("#C0C0C0");
+        minorColor = QColor("#DCDCDC");
+    }
+    break;
+    default:
+        break;
+    }
 
     p->save();
     p->setRenderHint(QPainter::Antialiasing, false);
@@ -503,15 +537,17 @@ void MyGraphicsView::updateBottomFloatingToolBarPos()
     m_bottomFloatingToolBar->move(x, y);
 }
 
-void MyGraphicsView::updateSelectionHudBarPos() {
-    if (!m_selectionHudBar && !m_selectionHudBar->isVisible()) {
+void MyGraphicsView::updateSelectionHudBarPos()
+{
+    if (!m_selectionHudBar && !m_selectionHudBar->isVisible())
+    {
         return;
     }
 
     constexpr int marginTop = 12;
-    const QSize   barSize = m_selectionHudBar->sizeHint();
-    const int x = (width() - barSize.width()) / 2;
-    constexpr int y = marginTop;
+    const QSize   barSize   = m_selectionHudBar->sizeHint();
+    const int     x         = (width() - barSize.width()) / 2;
+    constexpr int y         = marginTop;
 
     m_selectionHudBar->move(x, y);
 }
