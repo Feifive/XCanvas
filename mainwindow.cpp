@@ -26,7 +26,7 @@ void MainWindow::init()
     if (const int fontId = QFontDatabase::addApplicationFont(":/Resource/Font/MiSans-Medium.ttf"); fontId != -1)
     {
         QFont font("MiSans");
-        font.setPixelSize(15);
+        font.setPixelSize(13);
         QApplication::setFont(font);
     }
 

@@ -47,31 +47,6 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
     m_pPolygonTool  = MakeButton(":/Resource/Icons/Polygon.svg");
     m_pText         = MakeButton(":/Resource/Icons/Text.svg");
 
-    m_pMainMenu->setPopupMode(QToolButton::InstantPopup);
-
-    auto* mainMenu = new XMenu(this);
-    mainMenu->setMinimumSize(180, 30);
-    auto* gridSetting = new XMenu("画布和网格", this);
-    gridSetting->setMinimumSize(150, 30);
-    auto* showGrid = new QWidgetAction(this);
-    auto* label    = new QLabel(this);
-    label->setObjectName("menuSection");
-    label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    label->setText(tr("浅色/深色背景"));
-    showGrid->setDefaultWidget(label);
-    gridSetting->addAction(showGrid);
-    gridSetting->addSeparator();
-    gridSetting->addAction(QIcon(":/Resource/Icons/PickOn.svg"), "网格-强", []() { AppSettings::instance().setGridContrast(AppSettings::GridContrast::High); });
-    gridSetting->addAction("网格-中", []() { AppSettings::instance().setGridContrast(AppSettings::GridContrast::Medium); });
-    gridSetting->addAction("网格-弱", []() { AppSettings::instance().setGridContrast(AppSettings::GridContrast::Low); });
-    gridSetting->addAction("网格-关闭", []() { AppSettings::instance().setGridContrast(AppSettings::GridContrast::Off); });
-    auto* fileMenu  = new XMenu("文件", this);
-    auto* editeMenu = new XMenu("编辑", this);
-    mainMenu->addMenu(fileMenu);
-    mainMenu->addMenu(editeMenu);
-    mainMenu->addMenu(gridSetting);
-    m_pMainMenu->setMenu(mainMenu);
-
     // 垂直弹簧
     auto* pSpring = new QWidget(this);
     pSpring->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -89,6 +64,7 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
     connect(&EventBus::instance(), &EventBus::finishDrawing, this, &DrawingToolsBar::onFinishDrawing);
 
     m_pSelectTool->setChecked(true);
+    initMainMenu();
 }
 
 DrawingToolsBar::~DrawingToolsBar()
@@ -98,4 +74,62 @@ DrawingToolsBar::~DrawingToolsBar()
 void DrawingToolsBar::onFinishDrawing()
 {
     m_pSelectTool->setChecked(true);
+}
+
+void DrawingToolsBar::initMainMenu()
+{
+    m_pMainMenu->setPopupMode(QToolButton::InstantPopup);
+
+    auto* group = new QActionGroup(this);
+    group->setExclusive(true);
+
+    auto* gridSetting       = new XMenu("画布和网格", this);
+    auto  addContrastAction = [&](const QString& text, AppSettings::GridContrast value)
+    {
+        QAction* action = gridSetting->addAction(text);
+        action->setCheckable(true);
+        group->addAction(action);
+
+        if (AppSettings::instance().gridContrast() == value)
+        {
+            action->setChecked(true);
+            action->setIcon(QIcon(":/Resource/Icons/PickOn.svg"));
+        }
+
+        connect(action, &QAction::triggered, this,
+                [action, value]()
+                {
+                    for (auto a : action->actionGroup()->actions())
+                    {
+                        a->setIcon(QIcon());
+                    }
+                    action->setIcon(QIcon(":/Resource/Icons/PickOn.svg"));
+                    AppSettings::instance().setGridContrast(value);
+                });
+
+        return action;
+    };
+
+    auto* mainMenu = new XMenu(this);
+    mainMenu->setMinimumSize(180, 30);
+
+    gridSetting->setMinimumSize(150, 30);
+    auto* showGrid = new QWidgetAction(this);
+    auto* label    = new QLabel(this);
+    label->setObjectName("menuSection");
+    label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    label->setText(tr("浅色/深色背景"));
+    showGrid->setDefaultWidget(label);
+    gridSetting->addAction(showGrid);
+    gridSetting->addSeparator();
+    addContrastAction("网格-强", AppSettings::GridContrast::High);
+    addContrastAction("网格-中", AppSettings::GridContrast::Medium);
+    addContrastAction("网格-弱", AppSettings::GridContrast::Low);
+    addContrastAction("网格-关闭", AppSettings::GridContrast::Off);
+    auto* fileMenu  = new XMenu("文件", this);
+    auto* editeMenu = new XMenu("编辑", this);
+    mainMenu->addMenu(fileMenu);
+    mainMenu->addMenu(editeMenu);
+    mainMenu->addMenu(gridSetting);
+    m_pMainMenu->setMenu(mainMenu);
 }

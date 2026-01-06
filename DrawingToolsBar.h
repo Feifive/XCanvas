@@ -14,11 +14,11 @@ class DrawingToolsBar : public QToolBar
     explicit DrawingToolsBar(QWidget* parent = nullptr);
     ~DrawingToolsBar();
 
+  private:
+    void onFinishDrawing();
+    void initMainMenu();
 
-private:
-	void onFinishDrawing();
-
-private:
+  private:
     QToolButton* m_pMainMenu;
     QToolButton* m_pSelectTool;
     QToolButton* m_pImport;

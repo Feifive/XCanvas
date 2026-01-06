@@ -34,6 +34,21 @@ QMenu {
     background-color: white;
 }
 
+QMenu::item {
+    min-height: 34px;
+    border: none;
+    border-radius: 5px;
+    background-color: transparent;
+    color: black;
+    padding: 0px 4px;
+    font-size: 13px;
+}
+
+QMenu::item:selected {
+    margin: 2px 0px;
+    background-color: #F3F3F5;
+}
+
 QMenu::right-arrow {
     image: url(:/Resource/Icons/RightArrow.svg);
     width: 8px;
@@ -44,20 +59,6 @@ QMenu::separator {
     height: 1px;
     background: #E9E9E7;
     margin: 2px 0px;
-}
-
-QMenu::item {
-    min-height: 34px;
-    border: none;
-    border-radius: 5px;
-    background-color: transparent;
-    color: black;
-    padding: 0px 4px;
-}
-
-QMenu::item:selected {
-    margin: 2px 0px;
-    background-color: #F3F3F5;
 }
 
 QMenu#menu_iconMenu::item {
