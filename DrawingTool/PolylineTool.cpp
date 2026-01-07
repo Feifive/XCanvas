@@ -6,6 +6,7 @@
 #include <QGraphicsView>
 #include <QMouseEvent>
 
+#include "AppSettings.h"
 #include "MyMath.h"
 
 xcanvas::PolylineTool::PolylineTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
@@ -91,6 +92,7 @@ void xcanvas::PolylineTool::cancelDrawing()
         auto* shape = new ShapeVector();
         shape->setSemantic(VectorSemantic::Polyline);
         shape->segments() = geometryMath::buildPolylineSegments(m_points);
+        shape->setColor(AppSettings::instance().activeColor());
         m_canvas->addShape(shape);
         m_canvas->shapeManager()->selectShape(shape, true);
     }

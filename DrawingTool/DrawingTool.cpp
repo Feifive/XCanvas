@@ -5,6 +5,7 @@
 #include <QGraphicsPathItem>
 #include <QMouseEvent>
 #include <QRectF>
+#include "AppSettings.h"
 
 const double RIGHT_DRAG_THRESHOLD = 3.0;
 
@@ -30,7 +31,11 @@ void xcanvas::DrawingTool::drawPreview(QPainter* painter)
     if (m_state == State::Drawing && !m_previewPath.isEmpty())
     {
         painter->save();
-        painter->setPen(normalPen());
+        QPen pen(AppSettings::instance().activeColor());
+        pen.setWidth(1);
+        pen.setCosmetic(true);
+        pen.setStyle(Qt::SolidLine);
+        painter->setPen(pen);
         painter->drawPath(m_previewPath);
         painter->restore();
     }

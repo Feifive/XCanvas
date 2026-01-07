@@ -12,7 +12,7 @@ QToolButton {
     padding: 0;
     margin: 0;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     font-size: 10px;
 }
 
@@ -29,7 +29,7 @@ QToolButton:checked {
 }
 
 QMenu {
-    border-radius: 5px;
+    border-radius: 4px;
     padding: 2px 4px;
     background-color: white;
 }
@@ -37,7 +37,7 @@ QMenu {
 QMenu::item {
     min-height: 34px;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     background-color: transparent;
     color: black;
     padding: 0px 4px;
@@ -72,7 +72,7 @@ QLabel#menuSection {
     min-height: 30px;
     margin: 2px 0;
     padding-left: 2px;
-    border-radius: 5px;
+    border-radius: 4px;
 }
 
 QLabel#menuSection:hover {
@@ -87,9 +87,10 @@ QGraphicsView#MyGraphicsView {
     border: none;
 }
 
-QWidget#BottomFloatingToolBar {
+QWidget#BottomFloatingToolBar,
+QWidget#ColorPaletteWidget {
     background-color: #FFF;
-    border-radius: 5px;
+    border-radius: 4px;
     border: 1px solid #E7E9ED;
 }
 

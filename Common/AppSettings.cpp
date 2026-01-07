@@ -61,14 +61,9 @@ void AppSettings::load()
     QJsonDocument doc  = QJsonDocument::fromJson(data);
     QJsonObject   json = doc.object();
 
-    if (json.contains("showGrid"))
-    {
-        m_gridContrast = static_cast<GridContrast>(json["showGrid"].toInt(static_cast<int>(AppSettings::GridContrast::Medium)));
-    }
-    if (json.contains("lastOpenedPath"))
-    {
-        m_lastOpenedPath = json["lastOpenedPath"].toString();
-    }
+
+    m_gridContrast   = static_cast<GridContrast>(json["showGrid"].toInt(static_cast<int>(AppSettings::GridContrast::Medium)));
+    m_lastOpenedPath = json["lastOpenedPath"].toString();
 }
 
 void AppSettings::save()
@@ -91,4 +86,16 @@ void AppSettings::save()
 QString AppSettings::lastOpenedPath() const
 {
     return m_lastOpenedPath;
+}
+
+QColor AppSettings::activeColor() const {
+    return m_activeColor;
+}
+
+void AppSettings::setActiveColor(const QColor &color) {
+    if (m_activeColor !=  color) {
+        m_activeColor = color;
+        emit settingsChanged();
+        emit activeColorChanged();
+    }
 }

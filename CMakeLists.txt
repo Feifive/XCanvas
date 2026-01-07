@@ -81,6 +81,10 @@ set(PROJECT_SOURCES
     ${IMPORT_IMG}
     ${IMPORT_PDF}
     ${IMPORT_UTILS}
+        ColorSwatchButton.cpp
+        ColorSwatchButton.h
+        ColorPaletteWidget.cpp
+        ColorPaletteWidget.h
 )
 
 # ============================================================

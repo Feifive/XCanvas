@@ -6,6 +6,8 @@
 #include <QGraphicsEllipseItem>
 #include <QMouseEvent>
 
+#include "AppSettings.h"
+
 xcanvas::EllipseTool::EllipseTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
 {
 }
@@ -81,6 +83,7 @@ void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent* event)
         }
 
         shape->segments() = geometryMath::buildEllipseSegments(rect);
+        shape->setColor(AppSettings::instance().activeColor());
         m_canvas->addShape(shape);
         m_canvas->shapeManager()->selectShape(shape, true);
 

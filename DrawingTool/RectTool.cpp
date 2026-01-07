@@ -4,6 +4,7 @@
 #include "Global.h"
 #include "MyMath.h"
 #include "ShapeVector.h"
+#include "AppSettings.h"
 #include <QGraphicsView>
 #include <QMouseEvent>
 
@@ -84,9 +85,10 @@ void xcanvas::RectTool::mouseReleaseEvent(QMouseEvent* event)
             return;
         }
 
-        ShapeVector* shape = new ShapeVector();
+        auto* shape = new ShapeVector();
         shape->setSemantic(VectorSemantic::Rectangle);
         shape->segments() = geometryMath::buildPolylineSegments(points);
+        shape->setColor(AppSettings::instance().activeColor());
         m_canvas->addShape(shape);
         m_canvas->shapeManager()->selectShape(shape, true);
 

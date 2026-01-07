@@ -1,4 +1,6 @@
 #include "CurveTool.h"
+
+#include "AppSettings.h"
 #include "../MyGraphicsView.h"
 #include "Canvas.h"
 #include "MyMath.h"
@@ -82,6 +84,7 @@ void CurveTool::cancelDrawing()
             curve->segments() = geometryMath::buildCurveSegments(bezierPoints);
             shape = curve;
         }
+        shape->setColor(AppSettings::instance().activeColor());
         m_canvas->addShape(shape);
         m_canvas->shapeManager()->selectShape(shape, true);
     }

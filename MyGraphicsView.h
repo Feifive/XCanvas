@@ -7,6 +7,8 @@
 
 class BottomFloatingToolBar;
 class SelectionHudBar;
+class ColorPaletteWidget;
+
 namespace xcanvas
 {
 class DrawingTool;
@@ -74,6 +76,7 @@ class MyGraphicsView : public QGraphicsView
     double                 m_dScaleFactor;
     BottomFloatingToolBar* m_bottomFloatingToolBar;
     SelectionHudBar*       m_selectionHudBar;
+    ColorPaletteWidget*    m_colorPaletteWidget;
     std::unique_ptr<xcanvas::ToolManager> m_toolMgr;
     QSvgRenderer m_rotateHandle;
 };

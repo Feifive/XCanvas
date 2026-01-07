@@ -8,6 +8,8 @@
 #include <QPointF>
 #include <QRectF>
 
+#include "AppSettings.h"
+
 namespace xcanvas
 {
 
@@ -103,7 +105,7 @@ void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
             auto* shape = new ShapeVector();
             shape->setSemantic(VectorSemantic::Polygon);
             shape->segments() = geometryMath::buildPolylineSegments(points);
-
+            shape->setColor(AppSettings::instance().activeColor());
             m_canvas->addShape(shape);
             m_canvas->shapeManager()->selectShape(shape, true);
         }

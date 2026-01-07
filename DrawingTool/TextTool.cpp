@@ -8,6 +8,8 @@
 #include <QMouseEvent>
 #include <QTextCursor>
 
+#include "AppSettings.h"
+
 xcanvas::TextTool::TextTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas), m_pTextItem(nullptr)
 {
     m_font.setFamily("MiSans");
@@ -109,6 +111,7 @@ void xcanvas::TextTool::finishEdit()
         shape->setText(plainText);
         shape->translate(m_pTextItem->pos());
         shape->setFont(m_font);
+        shape->setColor(AppSettings::instance().activeColor());
         m_canvas->addShape(shape);
         m_canvas->shapeManager()->selectShape(shape, true);
 

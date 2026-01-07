@@ -10,6 +10,7 @@
 #include "SelectionHudBar.h"
 #include "Shape/Shape.h"
 #include "ToolManager.h"
+#include "ColorPaletteWidget.h"
 #include <QDebug>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -46,6 +47,9 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
 
     m_toolMgr = std::make_unique<xcanvas::ToolManager>(this, m_canvas);
     connect(&EventBus::instance(), &EventBus::switchTool, m_toolMgr.get(), &xcanvas::ToolManager::setTool);
+
+    m_colorPaletteWidget = new ColorPaletteWidget(this);
+    m_colorPaletteWidget->adjustSize();
 
     m_bottomFloatingToolBar = new BottomFloatingToolBar(this);
     m_bottomFloatingToolBar->adjustSize();
@@ -523,18 +527,23 @@ void MyGraphicsView::ImportFile()
 
 void MyGraphicsView::updateBottomFloatingToolBarPos()
 {
-    if (!m_bottomFloatingToolBar)
+    constexpr int margin  = 12;
+    QSize barSize;
+    int x = 0, y = 0;
+    if (m_bottomFloatingToolBar)
     {
-        return;
+        barSize = m_bottomFloatingToolBar->sizeHint();
+        x = width() - barSize.width() - margin;
+        y = height() - barSize.height() - margin;
+        m_bottomFloatingToolBar->move(x, y);
     }
 
-    constexpr int margin  = 12;
-    const QSize   barSize = m_bottomFloatingToolBar->sizeHint();
-
-    int x = width() - barSize.width() - margin;
-    int y = height() - barSize.height() - margin;
-
-    m_bottomFloatingToolBar->move(x, y);
+    if (m_colorPaletteWidget) {
+        barSize = m_colorPaletteWidget->sizeHint();
+        int x = 0;
+        int y = height() - barSize.height() - margin;
+        m_colorPaletteWidget->move(x, y);
+    }
 }
 
 void MyGraphicsView::updateSelectionHudBarPos()

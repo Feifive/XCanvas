@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QObject>
 #include <QString>
+#include <QColor>
 
 class AppSettings : public QObject
 {
@@ -30,9 +31,13 @@ class AppSettings : public QObject
     QString lastOpenedPath() const;
     void    setLastOpenedPath(const QString& path);
 
+    QColor activeColor() const;
+    void   setActiveColor(const QColor& color);
+
   signals:
     void settingsChanged();
     void gridContrastChanged();
+    void activeColorChanged();
 
   private:
     explicit AppSettings(QObject* parent = nullptr);
@@ -43,6 +48,7 @@ class AppSettings : public QObject
 
     GridContrast m_gridContrast   = GridContrast::Medium;
     QString      m_lastOpenedPath = "";
+    QColor       m_activeColor = QColor("#000000");
 };
 
 #endif// APPSETTINGS_H
