@@ -22,9 +22,7 @@ class DXFTranslator : public DRW_Interface
     xcanvas::ShapeList shapeList();
 
     // READ FUNCTIONALITY
-    void addHeader(const DRW_Header* data) override
-    {
-    }
+    void addHeader(const DRW_Header* data) override;
 
     void addDimStyle(const DRW_Dimstyle& data) override
     {
@@ -172,8 +170,13 @@ class DXFTranslator : public DRW_Interface
     void    addBulgeArc(xcanvas::ShapeVector* shape, const QPointF& p1, const QPointF& p2, double bulge);
 
   private:
-    xcanvas::ShapeList            m_shapeList;
-    std::map<std::string, QColor> m_layerColors;
+    xcanvas::ShapeList                              m_shapeList;
+    std::map<std::string, QColor>                   m_layerColors;
+    double                                          m_unitFactor = 1.0;
+    std::unordered_map<QString, xcanvas::ShapeList> m_blockShapeList;
+    QString                                         m_currentBlockName;
+    bool                                            m_isCollectingBlock = false;
+    bool                                            m_isModelSpace      = false;
 };
 
 #endif// !DXF_TRANSLATOR_H

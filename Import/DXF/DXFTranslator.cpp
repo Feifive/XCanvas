@@ -132,6 +132,12 @@ DXFTranslator::DXFTranslator()
 
 DXFTranslator::~DXFTranslator()
 {
+    for (auto& [key, shapeList] : m_blockShapeList)
+    {
+        qDeleteAll(shapeList);
+        shapeList.clear();
+    }
+    m_blockShapeList.clear();
 }
 
 bool DXFTranslator::Load(const QString& filePath)
@@ -157,6 +163,79 @@ xcanvas::ShapeList DXFTranslator::shapeList()
     return result;
 }
 
+void DXFTranslator::addHeader(const DRW_Header* data)
+{
+    m_unitFactor = 1.0;
+
+    auto itUnits = data->vars.find("$INSUNITS");
+    if (itUnits != data->vars.end())
+    {
+        int unitCode = itUnits->second->content.i;
+
+        switch (unitCode)
+        {
+        case DRW_Header::Inch:
+            m_unitFactor = 25.4;
+            break;
+        case DRW_Header::Foot:
+            m_unitFactor = 304.8;
+            break;
+        case DRW_Header::Millimeter:
+            m_unitFactor = 1.0;
+            break;
+        case DRW_Header::Centimeter:
+            m_unitFactor = 10.0;
+            break;
+        case DRW_Header::Meter:
+            m_unitFactor = 1000.0;
+            break;
+        case DRW_Header::Kilometer:
+            m_unitFactor = 1000000.0;
+            break;
+        case DRW_Header::Microinch:
+            m_unitFactor = 0.0000254;
+            break;
+        case DRW_Header::Mil:
+            m_unitFactor = 0.0254;
+            break;
+        default:
+            m_unitFactor = 1.0;
+            break;
+        }
+        qDebug() << "[Header] 检测到 $INSUNITS:" << unitCode << " 转换系数:" << m_unitFactor;
+    }
+
+    // 0 = 英制 (Inches), 1 = 公制 (Metric/mm)
+    auto itMeas = data->vars.find("$MEASUREMENT");
+    if (itMeas != data->vars.end())
+    {
+        int meas = itMeas->second->content.i;
+        qDebug() << "[Header] 测量系统 $MEASUREMENT:" << (meas == DRW_Header::Metric ? "公制" : "英制");
+    }
+
+    // 获取图纸范围 $EXTMIN 和 $EXTMAX (包围盒)
+    DRW_Coord minPt(0, 0, 0), maxPt(0, 0, 0);
+    auto      itMin = data->vars.find("$EXTMIN");
+    auto      itMax = data->vars.find("$EXTMAX");
+
+    if (itMin != data->vars.end() && itMax != data->vars.end())
+    {
+        minPt = *(itMin->second->content.v);
+        maxPt = *(itMax->second->content.v);
+
+        double w = (maxPt.x - minPt.x) * m_unitFactor;
+        double h = (maxPt.y - minPt.y) * m_unitFactor;
+        qDebug() << "[Header] 图纸标称物理尺寸:" << w << "x" << h << "mm";
+    }
+
+    // 获取 AutoCAD 版本
+    auto itVer = data->vars.find("$ACADVER");
+    if (itVer->second->content.s)
+    {
+        qDebug() << "[Header] AutoCAD 版本:" << QString::fromStdString(*(itVer->second->content.s));
+    }
+}
+
 void DXFTranslator::addVport(const DRW_Vport& data)
 {
     qDebug() << "[DXF] addVport name =" << data.name.c_str();
@@ -165,6 +244,16 @@ void DXFTranslator::addVport(const DRW_Vport& data)
 void DXFTranslator::addInsert(const DRW_Insert& data)
 {
     qDebug() << "[DXF] addInsert at (" << data.basePoint.x << data.basePoint.y << "), block=" << data.name.c_str();
+
+    QString blockName = QString::fromStdString(data.name).toUpper();
+    auto    it        = m_blockShapeList.find(blockName);
+    if (it == m_blockShapeList.end())
+    {
+        return;
+    }
+
+    m_shapeList.append(it->second);
+    m_blockShapeList.erase(blockName);
 }
 
 void DXFTranslator::addViewport(const DRW_Viewport& data)
@@ -179,7 +268,7 @@ void DXFTranslator::linkImage(const DRW_ImageDef* data)
 
 void DXFTranslator::addLine(const DRW_Line& data)
 {
-    qDebug() << "[DXF] addLine";
+    qDebug() << "[DXF] addLine" << data.layer;
 
     QVector<QPointF> points;
     points.append(ConvertDXFPoint(data.basePoint.x, data.basePoint.y));
@@ -188,11 +277,20 @@ void DXFTranslator::addLine(const DRW_Line& data)
     shape->setColor(color(data));
     shape->segments() = xcanvas::geometryMath::buildPolylineSegments(points);
 
-    m_shapeList.append(shape);
+    if (m_isCollectingBlock)
+    {
+        m_blockShapeList[m_currentBlockName].push_back(shape);
+    }
+    else
+    {
+        m_shapeList.append(shape);
+    }
 }
 
 void DXFTranslator::addCircle(const DRW_Circle& data)
 {
+    qDebug() << "[DXF] addCircle" << data.layer;
+
     auto* shape = new xcanvas::ShapeVector();
 
     QPointF center = ConvertDXFPoint(data.basePoint.x, data.basePoint.y);
@@ -204,7 +302,15 @@ void DXFTranslator::addCircle(const DRW_Circle& data)
     shape->setSemantic(xcanvas::VectorSemantic::Circle);
 
     shape->setColor(color(data));
-    m_shapeList.append(shape);
+
+    if (m_isCollectingBlock)
+    {
+        m_blockShapeList[m_currentBlockName].push_back(shape);
+    }
+    else
+    {
+        m_shapeList.append(shape);
+    }
 }
 
 void DXFTranslator::addLayer(const DRW_Layer& data)
@@ -233,6 +339,8 @@ void DXFTranslator::addArc(const DRW_Arc& data)
 
 void DXFTranslator::addEllipse(const DRW_Ellipse& data)
 {
+    qDebug() << "[DXF] addEllipse";
+
     QPointF center        = ConvertDXFPoint(data.basePoint.x, data.basePoint.y);
     double  major         = std::hypot(data.secPoint.x, data.secPoint.y);
     double  minor         = major * data.ratio;
@@ -255,7 +363,15 @@ void DXFTranslator::addEllipse(const DRW_Ellipse& data)
     // TODO未处理椭圆弧
 
     shape->setColor(color(data));
-    m_shapeList.append(shape);
+
+    if (m_isCollectingBlock)
+    {
+        m_blockShapeList[m_currentBlockName].push_back(shape);
+    }
+    else
+    {
+        m_shapeList.append(shape);
+    }
 }
 
 void DXFTranslator::addText(const DRW_Text& data)
@@ -305,6 +421,8 @@ void DXFTranslator::addDimOrdinate(const DRW_DimOrdinate* data)
 
 void DXFTranslator::addLWPolyline(const DRW_LWPolyline& data)
 {
+    qDebug() << "[DXF] addLWPolyline";
+
     if (data.vertlist.empty())
     {
         return;
@@ -353,7 +471,14 @@ void DXFTranslator::addLWPolyline(const DRW_LWPolyline& data)
 
     if (!shape->isEmpty())
     {
-        m_shapeList.append(shape);
+        if (m_isCollectingBlock)
+        {
+            m_blockShapeList[m_currentBlockName].push_back(shape);
+        }
+        else
+        {
+            m_shapeList.append(shape);
+        }
     }
     else
     {
@@ -363,6 +488,8 @@ void DXFTranslator::addLWPolyline(const DRW_LWPolyline& data)
 
 void DXFTranslator::addPolyline(const DRW_Polyline& data)
 {
+    qDebug() << "[DXF] addPolyline";
+
     if (data.vertlist.empty())
     {
         return;
@@ -411,7 +538,14 @@ void DXFTranslator::addPolyline(const DRW_Polyline& data)
 
     if (!shape->isEmpty())
     {
-        m_shapeList.append(shape);
+        if (m_isCollectingBlock)
+        {
+            m_blockShapeList[m_currentBlockName].push_back(shape);
+        }
+        else
+        {
+            m_shapeList.append(shape);
+        }
     }
     else
     {
@@ -421,7 +555,7 @@ void DXFTranslator::addPolyline(const DRW_Polyline& data)
 
 void DXFTranslator::addSpline(const DRW_Spline* data)
 {
-    qDebug() << "[DXF] addSpline";
+    qDebug() << "[DXF] addSpline" << QString::fromStdString(data->layer);
 
     if (data->controllist.empty() || data->knotslist.empty())
         return;
@@ -548,7 +682,14 @@ void DXFTranslator::addSpline(const DRW_Spline* data)
         shape->setColor(color(*data));
         shape->segments() = xcanvas::geometryMath::buildCurveSegments(bezierPoints);
 
-        m_shapeList.append(shape);
+        if (m_isCollectingBlock)
+        {
+            m_blockShapeList[m_currentBlockName].push_back(shape);
+        }
+        else
+        {
+            m_shapeList.append(shape);
+        }
     }
 }
 
@@ -564,7 +705,23 @@ void DXFTranslator::addHatch(const DRW_Hatch* data)
 
 void DXFTranslator::addBlock(const DRW_Block& data)
 {
-    qDebug() << "[DXF] addBlock name=" << data.name.c_str();
+    std::string name      = data.name;
+    QString     blockName = QString::fromStdString(name).toUpper();
+
+    if (blockName == "*MODEL_SPACE")
+    {
+        m_isModelSpace      = true;
+        m_isCollectingBlock = false;
+    }
+    else
+    {
+        m_isModelSpace              = false;
+        m_isCollectingBlock         = true;
+        m_currentBlockName          = blockName;
+        m_blockShapeList[blockName] = shapeList();
+    }
+
+    qDebug() << "[DXF] 进入块:" << blockName;
 }
 
 void DXFTranslator::addLType(const DRW_LType& data)
@@ -585,6 +742,10 @@ void DXFTranslator::setBlock(const int handle)
 void DXFTranslator::endBlock()
 {
     qDebug() << "[DXF] endBlock";
+
+    m_isModelSpace      = false;
+    m_isCollectingBlock = false;
+    m_currentBlockName  = "";
 }
 
 void DXFTranslator::writeBlocks()
