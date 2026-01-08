@@ -245,6 +245,14 @@ void MyGraphicsView::updateSelectionHud()
     m_selectionHudBar->spinH()->setValue(selectionRect.height());
 }
 
+xcanvas::LayerManager* MyGraphicsView::layerManager()
+{
+    if (m_canvas)
+    {
+        return m_canvas->layerManager();
+    }
+}
+
 void MyGraphicsView::drawShapes(QPainter* painter, const QRectF& visibleRect)
 {
     drawNormalShapes(painter, visibleRect);

@@ -1,6 +1,7 @@
 #ifndef CANVAS_H
 #define CANVAS_H
 
+#include "../Layer/LayerManager.h"
 #include "ShapeManager.h"
 
 class QUndoStack;
@@ -22,6 +23,7 @@ class Canvas final : public QObject
     void   setCanvasRect(const QRectF& rect);
 
     ShapeManager* shapeManager() const;
+    LayerManager* layerManager();
     QUndoStack*   undoStack() const;
     void          addShape(xcanvas::Shape* shape);
     void          addShapes(const xcanvas::ShapeList& shapeList);
@@ -31,6 +33,7 @@ class Canvas final : public QObject
   private:
     QRectF        m_canvasRect;
     ShapeManager* m_shapeManager;
+    LayerManager* m_layerManager;
     QUndoStack*   m_undoStack;
 };
 

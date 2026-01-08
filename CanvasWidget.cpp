@@ -45,3 +45,11 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
             m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
     connect(&EventBus::instance(), &EventBus::zoomChanged, m_pRulerVertical, QOverload<>::of(&RulerWidget::update));
 }
+
+xcanvas::LayerManager* CanvasWidget::layerManager()
+{
+    if (m_pGraphicsView)
+    {
+        return m_pGraphicsView->layerManager();
+    }
+}

@@ -1,7 +1,6 @@
 #ifndef MYGRAPHICSVIEW_H
 #define MYGRAPHICSVIEW_H
 
-#include "Global.h"
 #include <QGraphicsView>
 #include <QSvgRenderer>
 
@@ -14,6 +13,7 @@ namespace xcanvas
 class DrawingTool;
 class Canvas;
 class ToolManager;
+class LayerManager;
 }// namespace xcanvas
 
 class MyGraphicsView : public QGraphicsView
@@ -23,9 +23,10 @@ class MyGraphicsView : public QGraphicsView
     explicit MyGraphicsView(QWidget* parent = nullptr);
     ~MyGraphicsView() override;
 
-    double zoomValue();
-    void   requestFullUpdate();
-    void   updateSelectionHud();
+    double                 zoomValue();
+    void                   requestFullUpdate();
+    void                   updateSelectionHud();
+    xcanvas::LayerManager* layerManager();
 
   signals:
     void mouseMovePos(QPointF pos);
@@ -78,7 +79,7 @@ class MyGraphicsView : public QGraphicsView
     SelectionHudBar*       m_selectionHudBar;
     ColorPaletteWidget*    m_colorPaletteWidget;
     std::unique_ptr<xcanvas::ToolManager> m_toolMgr;
-    QSvgRenderer m_rotateHandle;
+    QSvgRenderer                          m_rotateHandle;
 };
 
 #endif// MYGRAPHICSVIEW_H
