@@ -43,6 +43,7 @@ file(GLOB DRAWINGTOOL DrawingTool/*.h DrawingTool/*.cpp)
 file(GLOB SHAPE       Shape/*.h Shape/*.cpp)
 file(GLOB COMMON      Common/*.h Common/*.cpp)
 file(GLOB CANVAS      Canvas/*.h Canvas/*.cpp)
+file(GLOB LAYER       Layer/*.h Layer/*.cpp)
 file(GLOB IMPORT_ROOT Import/*.h Import/*.cpp)
 file(GLOB IMPORT_UTILS Import/Utils/*.h Import/Utils/*.cpp)
 file(GLOB IMPORT_DXF  Import/DXF/*.h Import/DXF/*.cpp)
@@ -53,6 +54,7 @@ source_group("DrawingTool"   FILES ${DRAWINGTOOL})
 source_group("Shape"         FILES ${SHAPE})
 source_group("Common"        FILES ${COMMON})
 source_group("Canvas"        FILES ${CANVAS})
+source_group("Layer"         FILES ${LAYER})
 source_group("Import"        FILES ${IMPORT_ROOT})
 source_group("Import\\Utils" FILES ${IMPORT_UTILS})
 source_group("Import\\DXF"   FILES ${IMPORT_DXF})
@@ -76,6 +78,7 @@ set(PROJECT_SOURCES
     ${SHAPE}
     ${COMMON}
     ${CANVAS}
+    ${LAYER}
     ${IMPORT_ROOT}
     ${IMPORT_DXF}
     ${IMPORT_IMG}
@@ -93,6 +96,8 @@ if (QT_VERSION_MAJOR GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         Resource.qrc
+        Layer/LayerManager.h Layer/LayerManager.cpp
+        Layer/LayerPanel.h Layer/LayerPanel.cpp
     )
 else()
     add_executable(XCanvas MACOSX_BUNDLE ${PROJECT_SOURCES})

@@ -6,6 +6,7 @@
 
 #include "CanvasWidget.h"
 #include "DrawingToolsBar.h"
+#include "Layer/LayerPanel.h"
 
 #include <QFileSystemWatcher>
 #include <QFontDatabase>
@@ -49,10 +50,13 @@ void MainWindow::init()
     //         });
 
     // 左侧工具栏
-    m_pDrawingToolsBar = new DrawingToolsBar(this);
+    m_pDrawingToolsBar = new DrawingToolsBar(ui->widget_toolbar);
     ui->verticalLayout_toolbar->addWidget(m_pDrawingToolsBar);
 
     // 画布
     CanvasWidget* pCanvasWidget = new CanvasWidget(ui->widget_canvas);
     ui->verticalLayout_canvas->addWidget(pCanvasWidget);
+
+    LayerPanel* pLayerPanel = new LayerPanel(pCanvasWidget->layerManager(), ui->widget_rightPanel);
+    ui->verticalLayout_rightPanel->addWidget(pLayerPanel);
 }

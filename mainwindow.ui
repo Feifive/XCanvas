@@ -14,7 +14,7 @@
    <string>XCanvas</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,9">
+   <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0">
     <property name="spacing">
      <number>0</number>
     </property>
@@ -87,6 +87,30 @@
        </property>
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_canvas"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QWidget" name="widget_rightPanel" native="true">
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout_rightPanel"/>
        </item>
       </layout>
      </widget>
