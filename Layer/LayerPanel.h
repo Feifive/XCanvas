@@ -41,13 +41,13 @@ class LayerPanel : public QWidget
   private:
     enum Column
     {
-        ColColor = 0,
-        ColName,
+        ColName = 0,
+        ColColor,
         ColMode,
         ColSpeed,
         ColPower,
-        ColVisible,
         ColOutput,
+        ColVisible,
         Count
     };
 

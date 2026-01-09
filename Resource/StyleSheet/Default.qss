@@ -61,6 +61,27 @@ QMenu::separator {
     margin: 2px 0px;
 }
 
+QDoubleSpinBox {
+    background: transparent;
+    border: none;
+    color: #111111;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+QComboBox {
+    border: none;
+    background-color: transparent;
+}
+
+QComboBox::drop-down {
+	border: none
+}
+
+QComboBox::down-arrow {
+    border-image: url(:Resource/Icons/DownArrow.svg);
+}
+
 QMenu#menu_iconMenu::item {
     padding: 0px 12px;
 }
@@ -105,14 +126,6 @@ QLabel#HudLabel {
     font-size: 12px;
 }
 
-QDoubleSpinBox#HudSpin {
-    background: transparent;
-    border: none;
-    color: #111111;
-    font-size: 12px;
-    border-radius: 4px;
-}
-
 QDoubleSpinBox#HudSpin:hover {
     background-color: #F0F0F5;
 }
@@ -123,4 +136,27 @@ QDoubleSpinBox#HudSpin:focus {
 
 QFrame#HudSeparator {
     color: #D9DCE4;
+}
+
+LayerPanel QTableWidget {
+    border: none;
+}
+
+LayerPanel QTableWidget QHeaderView::section {
+    border: none;
+    background-color: black;
+    color: white;
+}
+
+LayerPanel QTableWidget::item:selected {
+	background-color: #EEEEF3;
+    color: black;
+}
+
+LayerPanel QDoubleSpinBox {
+    border-radius: 0px;
+}
+
+LayerPanel QDoubleSpinBox:focus {
+    background-color: white;
 }

@@ -7,6 +7,7 @@ LayerManager::LayerManager(QObject* parent) : QObject(parent)
 {
     // 默认创建一个初始层
     createLayer("Layer 0", Qt::black);
+    createLayer("Layer 1", Qt::black);
 }
 
 // 创建图层时，默认加到队列末尾

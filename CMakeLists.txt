@@ -102,6 +102,7 @@ if (QT_VERSION_MAJOR GREATER_EQUAL 6)
         Resource.qrc
         Layer/LayerManager.h Layer/LayerManager.cpp
         Layer/LayerPanel.h Layer/LayerPanel.cpp
+        Common/CSwitchButton.cpp Common/CSwitchButton.h
     )
 else()
     add_executable(XCanvas MACOSX_BUNDLE ${PROJECT_SOURCES})
