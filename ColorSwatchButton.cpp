@@ -5,7 +5,7 @@
 ColorSwatchButton::ColorSwatchButton(const QColor& color, QWidget* parent)
     : QWidget(parent), m_color(color)
 {
-    setFixedSize(24, 24);
+    setFixedSize(28, 28);
     setCursor(Qt::PointingHandCursor);
 }
 
@@ -32,17 +32,17 @@ void ColorSwatchButton::paintEvent(QPaintEvent*)
     // Hover 描边
     if (m_hovered)
     {
-        p.setPen(QPen(QColor("#F6F6F9"), 2));
+        p.setPen(QPen(QColor("#DDDDDD"), 2));
         p.setBrush(Qt::NoBrush);
-        p.drawRoundedRect(r.adjusted(-1, -1, 1, 1), 4, 4);
+        p.drawRoundedRect(r, 4, 4);
     }
 
     // 选中态
     if (m_selected)
     {
-        p.setPen(QPen(QColor("#EEEEF3"), 2));
+        p.setPen(QPen(QColor("#C0C0C0"), 2));
         p.setBrush(Qt::NoBrush);
-        p.drawRoundedRect(r.adjusted(-1, -1, 1, 1), 4, 4);
+        p.drawRoundedRect(r, 4, 4);
     }
 }
 

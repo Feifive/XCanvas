@@ -37,17 +37,17 @@ void MainWindow::init()
         qApp->setStyleSheet(styleSheet);
     }
 
-    // QFileSystemWatcher* fileWatcher = new QFileSystemWatcher(this);
-    // fileWatcher->addPath("D:\\code\\XCanvas\\Resource\\StyleSheet\\Default.qss");
-    // connect(fileWatcher, &QFileSystemWatcher::fileChanged, this,
-    //         [this]()
-    //         {
-    //             if (QFile qssFile("D:\\code\\XCanvas\\Resource\\StyleSheet\\Default.qss"); qssFile.open(QFile::ReadOnly))
-    //             {
-    //                 const QString styleSheet = qssFile.readAll();
-    //                 qApp->setStyleSheet(styleSheet);
-    //             }
-    //         });
+    QFileSystemWatcher* fileWatcher = new QFileSystemWatcher(this);
+    fileWatcher->addPath("/Users/ze/Desktop/QtProjects/XCanvas/Resource/StyleSheet/Default.qss");
+    connect(fileWatcher, &QFileSystemWatcher::fileChanged, this,
+            [this]()
+            {
+                if (QFile qssFile("/Users/ze/Desktop/QtProjects/XCanvas/Resource/StyleSheet/Default.qss"); qssFile.open(QFile::ReadOnly))
+                {
+                    const QString styleSheet = qssFile.readAll();
+                    qApp->setStyleSheet(styleSheet);
+                }
+            });
 
     // 左侧工具栏
     m_pDrawingToolsBar = new DrawingToolsBar(ui->widget_toolbar);

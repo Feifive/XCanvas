@@ -13,15 +13,15 @@ ColorPaletteWidget::ColorPaletteWidget(QWidget* parent)
     layout->setContentsMargins(4, 4, 4, 4);
 
     QVector<QColor> layerColors = {
-        QColor("#000000"), // Outline
-        QColor("#C62828"), // Cut Outer
-        QColor("#EF6C00"), // Cut Inner
-        QColor("#1565C0"), // Engrave Deep
-        QColor("#3949AB"), // Engrave Light
-        QColor("#6A1B9A"), // Fill
-        QColor("#2E7D32"), // Mark
-        QColor("#006064"), // Assist
-        QColor("#616161")  // Construct
+        QColor("#000000"),
+        QColor("#C62828"),
+        QColor("#EF6C00"),
+        QColor("#1565C0"),
+        QColor("#3949AB"),
+        QColor("#6A1B9A"),
+        QColor("#2E7D32"),
+        QColor("#006064"),
+        QColor("#616161")
     };
 
     setColors(layerColors);

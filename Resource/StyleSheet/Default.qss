@@ -74,12 +74,18 @@ QComboBox {
     background-color: transparent;
 }
 
-QComboBox::drop-down {
-	border: none
+QComboBox::down-arrow {
+    image: url(:Resource/Icons/DownArrow.svg);
 }
 
-QComboBox::down-arrow {
-    border-image: url(:Resource/Icons/DownArrow.svg);
+QComboBox QAbstractItemView {
+    border: none;
+    outline: 0px;
+}
+
+QComboBox QAbstractItemView::item:selected {	
+    color: black;
+    background-color: #F3F3F5;
 }
 
 QMenu#menu_iconMenu::item {
@@ -136,6 +142,10 @@ QDoubleSpinBox#HudSpin:focus {
 
 QFrame#HudSeparator {
     color: #D9DCE4;
+}
+
+QWidget#LayerPanel {
+    border: 1px solid #E7E9ED;
 }
 
 LayerPanel QTableWidget {

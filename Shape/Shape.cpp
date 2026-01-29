@@ -18,6 +18,10 @@ namespace xcanvas {
     {
     }
 
+    void Shape::setLayerId(int layerId) {
+        m_layerId = layerId;
+    }
+
     Shape::Shape() :
         m_selected(false),
         m_dirty(true),
@@ -189,7 +193,11 @@ namespace xcanvas {
         m_dirty = dirty;
     }
 
-void Shape::markDirty() const
+    int Shape::layerId() const {
+        return m_layerId;
+    }
+
+    void Shape::markDirty() const
 {
     m_dirty             = true;
     m_boundingRectDirty = true;

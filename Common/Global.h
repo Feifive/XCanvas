@@ -86,4 +86,9 @@ inline QPointF sceneToCanvas(const QPointF& scenePos) {
     return scenePos - QPointF(CANVAS_ORIGIN, CANVAS_ORIGIN);
 }
 
+inline QColor autoTextColor(const QColor& bg)
+{
+    return (qGray(bg.rgb()) < 128) ? Qt::white : Qt::black;
+}
+
 #endif// GLOBAL_H

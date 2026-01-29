@@ -33,7 +33,6 @@ class LayerPanel : public QWidget
 
   private slots:
     void onRowMoved(int logicalIndex, int oldVisualIndex, int newVisualIndex);
-    void onColorButtonClicked();
     void onModeChanged(int index);
     void onParamChanged(double value);
     void onSelectionChanged();
@@ -41,11 +40,9 @@ class LayerPanel : public QWidget
   private:
     enum Column
     {
-        ColName = 0,
-        ColColor,
+        ColColor = 0,
         ColMode,
-        ColSpeed,
-        ColPower,
+        ColParams,
         ColOutput,
         ColVisible,
         Count

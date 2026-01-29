@@ -1,30 +1,36 @@
 #include "LayerPanel.h"
 #include "CSwitchButton.h"
-#include <QColorDialog>
-#include <QHBoxLayout>
 #include <QHeaderView>
+#include <QLabel>
 #include <QVBoxLayout>
+#include <QListView>
+#include <QStyleFactory>
+
+#include "Global.h"
 
 LayerPanel::LayerPanel(xcanvas::LayerManager* mgr, QWidget* parent) : QWidget(parent), m_mgr(mgr)
 {
+    setObjectName("LayerPanel");
+    setAttribute(Qt::WA_StyledBackground, true);
     setupUI();
     createConnections();
     refreshTable();
-    setMinimumWidth(315);
+    // setMinimumWidth(280);
+    setFixedWidth(230);
 }
 
 void LayerPanel::setupUI()
 {
     auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setContentsMargins(2, 0, 2, 2);
 
     m_table = new QTableWidget(this);
     m_table->setColumnCount(Column::Count);
-    m_table->setHorizontalHeaderLabels({"#", "层", "模式", "速度", "功率", "输出", "可见"});
+    m_table->setHorizontalHeaderLabels({"图层", "模式", "速度/功率", "输出", "可见"});
 
     // 表头设置
-    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    m_table->horizontalHeader()->setSectionResizeMode(ColName, QHeaderView::Stretch);
+    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    m_table->horizontalHeader()->setSectionResizeMode(ColParams, QHeaderView::ResizeToContents);
     m_table->verticalHeader()->setVisible(false);
     m_table->setShowGrid(false);
     m_table->setFocusPolicy(Qt::NoFocus);
@@ -61,61 +67,54 @@ void LayerPanel::refreshTable()
         m_table->insertRow(row);
         setRowWidgets(row, m_mgr->getLayer(id));
     }
+    if (order.size() > 0) {
+        m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+        m_table->horizontalHeader()->setSectionResizeMode(ColColor, QHeaderView::Stretch);
+        // m_table->horizontalHeader()->setSectionResizeMode(ColVisible, QHeaderView::Stretch);
+    }
 }
 
 void LayerPanel::setRowWidgets(int row, const xcanvas::LayerParameter& param)
 {
     int id = param.id;
 
-    // 1. 颜色按钮
-    auto* colorBtn = new QPushButton();
-    colorBtn->setFixedSize(24, 16);
-    colorBtn->setProperty("layerId", id);
-    colorBtn->setStyleSheet(QString("background-color: %1; border: 1px solid #666;").arg(param.color.name()));
-    connect(colorBtn, &QPushButton::clicked, this, &LayerPanel::onColorButtonClicked);
+    auto* colorLabel = new QLabel();
+    colorLabel->setText(QString("%1").arg(id, 2, 10, QChar('0')));
+    colorLabel->setFixedSize(26, 20);
+    colorLabel->setAlignment(Qt::AlignCenter);
+    colorLabel->setProperty("layerId", id);
+
+    colorLabel->setStyleSheet(QString(
+        "QLabel { "
+        "background-color: %1; "
+        "color: %2; "
+        "border: none; "
+        "}")
+        .arg(param.color.name())
+        .arg(autoTextColor(param.color).name()));
 
     auto* colorContainer = new QWidget();
     auto* colorLayout    = new QHBoxLayout(colorContainer);
-    colorLayout->addWidget(colorBtn);
+    colorLayout->addWidget(colorLabel);
     colorLayout->setContentsMargins(0, 0, 0, 0);
+    colorLayout->setSpacing(2);
     colorLayout->setAlignment(Qt::AlignCenter);
     m_table->setCellWidget(row, ColColor, colorContainer);
 
-    // 2. 名称
-    auto* nameItem = new QTableWidgetItem(param.name);
-    nameItem->setData(Qt::UserRole, id);// 重要：将 ID 存入 Item
-    nameItem->setFlags(nameItem->flags() & ~Qt::ItemIsEditable);
-    m_table->setItem(row, ColName, nameItem);
-
-    // 3. 模式下拉框
     auto* modeCombo = new QComboBox();
+    modeCombo->setStyle(QStyleFactory::create("Fusion"));
+    modeCombo->setView(new QListView());
     modeCombo->addItems({"切割", "扫描"});
     modeCombo->setCurrentIndex(static_cast<int>(param.mode));
     modeCombo->setProperty("layerId", id);
     connect(modeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &LayerPanel::onModeChanged);
     m_table->setCellWidget(row, ColMode, modeCombo);
 
-    // 4. 速度
-    auto* speedSpin = new QDoubleSpinBox();
-    speedSpin->setButtonSymbols(QDoubleSpinBox::NoButtons);
-    speedSpin->setRange(0.1, 5000.0);
-    speedSpin->setValue(param.speed);
-    speedSpin->setProperty("layerId", id);
-    speedSpin->setProperty("type", "speed");
-    connect(speedSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &LayerPanel::onParamChanged);
-    m_table->setCellWidget(row, ColSpeed, speedSpin);
+    QTableWidgetItem* colParamsItem = new QTableWidgetItem(QString("%1/%2").arg(param.speed).arg(param.maxPower));
+    colParamsItem->setTextAlignment(Qt::AlignCenter);
+    colParamsItem->setFlags(colParamsItem->flags() & ~Qt::ItemIsEditable);
+    m_table->setItem(row, ColParams, colParamsItem);
 
-    // 5. 功率
-    auto* powerSpin = new QDoubleSpinBox();
-    powerSpin->setButtonSymbols(QDoubleSpinBox::NoButtons);
-    powerSpin->setRange(0.0, 100.0);
-    powerSpin->setValue(param.maxPower);
-    powerSpin->setProperty("layerId", id);
-    powerSpin->setProperty("type", "power");
-    connect(powerSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &LayerPanel::onParamChanged);
-    m_table->setCellWidget(row, ColPower, powerSpin);
-
-    // 6 & 7. 可见性与输出开关
     m_table->setCellWidget(row, ColVisible, createCheckBoxWidget(param.visible, id, true));
     m_table->setCellWidget(row, ColOutput, createCheckBoxWidget(param.output, id, false));
 }
@@ -148,21 +147,6 @@ void LayerPanel::onRowMoved(int logicalIndex, int oldVisualIndex, int newVisualI
     m_mgr->moveLayer(oldVisualIndex, newVisualIndex);
 }
 
-void LayerPanel::onColorButtonClicked()
-{
-    auto* btn = qobject_cast<QPushButton*>(sender());
-    if (!btn)
-        return;
-
-    int    id       = btn->property("layerId").toInt();
-    QColor newColor = QColorDialog::getColor(m_mgr->getLayer(id).color, this);
-    if (newColor.isValid())
-    {
-        m_mgr->setLayerColor(id, newColor);
-        btn->setStyleSheet(QString("background-color: %1; border: 1px solid #666;").arg(newColor.name()));
-    }
-}
-
 void LayerPanel::onModeChanged(int index)
 {
     int id                   = sender()->property("layerId").toInt();
@@ -187,7 +171,7 @@ void LayerPanel::onSelectionChanged()
     if (item)
     {
         // 可以根据选中的行，让 LayerManager 标记当前的“活动图层”
-        int id = m_table->item(item->row(), ColName)->data(Qt::UserRole).toInt();
+        // int id = m_table->item(item->row(), ColName)->data(Qt::UserRole).toInt();
         // emit activeLayerChanged(id);
     }
 }

@@ -251,6 +251,7 @@ xcanvas::LayerManager* MyGraphicsView::layerManager()
     {
         return m_canvas->layerManager();
     }
+    return nullptr;
 }
 
 void MyGraphicsView::drawShapes(QPainter* painter, const QRectF& visibleRect)

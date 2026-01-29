@@ -21,7 +21,6 @@ enum class ProcessMode
 struct LayerParameter
 {
     int     id;
-    QString name;
     QColor  color;
     bool    visible = true;
     bool    output  = true;
@@ -31,23 +30,21 @@ struct LayerParameter
     double      minPower = 10.0;
     double      maxPower = 20;
 
-    QSet<Shape*> shapes;// 该图层持有的所有图元引用
+    QSet<Shape*> shapes;
 };
 
-class LayerManager : public QObject
+class LayerManager final : public QObject
 {
     Q_OBJECT
   public:
     explicit LayerManager(QObject* parent = nullptr);
 
     // --- 图层管理 ---
+    int             findOrCreateLayerByColor(const QColor& color);
     int             createLayer(const QString& name, const QColor& color);
     void            removeLayer(int layerId);
     LayerParameter& getLayer(int layerId);
-    QList<int>      layerIds() const
-    {
-        return m_layers.keys();
-    }
+    QList<int>      layerIds() const;
 
     // --- 图元与图层的关系维护 ---
     void addShapeToLayer(int layerId, Shape* shape);
@@ -62,10 +59,7 @@ class LayerManager : public QObject
     void setLayerVisible(int layerId, bool visible);
 
     // --- 顺序管理 ---
-    const QList<int>& layerOrder() const
-    {
-        return m_layerOrder;
-    }
+    const QList<int>& layerOrder() const;
 
     // 将图层从 fromIndex 移动到 toIndex (对应 UI 拖拽)
     void moveLayer(int fromIndex, int toIndex);

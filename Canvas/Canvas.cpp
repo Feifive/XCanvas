@@ -43,6 +43,9 @@ void Canvas::addShape(Shape* shape)
 {
     if (shape)
     {
+        const int layerId = m_layerManager->findOrCreateLayerByColor(shape->color());
+        shape->setLayerId(layerId);
+        m_layerManager->addShapeToLayer(layerId, shape);
         addShapes({shape});
     }
 }

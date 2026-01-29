@@ -46,6 +46,9 @@ class Shape
     bool isDirty() const;
     void setDirty(const bool dirty) const;
 
+    int layerId() const;
+    void setLayerId(int layerId);
+
   protected:
     Shape();
     Shape(const Shape& other);
@@ -64,6 +67,7 @@ class Shape
     QColor               m_color;
     double               m_rotation;
     QTransform           m_transform;
+    int m_layerId = -1;
 
   friend class ShapeManager;
 };

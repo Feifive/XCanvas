@@ -6,8 +6,19 @@ namespace xcanvas
 LayerManager::LayerManager(QObject* parent) : QObject(parent)
 {
     // 默认创建一个初始层
-    createLayer("Layer 0", Qt::black);
-    createLayer("Layer 1", Qt::black);
+}
+
+int LayerManager::findOrCreateLayerByColor(const QColor &color) {
+    for (auto it = m_layers.begin(); it != m_layers.end(); ++it) {
+        if (it.value().color == color) {
+            return it.key();
+        }
+    }
+
+    const QString newName = QString("L%1").arg(m_layers.size(),  2, 10, QChar('0'));
+    const int newId = createLayer(newName, color);
+
+    return newId;
 }
 
 // 创建图层时，默认加到队列末尾
@@ -16,7 +27,6 @@ int LayerManager::createLayer(const QString& name, const QColor& color)
     int            id = m_nextId++;
     LayerParameter param;
     param.id    = id;
-    param.name  = name;
     param.color = color;
 
     m_layers[id] = param;
@@ -91,6 +101,10 @@ void LayerManager::setLayerVisible(int layerId, bool visible)
     emit layerVisibilityChanged(layerId, visible);
 }
 
+const QList<int> & LayerManager::layerOrder() const {
+    return m_layerOrder;
+}
+
 // 移除图层时，同步移除顺序索引
 void LayerManager::removeLayer(int layerId)
 {
@@ -106,6 +120,10 @@ void LayerManager::removeLayer(int layerId)
 LayerParameter& LayerManager::getLayer(int layerId)
 {
     return m_layers[layerId];
+}
+
+QList<int> LayerManager::layerIds() const {
+    return m_layers.keys();
 }
 
 void LayerManager::moveLayer(int fromIndex, int toIndex)
