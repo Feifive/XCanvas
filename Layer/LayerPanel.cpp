@@ -22,7 +22,7 @@ LayerPanel::LayerPanel(xcanvas::LayerManager* mgr, QWidget* parent) : QWidget(pa
 void LayerPanel::setupUI()
 {
     auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(2, 0, 2, 2);
+    layout->setContentsMargins(1, 0, 1, 1);
 
     m_table = new QTableWidget(this);
     m_table->setColumnCount(Column::Count);

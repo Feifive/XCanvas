@@ -15,16 +15,15 @@ int LayerManager::findOrCreateLayerByColor(const QColor &color) {
         }
     }
 
-    const QString newName = QString("L%1").arg(m_layers.size(),  2, 10, QChar('0'));
-    const int newId = createLayer(newName, color);
+    const int newId = createLayer(color);
 
     return newId;
 }
 
 // 创建图层时，默认加到队列末尾
-int LayerManager::createLayer(const QString& name, const QColor& color)
+int LayerManager::createLayer(const QColor& color)
 {
-    int            id = m_nextId++;
+    const int id = m_nextId++;
     LayerParameter param;
     param.id    = id;
     param.color = color;
@@ -37,35 +36,25 @@ int LayerManager::createLayer(const QString& name, const QColor& color)
     return id;
 }
 
-void LayerManager::addShapeToLayer(int layerId, Shape* shape)
+void LayerManager::addShapeToLayer(Shape* shape)
 {
-    if (!shape || !m_layers.contains(layerId))
+    if (!shape) {
         return;
+    }
 
-    // 1. 如果 shape 原本在其他层，先移除
+    const int layerId = findOrCreateLayerByColor(shape->color());
     removeShapeFromLayer(shape);
-
-    // 2. 建立关系
     m_layers[layerId].shapes.insert(shape);
-
-    // 3. 同步属性：让 Shape 的颜色跟随图层
-    shape->setColor(m_layers[layerId].color);
-    // 这里假设你在 Shape 中添加了 int m_layerId 成员
-    // shape->setLayerId(layerId);
+    shape->setLayerId(layerId);
 }
 
 void LayerManager::removeShapeFromLayer(Shape* shape)
 {
-    if (!shape)
+    if (!shape) {
         return;
-    // 遍历所有层寻找并移除（或者通过 shape->layerId() 快速定位）
-    for (auto& layer : m_layers)
-    {
-        if (layer.shapes.contains(shape))
-        {
-            layer.shapes.remove(shape);
-            break;
-        }
+    }
+    if (m_layers.contains(shape->layerId())) {
+        m_layers[shape->layerId()].shapes.remove(shape);
     }
 }
 

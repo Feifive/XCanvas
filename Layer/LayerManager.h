@@ -41,13 +41,13 @@ class LayerManager final : public QObject
 
     // --- 图层管理 ---
     int             findOrCreateLayerByColor(const QColor& color);
-    int             createLayer(const QString& name, const QColor& color);
+    int             createLayer(const QColor& color);
     void            removeLayer(int layerId);
     LayerParameter& getLayer(int layerId);
     QList<int>      layerIds() const;
 
     // --- 图元与图层的关系维护 ---
-    void addShapeToLayer(int layerId, Shape* shape);
+    void addShapeToLayer(Shape* shape);
     void removeShapeFromLayer(Shape* shape);
     void moveShapeToLayer(int targetLayerId, Shape* shape);
 
