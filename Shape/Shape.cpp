@@ -37,10 +37,12 @@ namespace xcanvas {
 
     void Shape::draw(QPainter* painter) const
     {
-        painter->save();
-        painter->setPen(m_selected ? selectedPen() : normalPen(m_color));
         painter->drawPath(path());
-        painter->restore();
+    }
+
+    bool Shape::isImage() const
+    {
+        return false;
     }
 
     void Shape::setSelected(bool selected)

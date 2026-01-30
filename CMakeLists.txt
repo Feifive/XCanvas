@@ -96,6 +96,7 @@ set(PROJECT_SOURCES
 
 if (QT_VERSION_MAJOR GREATER_EQUAL 6)
     qt_add_executable(XCanvas
+        WIN32
         MACOSX_BUNDLE
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}

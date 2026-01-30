@@ -8,30 +8,38 @@ LayerManager::LayerManager(QObject* parent) : QObject(parent)
     // 默认创建一个初始层
 }
 
-int LayerManager::findOrCreateLayerByColor(const QColor &color) {
+int LayerManager::findOrCreateLayerByShape(const Shape* shape) {
+    bool isImage = shape->isImage();
     for (auto it = m_layers.begin(); it != m_layers.end(); ++it) {
-        if (it.value().color == color) {
-            return it.key();
+        if (it.value().color == shape->color()) {
+            if (!isImage)
+            {
+                return it.key();
+            }
+            if (it.value().mode == ProcessMode::Image)
+            {
+                return it.key();
+            }
         }
     }
 
-    const int newId = createLayer(color);
+    const int newId = createLayer(shape->color(), isImage);
 
     return newId;
 }
 
 // 创建图层时，默认加到队列末尾
-int LayerManager::createLayer(const QColor& color)
+int LayerManager::createLayer(const QColor& color, bool isImage)
 {
     const int id = m_nextId++;
     LayerParameter param;
     param.id    = id;
     param.color = color;
+    param.mode  = isImage ? ProcessMode::Image : ProcessMode::Cut;
 
     m_layers[id] = param;
     m_layerOrder.append(id);// 新层默认最后加工
 
-    emit layerAdded(id);
     emit orderChanged(m_layerOrder);
     return id;
 }
@@ -42,10 +50,20 @@ void LayerManager::addShapeToLayer(Shape* shape)
         return;
     }
 
-    const int layerId = findOrCreateLayerByColor(shape->color());
+    const int layerId = findOrCreateLayerByShape(shape);
     removeShapeFromLayer(shape);
     m_layers[layerId].shapes.insert(shape);
     shape->setLayerId(layerId);
+}
+
+void LayerManager::addShapesToLayer(ShapeList* shapes)
+{
+    if (!shapes) {
+        return;
+    }
+    for (Shape* shape : *shapes) {
+        addShapeToLayer(shape);
+	}
 }
 
 void LayerManager::removeShapeFromLayer(Shape* shape)
@@ -53,9 +71,29 @@ void LayerManager::removeShapeFromLayer(Shape* shape)
     if (!shape) {
         return;
     }
-    if (m_layers.contains(shape->layerId())) {
-        m_layers[shape->layerId()].shapes.remove(shape);
+
+    int layerId = shape->layerId();
+    if (!m_layers.contains(layerId)) {
+        return;
     }
+
+    LayerParameter& param = m_layers[layerId];
+
+    param.shapes.remove(shape);
+
+    if (param.shapes.isEmpty()) {
+        removeLayer(layerId);
+    }
+}
+
+void LayerManager::removeShapesFromLayer(ShapeList* shapes)
+{
+    if (!shapes) {
+        return;
+    }
+    for (Shape* shape : *shapes) {
+        removeShapeFromLayer(shape);
+	}
 }
 
 void LayerManager::setLayerColor(int layerId, const QColor& color)
@@ -101,7 +139,6 @@ void LayerManager::removeLayer(int layerId)
     {
         m_layers.remove(layerId);
         m_layerOrder.removeAll(layerId);
-        emit layerRemoved(layerId);
         emit orderChanged(m_layerOrder);
     }
 }

@@ -262,44 +262,83 @@ void MyGraphicsView::drawShapes(QPainter* painter, const QRectF& visibleRect)
 
 void MyGraphicsView::drawNormalShapes(QPainter* painter, const QRectF& visibleRect)
 {
-    painter->save();
-
-    // 遍历所有形状，只绘制未选中的
-    for (xcanvas::Shape* shape : m_canvas->shapeManager()->shapes())
+	QList<xcanvas::LayerParameter*> layers = m_canvas->layerManager()->getOrderedLayers();
+    for (auto* layer : layers)
     {
-        if (shape->isSelected())
-        {
-            continue;
-        }
+        if (!layer->visible) continue;
 
-        // 视口裁剪：只绘制可见的形状
-        if (!visibleRect.intersects(shape->boundingRect()))
-        {
-            continue;
-        }
+        painter->save();
 
-        // 绘制形状
-        shape->draw(painter);
+        if (layer->mode == xcanvas::ProcessMode::Cut)
+        {
+            QPen pen(layer->color);
+            pen.setWidth(1);
+            pen.setCosmetic(true);
+            pen.setStyle(Qt::SolidLine);
+
+			painter->setPen(pen);
+
+            for (auto shape : layer->shapes)
+            {
+                if (visibleRect.intersects(shape->boundingRect()) && !shape->isSelected())
+                {
+					shape->draw(painter);
+                }
+            }
+        }
+        else if (layer->mode == xcanvas::ProcessMode::Scan)
+        {
+            painter->setPen(Qt::NoPen);
+			painter->setBrush(layer->color);
+
+            QPainterPath path;
+            path.setFillRule(Qt::OddEvenFill);
+            for (auto shape : layer->shapes)
+            {
+                if (visibleRect.intersects(shape->boundingRect()))
+                {
+                    path.addPath(shape->path());
+                }
+            }
+            painter->drawPath(path);
+        }
+        else if (layer->mode == xcanvas::ProcessMode::Image)
+        {
+            painter->restore();
+
+            for (auto shape : layer->shapes)
+            {
+                shape->draw(painter);
+            }
+        }
+        painter->restore();
     }
-
-    painter->restore();
 }
 
 void MyGraphicsView::drawSelectedShapes(QPainter* painter, const QRectF& visibleRect)
 {
-    painter->save();
-
     // 最后绘制选中的形状（显示在最上层）
     const QSet<xcanvas::Shape*> selected = m_canvas->shapeManager()->selectedShapes();
+    if (selected.isEmpty()) return;
+
+    painter->save();
+
+    QPainterPath path;
+    path.setFillRule(Qt::OddEvenFill);
+
+    QPen pen(QColor(244, 155, 33));
+    pen.setWidth(1);
+    pen.setCosmetic(true);
+    pen.setStyle(Qt::SolidLine);
+    painter->setPen(pen);
+    painter->setBrush(Qt::NoBrush);
 
     for (const xcanvas::Shape* shape : selected)
     {
-        if (!visibleRect.intersects(shape->boundingRect()))
+        if (visibleRect.intersects(shape->boundingRect()))
         {
-            continue;
+			painter->drawPath(shape->path());
         }
-
-        shape->draw(painter);
     }
 
     // 绘制trace

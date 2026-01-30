@@ -12,6 +12,11 @@ ShapeImage::~ShapeImage()
 {
 }
 
+bool ShapeImage::isImage() const
+{
+    return true;
+}
+
 void ShapeImage::draw(QPainter* painter) const
 {
     if (m_image.isNull()) {
@@ -19,14 +24,10 @@ void ShapeImage::draw(QPainter* painter) const
     }
 
     painter->save();
+
     painter->setTransform(m_transform, true);
     const auto drawRect = QRectF(0, 0, m_imageSize.width(), m_imageSize.height());
     painter->drawImage(drawRect, m_image);
-    if (m_selected)
-    {
-        painter->setPen(selectedPen());
-        painter->drawRect(drawRect);
-    }
 
     painter->restore();
 }

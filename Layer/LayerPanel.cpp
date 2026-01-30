@@ -101,14 +101,29 @@ void LayerPanel::setRowWidgets(int row, const xcanvas::LayerParameter& param)
     colorLayout->setAlignment(Qt::AlignCenter);
     m_table->setCellWidget(row, ColColor, colorContainer);
 
-    auto* modeCombo = new QComboBox();
-    modeCombo->setStyle(QStyleFactory::create("Fusion"));
-    modeCombo->setView(new QListView());
-    modeCombo->addItems({"切割", "扫描"});
-    modeCombo->setCurrentIndex(static_cast<int>(param.mode));
-    modeCombo->setProperty("layerId", id);
-    connect(modeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &LayerPanel::onModeChanged);
-    m_table->setCellWidget(row, ColMode, modeCombo);
+    if (param.mode == xcanvas::ProcessMode::Image)
+    {
+        QTableWidgetItem* colModeItem = new QTableWidgetItem(tr("图像"));
+
+        QFont font = colModeItem->font();
+        font.setPixelSize(13);
+        colModeItem->setFont(font);
+
+        colModeItem->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        colModeItem->setFlags(colModeItem->flags() & ~Qt::ItemIsEditable);
+        m_table->setItem(row, ColMode, colModeItem);
+    }
+    else
+    {
+        auto* modeCombo = new QComboBox();
+        modeCombo->setStyle(QStyleFactory::create("Fusion"));
+        modeCombo->setView(new QListView());
+        modeCombo->addItems({ "切割", "扫描" });
+        modeCombo->setCurrentIndex(static_cast<int>(param.mode));
+        modeCombo->setProperty("layerId", id);
+        connect(modeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &LayerPanel::onModeChanged);
+        m_table->setCellWidget(row, ColMode, modeCombo);
+    }
 
     QTableWidgetItem* colParamsItem = new QTableWidgetItem(QString("%1/%2").arg(param.speed).arg(param.maxPower));
     colParamsItem->setTextAlignment(Qt::AlignCenter);

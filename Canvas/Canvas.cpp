@@ -44,7 +44,6 @@ void Canvas::addShape(Shape* shape)
     if (shape)
     {
         addShapes({shape});
-        m_layerManager->addShapeToLayer(shape);
     }
 }
 
@@ -54,7 +53,7 @@ void Canvas::addShapes(const ShapeList& shapeList)
     {
         return;
     }
-    m_undoStack->push(new xcanvas::AddShapesCommand(m_shapeManager, shapeList));
+    m_undoStack->push(new xcanvas::AddShapesCommand(m_shapeManager, m_layerManager, shapeList));
 }
 
 void Canvas::removeShape(Shape* shape)

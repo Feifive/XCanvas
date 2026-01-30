@@ -2,6 +2,7 @@
 #define LAYERMANAGER_H
 
 #include "Shape.h"
+#include "ShapeManager.h"
 #include <QColor>
 #include <QMap>
 #include <QObject>
@@ -14,7 +15,8 @@ namespace xcanvas
 enum class ProcessMode
 {
     Cut,
-    Scan
+    Scan,
+    Image
 };
 
 // 图层工艺参数
@@ -40,16 +42,17 @@ class LayerManager final : public QObject
     explicit LayerManager(QObject* parent = nullptr);
 
     // --- 图层管理 ---
-    int             findOrCreateLayerByColor(const QColor& color);
-    int             createLayer(const QColor& color);
+    int             findOrCreateLayerByShape(const Shape* shape);
+    int             createLayer(const QColor& color, bool isImage);
     void            removeLayer(int layerId);
     LayerParameter& getLayer(int layerId);
     QList<int>      layerIds() const;
 
     // --- 图元与图层的关系维护 ---
     void addShapeToLayer(Shape* shape);
+    void addShapesToLayer(ShapeList* shapes);
     void removeShapeFromLayer(Shape* shape);
-    void moveShapeToLayer(int targetLayerId, Shape* shape);
+	void removeShapesFromLayer(ShapeList* shapes);
 
     QSet<Shape*> getShapesInLayer(int layerId) const;
     int          getLayerIdOfShape(Shape* shape) const;
@@ -71,12 +74,10 @@ class LayerManager final : public QObject
     // 按顺序获取所有图层参数 (生成 G-Code 时使用)
     QList<LayerParameter*> getOrderedLayers();
 
-  signals:
-    void layerAdded(int id);
-    void layerRemoved(int id);
-    void layerDataChanged(int id);// 用于通知 QTableWidget 刷新某行
-    void layerVisibilityChanged(int id, bool visible);
+signals:
     void orderChanged(const QList<int>& newOrder);
+    void layerDataChanged(int id);
+    void layerVisibilityChanged(int id, bool visible);
 
   private:
     QMap<int, LayerParameter> m_layers;

@@ -24,6 +24,7 @@ class Shape
     virtual ~Shape();
 
     virtual void draw(QPainter* painter) const;
+    virtual bool isImage() const;
     virtual bool isSelected() const;
     virtual void   setColor(const QColor& color);
     virtual QColor color() const;

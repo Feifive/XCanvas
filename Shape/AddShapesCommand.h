@@ -4,14 +4,15 @@
 #include <QUndoCommand>
 #include "Shape.h"
 #include "ShapeManager.h"
+#include "../Layer/LayerManager.h"
 
 namespace xcanvas {
 
     class AddShapesCommand final : public QUndoCommand
     {
     public:
-        AddShapesCommand(ShapeManager* shapesManager, ShapeList shapesToAdd, QUndoCommand* parent = nullptr)
-            : QUndoCommand(parent), m_shapesManager(shapesManager), m_shapesToAdd(std::move(shapesToAdd))
+        AddShapesCommand(ShapeManager* shapesManager, LayerManager* layerManager, ShapeList shapesToAdd, QUndoCommand* parent = nullptr)
+            : QUndoCommand(parent), m_shapesManager(shapesManager), m_layerManager(layerManager), m_shapesToAdd(std::move(shapesToAdd))
         {
             setText("Add ShapeList");
         }
@@ -30,18 +31,21 @@ namespace xcanvas {
         void redo() override
         {
             m_shapesManager->append(m_shapesToAdd);
+			m_layerManager->addShapesToLayer(&m_shapesToAdd);
             m_isRedone = true;
         }
 
         void undo() override
         {
             m_shapesManager->removeShapes(m_shapesToAdd);
+			m_layerManager->removeShapesFromLayer(&m_shapesToAdd);
             m_isRedone = false;
         }
 
     private:
     private:
         ShapeManager* m_shapesManager;
+		LayerManager* m_layerManager;
         ShapeList     m_shapesToAdd;
         bool m_isRedone = true; 
     };
