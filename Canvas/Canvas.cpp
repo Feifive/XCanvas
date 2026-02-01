@@ -71,7 +71,7 @@ void Canvas::removeShapes(const ShapeList& shapeList)
         return;
     }
 
-    m_undoStack->push(new xcanvas::RemoveShapesCommand(m_shapeManager, shapeList));
+    m_undoStack->push(new xcanvas::RemoveShapesCommand(m_shapeManager, m_layerManager, shapeList));
 }
 
 }// namespace xcanvas

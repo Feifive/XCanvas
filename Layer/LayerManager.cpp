@@ -9,7 +9,7 @@ LayerManager::LayerManager(QObject* parent) : QObject(parent)
 }
 
 int LayerManager::findOrCreateLayerByShape(const Shape* shape) {
-    bool isImage = shape->isImage();
+    const bool isImage = shape->isImage();
     for (auto it = m_layers.begin(); it != m_layers.end(); ++it) {
         if (it.value().color == shape->color()) {
             if (!isImage)
@@ -28,8 +28,7 @@ int LayerManager::findOrCreateLayerByShape(const Shape* shape) {
     return newId;
 }
 
-// 创建图层时，默认加到队列末尾
-int LayerManager::createLayer(const QColor& color, bool isImage)
+int LayerManager::createLayer(const QColor& color, const bool isImage)
 {
     const int id = m_nextId++;
     LayerParameter param;
@@ -38,7 +37,7 @@ int LayerManager::createLayer(const QColor& color, bool isImage)
     param.mode  = isImage ? ProcessMode::Image : ProcessMode::Cut;
 
     m_layers[id] = param;
-    m_layerOrder.append(id);// 新层默认最后加工
+    m_layerOrder.append(id);
 
     emit orderChanged(m_layerOrder);
     return id;
@@ -50,29 +49,57 @@ void LayerManager::addShapeToLayer(Shape* shape)
         return;
     }
 
-    const int layerId = findOrCreateLayerByShape(shape);
-    removeShapeFromLayer(shape);
-    m_layers[layerId].shapes.insert(shape);
-    shape->setLayerId(layerId);
+    if (const int layerId = findOrCreateLayerByShape(shape); layerId != shape->layerId()) {
+        removeShapeFromLayer(shape);
+        m_layers[layerId].shapes.insert(shape);
+        shape->setLayerId(layerId);
+    }
 }
 
 void LayerManager::addShapesToLayer(ShapeList* shapes)
 {
-    if (!shapes) {
-        return;
-    }
+    if (!shapes) return;
+
+    this->blockSignals(true);
+
+    bool layerCreated = false;
+
+    QMap<QPair<QRgb, bool>, int> localCache;
+
     for (Shape* shape : *shapes) {
-        addShapeToLayer(shape);
+        if (!shape) continue;
+
+        int layerId = -1;
+
+        if (QPair<QRgb, bool> key = {shape->color().rgba(), shape->isImage()}; localCache.contains(key)) {
+            layerId = localCache[key];
+        } else {
+            layerId = findOrCreateLayerByShape(shape);
+            localCache[key] = layerId;
+            layerCreated = true;
+        }
+
+        if (shape->layerId() != layerId) {
+            removeShapeFromLayer(shape);
+            m_layers[layerId].shapes.insert(shape);
+            shape->setLayerId(layerId);
+        }
 	}
+
+    this->blockSignals(false);
+
+    if (layerCreated) {
+        emit orderChanged(m_layerOrder);
+    }
 }
 
 void LayerManager::removeShapeFromLayer(Shape* shape)
 {
-    if (!shape) {
+    if (!shape || shape->layerId() == -1) {
         return;
     }
 
-    int layerId = shape->layerId();
+    const int layerId = shape->layerId();
     if (!m_layers.contains(layerId)) {
         return;
     }
@@ -88,12 +115,32 @@ void LayerManager::removeShapeFromLayer(Shape* shape)
 
 void LayerManager::removeShapesFromLayer(ShapeList* shapes)
 {
-    if (!shapes) {
-        return;
-    }
+    if (!shapes || shapes->isEmpty()) return;
+
+    QSet<int> affectedLayerIds;
+
     for (Shape* shape : *shapes) {
-        removeShapeFromLayer(shape);
-	}
+        if (!shape) continue;
+
+        if (int lid = shape->layerId(); m_layers.contains(lid)) {
+            m_layers[lid].shapes.remove(shape);
+            affectedLayerIds.insert(lid);
+        }
+    }
+
+    bool hasChanged = false;
+    for (int lid : affectedLayerIds) {
+        if (m_layers[lid].shapes.isEmpty()) {
+            m_layers.remove(lid);
+            m_layerOrder.removeAll(lid);
+
+            hasChanged = true;
+        }
+    }
+
+    if (hasChanged) {
+        emit orderChanged(m_layerOrder);
+    }
 }
 
 void LayerManager::setLayerColor(int layerId, const QColor& color)
@@ -113,17 +160,13 @@ void LayerManager::setLayerColor(int layerId, const QColor& color)
     emit layerDataChanged(layerId);
 }
 
-void LayerManager::setLayerVisible(int layerId, bool visible)
+void LayerManager::setLayerVisible(const int layerId, const bool visible)
 {
-    if (!m_layers.contains(layerId))
-        return;
+    if (!m_layers.contains(layerId)) return;
     m_layers[layerId].visible = visible;
 
-    // CAM 逻辑：隐藏图层通常意味着在画布上不渲染
-    for (Shape* shape : m_layers[layerId].shapes)
-    {
-        // 假设 Shape 有 setVisible 方法
-        // shape->setVisible(visible);
+    for (Shape* shape : m_layers[layerId].shapes) {
+        shape->setVisible(visible);
     }
     emit layerVisibilityChanged(layerId, visible);
 }
@@ -143,7 +186,7 @@ void LayerManager::removeLayer(int layerId)
     }
 }
 
-LayerParameter& LayerManager::getLayer(int layerId)
+LayerParameter& LayerManager::getLayer(const int layerId)
 {
     return m_layers[layerId];
 }
@@ -169,7 +212,7 @@ void LayerManager::moveLayer(int fromIndex, int toIndex)
 
 void LayerManager::moveUp(int layerId)
 {
-    int idx = m_layerOrder.indexOf(layerId);
+    const int idx = m_layerOrder.indexOf(layerId);
     if (idx > 0)
     {
         moveLayer(idx, idx - 1);

@@ -57,20 +57,19 @@ void LayerPanel::createConnections()
 
 void LayerPanel::refreshTable()
 {
-    QSignalBlocker blocker(m_table);// 刷新时不触发 cellChanged 等信号
+    QSignalBlocker blocker(m_table);
     m_table->setRowCount(0);
 
     const QList<int>& order = m_mgr->layerOrder();
-    for (int id : order)
+    for (const int id : order)
     {
-        int row = m_table->rowCount();
+        const int row = m_table->rowCount();
         m_table->insertRow(row);
         setRowWidgets(row, m_mgr->getLayer(id));
     }
     if (order.size() > 0) {
         m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
         m_table->horizontalHeader()->setSectionResizeMode(ColColor, QHeaderView::Stretch);
-        // m_table->horizontalHeader()->setSectionResizeMode(ColVisible, QHeaderView::Stretch);
     }
 }
 
@@ -144,7 +143,7 @@ QWidget* LayerPanel::createCheckBoxWidget(bool checked, int layerId, bool isVisi
     layout->setContentsMargins(6, 6, 6, 6);
     layout->setSpacing(0);
     connect(cb, &CSwitchButton::SwitchChanged,
-            [this, layerId, isVisibility](bool state)
+            [this, layerId, isVisibility](const bool state)
             {
                 if (isVisibility)
                     m_mgr->setLayerVisible(layerId, state);

@@ -79,7 +79,7 @@ bool xcanvas::ShapeEditor::booleanUnion() const {
     auto* resultShape = new ShapeVector;
     resultShape->setSemantic(VectorSemantic::Complex);
     resultShape->setSegments(std::move(optimizedSegments));
-    m_canvas->undoStack()->push(new ReplaceShapesCommand(m_canvas->shapeManager(), m_canvas->shapeManager()->selectedShapeList(), {resultShape}));
+    m_canvas->undoStack()->push(new ReplaceShapesCommand(m_canvas->shapeManager(), m_canvas->layerManager(), m_canvas->shapeManager()->selectedShapeList(), {resultShape}));
     m_canvas->shapeManager()->selectShape(resultShape, true);
     m_canvasView->requestFullUpdate();
 

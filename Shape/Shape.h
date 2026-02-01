@@ -26,6 +26,8 @@ class Shape
     virtual void draw(QPainter* painter) const;
     virtual bool isImage() const;
     virtual bool isSelected() const;
+    virtual bool isVisible() const {return m_visible;};
+    virtual void setVisible(const bool visible) {m_visible = visible;};
     virtual void   setColor(const QColor& color);
     virtual QColor color() const;
 
@@ -59,7 +61,8 @@ class Shape
     bool isPointNearPath(const QPointF& point, double tolerance) const;
 
   protected:
-    bool                 m_selected;
+    bool                 m_selected = false;
+    bool                 m_visible  = true;
     mutable bool         m_dirty;
     mutable bool         m_boundingRectDirty;
     mutable QRectF       m_cachedBoundingRect;

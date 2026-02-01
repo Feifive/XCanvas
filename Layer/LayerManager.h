@@ -41,7 +41,6 @@ class LayerManager final : public QObject
   public:
     explicit LayerManager(QObject* parent = nullptr);
 
-    // --- 图层管理 ---
     int             findOrCreateLayerByShape(const Shape* shape);
     int             createLayer(const QColor& color, bool isImage);
     void            removeLayer(int layerId);

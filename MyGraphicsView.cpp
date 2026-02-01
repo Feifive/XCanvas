@@ -38,6 +38,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     connect(&AppSettings::instance(), &AppSettings::gridContrastChanged, this, [this]() { requestFullUpdate(); });
+    connect(m_canvas->layerManager(), &xcanvas::LayerManager::layerVisibilityChanged, this, [this]() { requestFullUpdate(); });
 
     ImportManager::instance().registerImporter(std::make_unique<DXFImporter>());
     ImportManager::instance().registerImporter(std::make_unique<ImageImporter>());
@@ -278,7 +279,7 @@ void MyGraphicsView::drawNormalShapes(QPainter* painter, const QRectF& visibleRe
 
 			painter->setPen(pen);
 
-            for (auto shape : layer->shapes)
+            for (const auto shape : layer->shapes)
             {
                 if (visibleRect.intersects(shape->boundingRect()) && !shape->isSelected())
                 {
@@ -293,7 +294,7 @@ void MyGraphicsView::drawNormalShapes(QPainter* painter, const QRectF& visibleRe
 
             QPainterPath path;
             path.setFillRule(Qt::OddEvenFill);
-            for (auto shape : layer->shapes)
+            for (const auto shape : layer->shapes)
             {
                 if (visibleRect.intersects(shape->boundingRect()))
                 {
@@ -306,7 +307,7 @@ void MyGraphicsView::drawNormalShapes(QPainter* painter, const QRectF& visibleRe
         {
             painter->restore();
 
-            for (auto shape : layer->shapes)
+            for (const auto shape : layer->shapes)
             {
                 shape->draw(painter);
             }
@@ -333,8 +334,12 @@ void MyGraphicsView::drawSelectedShapes(QPainter* painter, const QRectF& visible
     painter->setPen(pen);
     painter->setBrush(Qt::NoBrush);
 
-    for (const xcanvas::Shape* shape : selected)
+    for (xcanvas::Shape* shape : selected)
     {
+        if (!shape->isVisible()) {
+            m_canvas->shapeManager()->deselectShape(shape);
+            continue;
+        }
         if (visibleRect.intersects(shape->boundingRect()))
         {
 			painter->drawPath(shape->path());

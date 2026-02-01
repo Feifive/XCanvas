@@ -361,21 +361,21 @@ QPointF xcanvas::SelectTool::getAnchorPoint(const int handle, QRectF rect) const
 xcanvas::Shape* xcanvas::SelectTool::hitUnselectedShape(QPointF pos)
 {
     const double        dScale  = m_canvasView->zoomValue();
-    const ShapeManager* pShapes = m_canvas->shapeManager();
-    for (int i = 0; i < pShapes->count(); ++i)
+    const ShapeManager* shapes = m_canvas->shapeManager();
+    for (int i = 0; i < shapes->count(); ++i)
     {
-        Shape* pShape = (*pShapes)[i];
-        if (!pShape)
+        Shape* shape = (*shapes)[i];
+        if (!shape)
         {
             continue;
         }
-        if (pShape->isSelected())
+        if (shape->isSelected() || !shape->isVisible())
         {
             continue;
         }
-        if (const double tolerance = 6 / dScale; pShape->hitTest(pos, tolerance))
+        if (const double tolerance = 6 / dScale; shape->hitTest(pos, tolerance))
         {
-            return pShape;
+            return shape;
         }
     }
 
