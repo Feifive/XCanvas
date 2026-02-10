@@ -66,3 +66,17 @@ xcanvas::ShapeList ImportManager::importFile(const QString& filePath, const Impo
     }
     return {};
 }
+
+bool ImportManager::canImport(const QString& filePath) const
+{
+    const QString suffix = QFileInfo(filePath).suffix().toLower();
+
+    for (const auto& importer : m_importers)
+    {
+        if (importer->canImport(suffix))
+        {
+            return true;
+        }
+    }
+    return false;
+}

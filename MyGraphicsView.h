@@ -41,6 +41,9 @@ class MyGraphicsView : public QGraphicsView
     void scrollContentsBy(int dx, int dy) override;
     void drawBackground(QPainter* painter, const QRectF& rect) override;
     void drawForeground(QPainter* painter, const QRectF& rect) override;
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dragMoveEvent(QDragMoveEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
 
   private slots:
     void onZoomIn();
@@ -59,7 +62,9 @@ class MyGraphicsView : public QGraphicsView
 
   private:
     double gridStep(double scale) const;
-    void   ImportFile();
+    void   importFile();
+    void   importFiles(const QStringList& filePaths);
+    void   importFiles(const QStringList& filePaths, const QPointF& targetCenter);
     void   updateBottomFloatingToolBarPos();
     void   updateSelectionHudBarPos();
     void   zoomIn(const QPointF& zoomCenterPoint);

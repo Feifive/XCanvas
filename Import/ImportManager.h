@@ -13,6 +13,7 @@ class ImportManager
     void               registerImporter(std::unique_ptr<IFileImporter> importer);
     QString            buildDialogFilter() const;
     xcanvas::ShapeList importFile(const QString& filePath, const ImportContext& ctx);
+    bool               canImport(const QString& filePath) const;
 
   private:
     ImportManager() = default;

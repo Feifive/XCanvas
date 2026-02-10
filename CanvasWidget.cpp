@@ -52,4 +52,5 @@ xcanvas::LayerManager* CanvasWidget::layerManager()
     {
         return m_pGraphicsView->layerManager();
     }
+    return nullptr;
 }

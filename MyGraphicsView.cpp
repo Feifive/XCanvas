@@ -2,6 +2,7 @@
 #include "AppSettings.h"
 #include "BottomFloatingToolBar.h"
 #include "Canvas/Canvas.h"
+#include "ColorPaletteWidget.h"
 #include "EventBus.h"
 #include "Import/DXF/DXFImporter.h"
 #include "Import/Image/ImageImporter.h"
@@ -10,7 +11,6 @@
 #include "SelectionHudBar.h"
 #include "Shape/Shape.h"
 #include "ToolManager.h"
-#include "ColorPaletteWidget.h"
 #include <QDebug>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -20,6 +20,10 @@
 #include <QScrollBar>
 #include <QTimer>
 #include <QUndoStack>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QUrl>
 
 #include "MyMath.h"
 
@@ -36,6 +40,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     setRenderHint(QPainter::SmoothPixmapTransform, false);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setAcceptDrops(true);
 
     connect(&AppSettings::instance(), &AppSettings::gridContrastChanged, this, [this]() { requestFullUpdate(); });
     connect(m_canvas->layerManager(), &xcanvas::LayerManager::layerVisibilityChanged, this, [this]() { requestFullUpdate(); });
@@ -66,7 +71,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::redo, this, &MyGraphicsView::onRedo);
     connect(m_canvas->undoStack(), &QUndoStack::canUndoChanged, m_bottomFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
     connect(m_canvas->undoStack(), &QUndoStack::canRedoChanged, m_bottomFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
-    connect(&EventBus::instance(), &EventBus::importFileRequested, this, &MyGraphicsView::ImportFile);
+    connect(&EventBus::instance(), &EventBus::importFileRequested, this, &MyGraphicsView::importFile);
 
     m_selectionHudBar = new SelectionHudBar(this);
     connect(m_selectionHudBar, &SelectionHudBar::booleanUnion, m_toolMgr.get(), &xcanvas::ToolManager::booleanUnion);
@@ -263,34 +268,39 @@ void MyGraphicsView::drawShapes(QPainter* painter, const QRectF& visibleRect)
 
 void MyGraphicsView::drawNormalShapes(QPainter* painter, const QRectF& visibleRect)
 {
-	QList<xcanvas::LayerParameter*> layers = m_canvas->layerManager()->getOrderedLayers();
+    QList<xcanvas::LayerParameter*> layers = m_canvas->layerManager()->getOrderedLayers();
     for (auto* layer : layers)
     {
-        if (!layer->visible) continue;
-
-        painter->save();
+        if (!layer->visible)
+            continue;
 
         if (layer->mode == xcanvas::ProcessMode::Cut)
         {
+            painter->save();
+
             QPen pen(layer->color);
             pen.setWidth(1);
             pen.setCosmetic(true);
             pen.setStyle(Qt::SolidLine);
 
-			painter->setPen(pen);
+            painter->setPen(pen);
 
             for (const auto shape : layer->shapes)
             {
                 if (visibleRect.intersects(shape->boundingRect()) && !shape->isSelected())
                 {
-					shape->draw(painter);
+                    shape->draw(painter);
                 }
             }
+
+            painter->restore();
         }
         else if (layer->mode == xcanvas::ProcessMode::Scan)
         {
+            painter->save();
+
             painter->setPen(Qt::NoPen);
-			painter->setBrush(layer->color);
+            painter->setBrush(layer->color);
 
             QPainterPath path;
             path.setFillRule(Qt::OddEvenFill);
@@ -302,17 +312,16 @@ void MyGraphicsView::drawNormalShapes(QPainter* painter, const QRectF& visibleRe
                 }
             }
             painter->drawPath(path);
+
+            painter->restore();
         }
         else if (layer->mode == xcanvas::ProcessMode::Image)
         {
-            painter->restore();
-
             for (const auto shape : layer->shapes)
             {
                 shape->draw(painter);
             }
         }
-        painter->restore();
     }
 }
 
@@ -320,7 +329,8 @@ void MyGraphicsView::drawSelectedShapes(QPainter* painter, const QRectF& visible
 {
     // 最后绘制选中的形状（显示在最上层）
     const QSet<xcanvas::Shape*> selected = m_canvas->shapeManager()->selectedShapes();
-    if (selected.isEmpty()) return;
+    if (selected.isEmpty())
+        return;
 
     painter->save();
 
@@ -336,13 +346,14 @@ void MyGraphicsView::drawSelectedShapes(QPainter* painter, const QRectF& visible
 
     for (xcanvas::Shape* shape : selected)
     {
-        if (!shape->isVisible()) {
+        if (!shape->isVisible())
+        {
             m_canvas->shapeManager()->deselectShape(shape);
             continue;
         }
         if (visibleRect.intersects(shape->boundingRect()))
         {
-			painter->drawPath(shape->path());
+            painter->drawPath(shape->path());
         }
     }
 
@@ -542,59 +553,77 @@ void MyGraphicsView::drawCanvas(QPainter* painter)
     painter->restore();
 }
 
-void MyGraphicsView::ImportFile()
+void MyGraphicsView::importFile()
 {
-    const QString filePath = QFileDialog::getOpenFileName(this, tr("Import File"), QString(), ImportManager::instance().buildDialogFilter());
+    const QStringList filePaths = QFileDialog::getOpenFileNames(this, tr("Import Files"), QString(), ImportManager::instance().buildDialogFilter());
+    importFiles(filePaths);
+}
 
-    if (filePath.isEmpty())
+void MyGraphicsView::importFiles(const QStringList& filePaths, const QPointF& targetCenter)
+{
+    if (filePaths.isEmpty())
     {
         return;
     }
 
     ImportContext ctx;
-    ctx.targetCenter = mapToScene(viewport()->rect().center());
+    ctx.targetCenter = targetCenter;
 
-    xcanvas::ShapeList shapeList = ImportManager::instance().importFile(filePath, ctx);
+    xcanvas::ShapeList allShapes;
+    for (const QString& filePath : filePaths)
+    {
+        xcanvas::ShapeList shapeList = ImportManager::instance().importFile(filePath, ctx);
+        if (!shapeList.empty())
+        {
+            allShapes.append(shapeList);
+        }
+    }
 
-    if (!shapeList.isEmpty())
+    if (!allShapes.isEmpty())
     {
         m_canvas->shapeManager()->deselectAll();
 
         // 统一居中
         QRectF rect;
-        for (auto* shape : shapeList)
+        for (auto* shape : allShapes)
         {
             rect |= shape->boundingRect();
         }
 
         const QPointF offset = ctx.targetCenter - rect.center();
-        for (auto* shape : shapeList)
+        for (auto* shape : allShapes)
         {
             shape->translate(offset);
         }
 
-        m_canvas->addShapes(shapeList);
+        m_canvas->addShapes(allShapes);
         requestFullUpdate();
     }
 }
 
+void MyGraphicsView::importFiles(const QStringList& filePaths)
+{
+    importFiles(filePaths, mapToScene(viewport()->rect().center()));
+}
+
 void MyGraphicsView::updateBottomFloatingToolBarPos()
 {
-    constexpr int margin  = 12;
-    QSize barSize;
-    int x = 0, y = 0;
+    constexpr int margin = 12;
+    QSize         barSize;
+    int           x = 0, y = 0;
     if (m_bottomFloatingToolBar)
     {
         barSize = m_bottomFloatingToolBar->sizeHint();
-        x = width() - barSize.width() - margin;
-        y = height() - barSize.height() - margin;
+        x       = width() - barSize.width() - margin;
+        y       = height() - barSize.height() - margin;
         m_bottomFloatingToolBar->move(x, y);
     }
 
-    if (m_colorPaletteWidget) {
+    if (m_colorPaletteWidget)
+    {
         barSize = m_colorPaletteWidget->sizeHint();
-        int x = 0;
-        int y = height() - barSize.height() - margin;
+        int x   = 0;
+        int y   = height() - barSize.height() - margin;
         m_colorPaletteWidget->move(x, y);
     }
 }
@@ -723,4 +752,77 @@ void MyGraphicsView::fitShapes()
     zoomTo(scale);
     centerOn(rect.center());
     emit EventBus::instance().zoomChanged(m_dScaleFactor);
+}
+
+void MyGraphicsView::dragEnterEvent(QDragEnterEvent* event)
+{
+    if (event->mimeData()->hasUrls())
+    {
+        // 检查是否有支持的文件格式
+        const QList<QUrl> urls = event->mimeData()->urls();
+        for (const QUrl& url : urls)
+        {
+            if (url.isLocalFile())
+            {
+                const QString filePath = url.toLocalFile();
+                if (ImportManager::instance().canImport(filePath))
+                {
+                    event->acceptProposedAction();
+                    return;
+                }
+            }
+        }
+    }
+    event->ignore();
+}
+
+void MyGraphicsView::dragMoveEvent(QDragMoveEvent* event)
+{
+    if (event->mimeData()->hasUrls())
+    {
+        // 检查是否有支持的文件格式
+        const QList<QUrl> urls = event->mimeData()->urls();
+        for (const QUrl& url : urls)
+        {
+            if (url.isLocalFile())
+            {
+                const QString filePath = url.toLocalFile();
+                if (ImportManager::instance().canImport(filePath))
+                {
+                    event->acceptProposedAction();
+                    return;
+                }
+            }
+        }
+    }
+    event->ignore();
+}
+
+void MyGraphicsView::dropEvent(QDropEvent* event)
+{
+    if (!event->mimeData()->hasUrls())
+    {
+        event->ignore();
+        return;
+    }
+
+    const QList<QUrl> urls = event->mimeData()->urls();
+    QStringList filePaths;
+    for (const QUrl& url : urls)
+    {
+        if (url.isLocalFile())
+        {
+            filePaths.append(url.toLocalFile());
+        }
+    }
+
+    if (filePaths.isEmpty())
+    {
+        event->ignore();
+        return;
+    }
+
+    event->acceptProposedAction();
+    const QPointF mouseScenePos = mapToScene(event->pos());
+    importFiles(filePaths, mouseScenePos);
 }
