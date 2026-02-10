@@ -22,6 +22,18 @@ public:
     DrawingTool* currentToolInstance() const { return m_currentTool.get(); }
 
     bool booleanUnion();
+    bool booleanIntersection();
+    bool booleanSubtractAB();
+    bool booleanSubtractBA();
+    bool mirrorHorizontal();
+    bool mirrorVertical();
+    bool alignLeft();
+    bool alignRight();
+    bool alignTop();
+    bool alignBottom();
+    bool alignHorizontalCenter();
+    bool alignVerticalCenter();
+    bool alignCenter();
 
     // 事件转发
     void mousePressEvent(QMouseEvent* e);

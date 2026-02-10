@@ -10,6 +10,7 @@ class ShapeText final : public Shape
 {
   public:
     ShapeText();
+    ShapeText(const ShapeText& other);
     virtual ~ShapeText() override;
     bool hitTest(const QPointF& point, double  tolerance) const override;
     Shape* clone() override;

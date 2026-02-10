@@ -70,6 +70,54 @@ bool ToolManager::booleanUnion() {
     return m_shapeEditor->booleanUnion();
 }
 
+bool ToolManager::booleanIntersection() {
+    return m_shapeEditor->booleanIntersection();
+}
+
+bool ToolManager::booleanSubtractAB() {
+    return m_shapeEditor->booleanSubtractAB();
+}
+
+bool ToolManager::booleanSubtractBA() {
+    return m_shapeEditor->booleanSubtractBA();
+}
+
+bool ToolManager::mirrorHorizontal() {
+    return m_shapeEditor->mirrorHorizontal();
+}
+
+bool ToolManager::mirrorVertical() {
+    return m_shapeEditor->mirrorVertical();
+}
+
+bool ToolManager::alignLeft() {
+    return m_shapeEditor->alignLeft();
+}
+
+bool ToolManager::alignRight() {
+    return m_shapeEditor->alignRight();
+}
+
+bool ToolManager::alignTop() {
+    return m_shapeEditor->alignTop();
+}
+
+bool ToolManager::alignBottom() {
+    return m_shapeEditor->alignBottom();
+}
+
+bool ToolManager::alignHorizontalCenter() {
+    return m_shapeEditor->alignHorizontalCenter();
+}
+
+bool ToolManager::alignVerticalCenter() {
+    return m_shapeEditor->alignVerticalCenter();
+}
+
+bool ToolManager::alignCenter() {
+    return m_shapeEditor->alignCenter();
+}
+
 void ToolManager::mousePressEvent(QMouseEvent* e)
 {
     if (m_currentTool)

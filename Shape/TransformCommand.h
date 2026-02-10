@@ -2,6 +2,7 @@
 #define TRANSFORMCOMMAND_H
 
 #include <QUndoCommand>
+#include "Shape.h"
 #include "ShapeManager.h"
 
 namespace xcanvas {

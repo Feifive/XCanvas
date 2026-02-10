@@ -33,5 +33,8 @@
         <file>Resource/Icons/RightArrow.svg</file>
         <file>Resource/Icons/PickOn.svg</file>
         <file>Resource/Icons/DownArrow.svg</file>
+        <file>Resource/Icons/AlignCenter.svg</file>
+        <file>Resource/Icons/DistributeHorizontally.svg</file>
+        <file>Resource/Icons/DistributeVertically.svg</file>
     </qresource>
 </RCC>

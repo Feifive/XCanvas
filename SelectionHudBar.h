@@ -25,6 +25,18 @@ public:
 
 signals:
     void booleanUnion();
+    void booleanIntersection();
+    void booleanSubtractAB();
+    void booleanSubtractBA();
+    void mirrorHorizontal();
+    void mirrorVertical();
+    void alignLeft();
+    void alignRight();
+    void alignTop();
+    void alignBottom();
+    void alignHorizontalCenter();
+    void alignVerticalCenter();
+    void alignCenter();
 
 private:
     void hideGridColumn(int col, bool hide);

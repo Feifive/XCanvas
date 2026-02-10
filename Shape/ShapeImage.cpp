@@ -8,6 +8,13 @@ ShapeImage::ShapeImage(QImage image) : m_image(std::move(image))
 {
 }
 
+ShapeImage::ShapeImage(const ShapeImage& other) :
+    Shape(other),
+    m_image(other.m_image),
+    m_imageSize(other.m_imageSize)
+{
+}
+
 ShapeImage::~ShapeImage()
 {
 }
@@ -40,7 +47,7 @@ bool ShapeImage::hitTest(const QPointF &point, double tolerance) const {
 }
 
 Shape * ShapeImage::clone() {
-    return nullptr;
+    return new ShapeImage(*this);
 }
 
 ShapeType ShapeImage::type() const

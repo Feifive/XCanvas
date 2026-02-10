@@ -7,6 +7,13 @@ ShapeText::ShapeText()
 {
 }
 
+ShapeText::ShapeText(const ShapeText& other) :
+    Shape(other),
+    m_font(other.m_font),
+    m_text(other.m_text)
+{
+}
+
 ShapeText::~ShapeText()
 {
 }
@@ -22,7 +29,7 @@ bool ShapeText::hitTest(const QPointF& point, const double tolerance) const
 
 Shape* ShapeText::clone()
 {
-    return nullptr;
+    return new ShapeText(*this);
 }
 
 ShapeType ShapeText::type() const

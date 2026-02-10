@@ -12,6 +12,7 @@ class ShapeImage final : public Shape
 {
   public:
     explicit ShapeImage(QImage image);
+    ShapeImage(const ShapeImage& other);
     ~ShapeImage() override;
     bool isImage() const override;
     void      draw(QPainter* painter) const override;

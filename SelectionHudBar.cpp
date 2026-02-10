@@ -94,12 +94,13 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent), m_booleanTo
     auto* alignMenu = new XHoverMenu(alignTool, XHoverMenu::PopupOrientation::Bottom, this);
     alignMenu->setObjectName("menu_iconMenu");
     alignMenu->setGap(15);
-    alignMenu->addAction(QIcon(":/Resource/Icons/AlignLeft.svg"), tr("左对齐"));
-    alignMenu->addAction(QIcon(":/Resource/Icons/HorizontalAlignCenter.svg"), tr("水平居中"));
-    alignMenu->addAction(QIcon(":/Resource/Icons/AlignRight.svg"), tr("右对齐"));
-    alignMenu->addAction(QIcon(":/Resource/Icons/AlignTop.svg"), tr("顶部对齐"));
-    alignMenu->addAction(QIcon(":/Resource/Icons/VerticalAlignCenter.svg"), tr("垂直居中"));
-    alignMenu->addAction(QIcon(":/Resource/Icons/AlignBottom.svg"), tr("底部对齐"));
+    alignMenu->addAction(QIcon(":/Resource/Icons/AlignLeft.svg"), tr("左对齐"), this, &SelectionHudBar::alignLeft);
+    alignMenu->addAction(QIcon(":/Resource/Icons/HorizontalAlignCenter.svg"), tr("水平居中"), this, &SelectionHudBar::alignHorizontalCenter);
+    alignMenu->addAction(QIcon(":/Resource/Icons/AlignRight.svg"), tr("右对齐"), this, &SelectionHudBar::alignRight);
+    alignMenu->addAction(QIcon(":/Resource/Icons/AlignTop.svg"), tr("顶部对齐"), this, &SelectionHudBar::alignTop);
+    alignMenu->addAction(QIcon(":/Resource/Icons/VerticalAlignCenter.svg"), tr("垂直居中"), this, &SelectionHudBar::alignVerticalCenter);
+    alignMenu->addAction(QIcon(":/Resource/Icons/AlignBottom.svg"), tr("底部对齐"), this, &SelectionHudBar::alignBottom);
+    alignMenu->addAction(QIcon(":/Resource/Icons/AlignCenter.svg"), tr("中心对齐"), this, &SelectionHudBar::alignCenter);
 
     auto* mirrorTool = new QToolButton(parent);
     mirrorTool->setIcon(QIcon(":/Resource/Icons/MirrorHorizontally.svg"));
@@ -111,8 +112,8 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent), m_booleanTo
     auto* mirrorMenu = new XHoverMenu(mirrorTool, XHoverMenu::PopupOrientation::Bottom, this);
     mirrorMenu->setObjectName("menu_iconMenu");
     mirrorMenu->setGap(15);
-    mirrorMenu->addAction(QIcon(":/Resource/Icons/MirrorHorizontally.svg"), tr("水平镜像"));
-    mirrorMenu->addAction(QIcon(":/Resource/Icons/MirrorVertically.svg"), tr("垂直镜像"));
+    mirrorMenu->addAction(QIcon(":/Resource/Icons/MirrorHorizontally.svg"), tr("水平镜像"), this, &SelectionHudBar::mirrorHorizontal);
+    mirrorMenu->addAction(QIcon(":/Resource/Icons/MirrorVertically.svg"), tr("垂直镜像"), this, &SelectionHudBar::mirrorVertical);
 
     m_booleanTool = new QToolButton(parent);
     m_booleanTool->setIcon(QIcon(":/Resource/Icons/Union.svg"));
@@ -125,9 +126,9 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent), m_booleanTo
     mergeMenu->setObjectName("menu_iconMenu");
     mergeMenu->setGap(15);
     mergeMenu->addAction(QIcon(":/Resource/Icons/Union.svg"), tr("图形合并"), this, &SelectionHudBar::booleanUnion);
-    mergeMenu->addAction(QIcon(":/Resource/Icons/Intersection.svg"), tr("图形相交"));
-    mergeMenu->addAction(QIcon(":/Resource/Icons/SubtractA.svg"), tr("图形相减"));
-    mergeMenu->addAction(QIcon(":/Resource/Icons/SubtractB.svg"), tr("图形相减"));
+    mergeMenu->addAction(QIcon(":/Resource/Icons/Intersection.svg"), tr("图形相交"), this, &SelectionHudBar::booleanIntersection);
+    mergeMenu->addAction(QIcon(":/Resource/Icons/SubtractA.svg"), tr("图形相减"), this, &SelectionHudBar::booleanSubtractAB);
+    mergeMenu->addAction(QIcon(":/Resource/Icons/SubtractB.svg"), tr("图形相减"), this, &SelectionHudBar::booleanSubtractBA);
 
     mainLayout->addLayout(m_gridLayout);
     mainLayout->addStretch();
@@ -164,3 +165,4 @@ void SelectionHudBar::hideGridColumn(int col, bool hide) {
         m_gridLayout->setColumnStretch(col, 0);
     }
 }
+
