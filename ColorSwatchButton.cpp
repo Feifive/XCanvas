@@ -28,7 +28,7 @@ void ColorSwatchButton::paintEvent(QPaintEvent*)
         p.drawRoundedRect(rect(), 4, 4);
     }
 
-    const QRectF r = rect().adjusted(3, 3, -3, -3);
+    const QRectF r = rect().adjusted(3.5, 3.5, -3.5, -3.5);
     const qreal radius = 4.0;
 
     p.setBrush(m_color);
@@ -37,7 +37,7 @@ void ColorSwatchButton::paintEvent(QPaintEvent*)
 
     if (m_selected)
     {
-        const qreal padding = 2.0;
+        const qreal padding = 2.5;
         const QPen selectPen(QColor(45, 54, 65), 1);
         p.setPen(selectPen);
         p.setBrush(Qt::NoBrush);
