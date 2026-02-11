@@ -12,11 +12,11 @@ int LayerManager::findOrCreateLayerByShape(const Shape* shape) {
     const bool isImage = shape->isImage();
     for (auto it = m_layers.begin(); it != m_layers.end(); ++it) {
         if (it.value().color == shape->color()) {
-            if (!isImage)
+            if (isImage && it.value().mode == ProcessMode::Image)
             {
                 return it.key();
             }
-            if (it.value().mode == ProcessMode::Image)
+            if (!isImage && it.value().mode != ProcessMode::Image)
             {
                 return it.key();
             }

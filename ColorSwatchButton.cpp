@@ -5,7 +5,7 @@
 ColorSwatchButton::ColorSwatchButton(const QColor& color, QWidget* parent)
     : QWidget(parent), m_color(color)
 {
-    setFixedSize(28, 28);
+    setFixedSize(24,24);
     setCursor(Qt::PointingHandCursor);
 }
 
@@ -22,27 +22,27 @@ void ColorSwatchButton::paintEvent(QPaintEvent*)
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    QRectF r = rect().adjusted(2, 2, -2, -2);
-
-    // 填充
-    p.setBrush(m_color);
-    p.setPen(Qt::NoPen);
-    p.drawRoundedRect(r, 4, 4);
-
-    // Hover 描边
-    if (m_hovered)
-    {
-        p.setPen(QPen(QColor("#DDDDDD"), 2));
-        p.setBrush(Qt::NoBrush);
-        p.drawRoundedRect(r, 4, 4);
+    if (m_hovered && !m_selected) {
+        p.setPen(Qt::NoPen);
+        p.setBrush(QColor(243, 243, 247));
+        p.drawRoundedRect(rect(), 4, 4);
     }
 
-    // 选中态
+    const QRectF r = rect().adjusted(3, 3, -3, -3);
+    const qreal radius = 4.0;
+
+    p.setBrush(m_color);
+    p.setPen(Qt::NoPen);
+    p.drawRoundedRect(r, radius, radius);
+
     if (m_selected)
     {
-        p.setPen(QPen(QColor("#C0C0C0"), 2));
+        const qreal padding = 2.0;
+        const QPen selectPen(QColor(45, 54, 65), 1);
+        p.setPen(selectPen);
         p.setBrush(Qt::NoBrush);
-        p.drawRoundedRect(r, 4, 4);
+        p.drawRoundedRect(r.adjusted(-padding, -padding, padding, padding),
+                          radius + padding, radius + padding);
     }
 }
 

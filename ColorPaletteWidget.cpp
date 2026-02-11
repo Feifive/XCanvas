@@ -47,6 +47,7 @@ void ColorPaletteWidget::setColors(const QVector<QColor>& colors)
         {
             setCurrentColor(activeColor);
             AppSettings::instance().setActiveColor(activeColor);
+            emit colorSelected(activeColor);
         });
     }
 }

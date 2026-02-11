@@ -88,7 +88,8 @@ inline QPointF sceneToCanvas(const QPointF& scenePos) {
 
 inline QColor autoTextColor(const QColor& bg)
 {
-    return (qGray(bg.rgb()) < 128) ? Qt::white : Qt::black;
+    const int perceivedBrightness = (bg.red() * 299 + bg.green() * 587 + bg.blue() * 114) / 1000;
+    return (perceivedBrightness < 140) ? Qt::white : Qt::black;
 }
 
 #endif// GLOBAL_H

@@ -78,8 +78,8 @@ void LayerPanel::setRowWidgets(int row, const xcanvas::LayerParameter& param)
     int id = param.id;
 
     auto* colorLabel = new QLabel();
-    colorLabel->setText(QString("%1").arg(id, 2, 10, QChar('0')));
-    colorLabel->setFixedSize(26, 20);
+    // colorLabel->setText(QString("%1").arg(id, 2, 10, QChar('0')));
+    colorLabel->setFixedSize(20, 20);
     colorLabel->setAlignment(Qt::AlignCenter);
     colorLabel->setProperty("layerId", id);
 
@@ -88,6 +88,7 @@ void LayerPanel::setRowWidgets(int row, const xcanvas::LayerParameter& param)
         "background-color: %1; "
         "color: %2; "
         "border: none; "
+        "border-radius: 4px; "
         "}")
         .arg(param.color.name())
         .arg(autoTextColor(param.color).name()));

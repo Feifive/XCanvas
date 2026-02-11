@@ -56,6 +56,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
 
     m_colorPaletteWidget = new ColorPaletteWidget(this);
     m_colorPaletteWidget->adjustSize();
+    connect(m_colorPaletteWidget, &ColorPaletteWidget::colorSelected, this, &MyGraphicsView::onColorSelected);
 
     m_bottomFloatingToolBar = new BottomFloatingToolBar(this);
     m_bottomFloatingToolBar->adjustSize();
@@ -246,6 +247,32 @@ void MyGraphicsView::onSelectionChanged()
         updateSelectionHud();
         updateSelectionHudBarPos();
     }
+}
+
+void MyGraphicsView::onColorSelected(const QColor& color)
+{
+    if (!m_canvas || !m_canvas->shapeManager() || !m_canvas->layerManager())
+    {
+        return;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.isEmpty())
+    {
+        return;
+    }
+
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        shape->setColor(color);
+        m_canvas->layerManager()->addShapeToLayer(shape);
+    }
+
+    requestFullUpdate();
 }
 
 void MyGraphicsView::updateSelectionHud()

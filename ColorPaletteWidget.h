@@ -16,6 +16,9 @@ public:
     void setColors(const QVector<QColor>& colors);
     void setCurrentColor(const QColor& color);
 
+signals:
+    void colorSelected(const QColor& color);
+
 private:
     QVector<ColorSwatchButton*> m_buttons;
 };

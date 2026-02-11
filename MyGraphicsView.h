@@ -3,6 +3,7 @@
 
 #include <QGraphicsView>
 #include <QSvgRenderer>
+#include <QColor>
 
 class BottomFloatingToolBar;
 class SelectionHudBar;
@@ -51,6 +52,7 @@ class MyGraphicsView : public QGraphicsView
     void onUndo();
     void onRedo();
     void onSelectionChanged();
+    void onColorSelected(const QColor& color);
 
   private:
     void drawShapes(QPainter* painter, const QRectF& visibleRect);
