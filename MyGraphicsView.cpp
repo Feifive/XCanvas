@@ -9,26 +9,34 @@
 #include "Import/ImportManager.h"
 #include "Import/PDF/PDFImporter.h"
 #include "SelectionHudBar.h"
+#include "Shape/ShapeImage.h"
 #include "Shape/Shape.h"
+#include "Shape/ShapeText.h"
+#include "XMenu.h"
 #include "ToolManager.h"
+#include <QAction>
+#include <QClipboard>
 #include <QDebug>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
+#include <QGuiApplication>
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QTimer>
 #include <QUndoStack>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QKeySequence>
 #include <QMimeData>
 #include <QUrl>
 
 #include "MyMath.h"
 
 MyGraphicsView::MyGraphicsView(QWidget* parent)
-    : m_dScaleFactor(1.0), m_startPos(-1, -1), m_bDragging(false), m_canvas(new xcanvas::Canvas(this)), QGraphicsView{parent}, m_bottomFloatingToolBar(nullptr)
+    : m_dScaleFactor(1.0), m_startPos(-1, -1), m_bDragging(false), m_canvas(new xcanvas::Canvas(this)), QGraphicsView{parent}, m_bottomFloatingToolBar(nullptr), m_rightPressPos(-1, -1), m_rightDragged(false), m_pasteSerial(0)
 {
     setObjectName("MyGraphicsView");
     setTransformationAnchor(QGraphicsView::NoAnchor);
@@ -100,6 +108,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
 
 MyGraphicsView::~MyGraphicsView()
 {
+    clearCopiedShapes();
 }
 
 double MyGraphicsView::zoomValue()
@@ -114,13 +123,18 @@ void MyGraphicsView::requestFullUpdate()
 
 void MyGraphicsView::mousePressEvent(QMouseEvent* event)
 {
-    if (event->button() == Qt::RightButton)
+    if (event->button() == Qt::MiddleButton)
     {
-        // 记录初始鼠标位置并进入拖动状态
+        // 中键按住拖动画布
         m_startPos  = event->pos();
         m_bDragging = true;
         setCursor(Qt::ClosedHandCursor);// 设置为闭合手型光标
         event->accept();// 标记事件已处理
+    }
+    else if (event->button() == Qt::RightButton)
+    {
+        m_rightPressPos = event->pos();
+        m_rightDragged  = false;
     }
     m_toolMgr->mousePressEvent(event);
 }
@@ -131,6 +145,11 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
     {
         // 计算鼠标移动的增量
         QPoint delta = event->pos() - m_startPos.toPoint();
+        const QPoint totalRightDelta = event->pos() - m_rightPressPos;
+        if (!m_rightDragged && (qAbs(totalRightDelta.x()) > 3 || qAbs(totalRightDelta.y()) > 3))
+        {
+            m_rightDragged = true;
+        }
 
         // 水平滚动条：反向移动增量（因为视图移动方向与鼠标相反）
         horizontalScrollBar()->setValue(horizontalScrollBar()->value() - delta.x());
@@ -142,39 +161,127 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
         m_startPos = event->pos();
         event->accept();
     }
+
+    if (event->buttons() & Qt::RightButton)
+    {
+        const QPoint totalRightDelta = event->pos() - m_rightPressPos;
+        if (!m_rightDragged && (qAbs(totalRightDelta.x()) > 3 || qAbs(totalRightDelta.y()) > 3))
+        {
+            m_rightDragged = true;
+        }
+    }
+
     m_toolMgr->mouseMoveEvent(event);
     emit mouseMovePos(event->pos());
 }
 
 void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
 {
-    if (event->button() == Qt::RightButton && m_bDragging)
+    bool shouldOpenContextMenu = false;
+    if (event->button() == Qt::MiddleButton && m_bDragging)
     {
         m_bDragging = false;
         setCursor(Qt::ArrowCursor);// 恢复默认光标
         event->accept();
     }
+    else if (event->button() == Qt::RightButton)
+    {
+        shouldOpenContextMenu = !m_rightDragged && m_toolMgr && m_toolMgr->currentTool() == DrawingToolType::Select;
+        m_rightDragged = false;
+    }
     m_toolMgr->mouseReleaseEvent(event);
+    if (shouldOpenContextMenu)
+    {
+        showCanvasContextMenu(event->pos());
+    }
 }
 
 void MyGraphicsView::keyPressEvent(QKeyEvent* event)
 {
+    if (event->matches(QKeySequence::Cut))
+    {
+        cutSelectedShapes();
+        event->accept();
+        return;
+    }
+
+    if (event->matches(QKeySequence::Copy))
+    {
+        copySelectedShapes();
+        event->accept();
+        return;
+    }
+
+    if (event->matches(QKeySequence::Paste))
+    {
+        pasteCopiedShapes();
+        event->accept();
+        return;
+    }
+
     m_toolMgr->keyPressEvent(event);
     QGraphicsView::keyPressEvent(event);
 }
 
 void MyGraphicsView::wheelEvent(QWheelEvent* event)
 {
-    const QPointF cursorViewPos = mapFromGlobal(QCursor::pos());
+    const Qt::KeyboardModifiers modifiers = event->modifiers();
+    const QPoint                pixelDelta = event->pixelDelta();
+    const QPoint                angleDelta = event->angleDelta();
 
-    if (event->angleDelta().y() > 0)
+    if (modifiers & Qt::ControlModifier)
     {
-        zoomIn(cursorViewPos);
+        const QPointF cursorViewPos = mapFromGlobal(QCursor::pos());
+        const int     dy            = angleDelta.y() != 0 ? angleDelta.y() : pixelDelta.y();
+        if (dy > 0)
+        {
+            zoomIn(cursorViewPos);
+        }
+        else if (dy < 0)
+        {
+            zoomOut(cursorViewPos);
+        }
+        event->accept();
+        return;
+    }
+
+    auto scrollStep = [&](const bool horizontal)
+    {
+        QScrollBar* bar = horizontal ? horizontalScrollBar() : verticalScrollBar();
+        if (!bar)
+        {
+            return;
+        }
+
+        int delta = 0;
+        if (!pixelDelta.isNull())
+        {
+            delta = horizontal ? pixelDelta.x() : pixelDelta.y();
+        }
+        else if (!angleDelta.isNull())
+        {
+            const int angle = horizontal
+                                  ? (angleDelta.x() != 0 ? angleDelta.x() : angleDelta.y())
+                                  : (angleDelta.y() != 0 ? angleDelta.y() : angleDelta.x());
+            delta = angle / 3;
+        }
+
+        if (delta != 0)
+        {
+            bar->setValue(bar->value() - delta);
+        }
+    };
+
+    if (modifiers & Qt::ShiftModifier)
+    {
+        scrollStep(true);
     }
     else
     {
-        zoomOut(cursorViewPos);
+        scrollStep(false);
     }
+
+    event->accept();
 }
 
 void MyGraphicsView::resizeEvent(QResizeEvent* event)
@@ -864,4 +971,451 @@ void MyGraphicsView::dropEvent(QDropEvent* event)
     event->acceptProposedAction();
     const QPointF mouseScenePos = mapToScene(event->pos());
     importFiles(filePaths, mouseScenePos);
+}
+
+void MyGraphicsView::showCanvasContextMenu(const QPoint& viewPos)
+{
+    const bool canCopy = m_canvas && m_canvas->shapeManager() && m_canvas->shapeManager()->hasSelection();
+    const bool canCut = canCopy;
+    const bool canPaste = hasClipboardPasteContent() || !m_copiedShapes.isEmpty();
+    const bool canDelete = canCopy;
+
+    XMenu menu(this);
+
+    QAction* cutAction = nullptr;
+    QAction* copyAction = nullptr;
+    QAction* pasteAction = nullptr;
+    QAction* deleteAction = nullptr;
+    QAction* selectAllAction = nullptr;
+    QAction* zoomInAction = nullptr;
+    QAction* zoomOutAction = nullptr;
+
+    if (canCut)
+    {
+        cutAction = menu.addAction(tr("剪切"));
+        cutAction->setShortcut(QKeySequence::Cut);
+        cutAction->setShortcutVisibleInContextMenu(true);
+    }
+
+    if (canCopy)
+    {
+        copyAction = menu.addAction(tr("复制"));
+        copyAction->setShortcut(QKeySequence::Copy);
+        copyAction->setShortcutVisibleInContextMenu(true);
+    }
+
+    if (canPaste)
+    {
+        pasteAction = menu.addAction(tr("粘贴"));
+        pasteAction->setShortcut(QKeySequence::Paste);
+        pasteAction->setShortcutVisibleInContextMenu(true);
+    }
+
+    if (canDelete)
+    {
+        deleteAction = menu.addAction(tr("删除"));
+        deleteAction->setShortcut(QKeySequence::Delete);
+        deleteAction->setShortcutVisibleInContextMenu(true);
+    }
+
+    menu.addSeparator();
+
+    selectAllAction = menu.addAction(tr("全选"));
+    selectAllAction->setShortcut(QKeySequence::SelectAll);
+    selectAllAction->setShortcutVisibleInContextMenu(true);
+
+    zoomInAction = menu.addAction(tr("放大"));
+    zoomInAction->setShortcut(QKeySequence::ZoomIn);
+    zoomInAction->setShortcutVisibleInContextMenu(true);
+
+    zoomOutAction = menu.addAction(tr("缩小"));
+    zoomOutAction->setShortcut(QKeySequence::ZoomOut);
+    zoomOutAction->setShortcutVisibleInContextMenu(true);
+
+    QAction* result = menu.exec(mapToGlobal(viewPos));
+    if (result == cutAction)
+    {
+        cutSelectedShapes();
+    }
+    else if (result == copyAction)
+    {
+        copySelectedShapes();
+    }
+    else if (result == pasteAction)
+    {
+        pasteCopiedShapesAt(mapToScene(viewPos));
+    }
+    else if (result == deleteAction)
+    {
+        deleteSelectedShapes();
+    }
+    else if (result == selectAllAction)
+    {
+        if (m_canvas && m_canvas->shapeManager())
+        {
+            m_canvas->shapeManager()->selectAll();
+            requestFullUpdate();
+        }
+    }
+    else if (result == zoomInAction)
+    {
+        onZoomIn();
+    }
+    else if (result == zoomOutAction)
+    {
+        onZoomOut();
+    }
+}
+
+bool MyGraphicsView::copySelectedShapes()
+{
+    if (!m_canvas || !m_canvas->shapeManager())
+    {
+        return false;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.isEmpty())
+    {
+        return false;
+    }
+
+    clearCopiedShapes();
+    m_copiedShapes.reserve(selectedShapes.size());
+
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        if (xcanvas::Shape* cloned = shape->clone())
+        {
+            m_copiedShapes.append(cloned);
+        }
+    }
+
+    m_pasteSerial = 0;
+    if (QClipboard* clipboard = QGuiApplication::clipboard())
+    {
+        clipboard->clear();
+    }
+    return !m_copiedShapes.isEmpty();
+}
+
+bool MyGraphicsView::cutSelectedShapes()
+{
+    if (!copySelectedShapes())
+    {
+        return false;
+    }
+
+    return deleteSelectedShapes();
+}
+
+bool MyGraphicsView::pasteCopiedShapes()
+{
+    if (!m_canvas || !m_canvas->shapeManager())
+    {
+        return false;
+    }
+
+    const QPointF centerPos = mapToScene(viewport()->rect().center());
+    if (pasteFromClipboard(centerPos))
+    {
+        return true;
+    }
+
+    if (m_copiedShapes.isEmpty())
+    {
+        return false;
+    }
+
+    xcanvas::ShapeList shapesToAdd;
+    shapesToAdd.reserve(m_copiedShapes.size());
+
+    for (xcanvas::Shape* shape : m_copiedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        if (xcanvas::Shape* cloned = shape->clone())
+        {
+            shapesToAdd.append(cloned);
+        }
+    }
+
+    if (shapesToAdd.isEmpty())
+    {
+        return false;
+    }
+
+    const QPointF offset = QPointF(20.0 * (m_pasteSerial + 1), 20.0 * (m_pasteSerial + 1));
+    ++m_pasteSerial;
+    for (xcanvas::Shape* shape : shapesToAdd)
+    {
+        shape->translate(offset);
+    }
+
+    m_canvas->shapeManager()->deselectAll();
+    m_canvas->addShapes(shapesToAdd);
+    requestFullUpdate();
+    return true;
+}
+
+bool MyGraphicsView::pasteCopiedShapesAt(const QPointF& scenePos)
+{
+    if (!m_canvas || !m_canvas->shapeManager())
+    {
+        return false;
+    }
+
+    if (pasteFromClipboard(scenePos))
+    {
+        return true;
+    }
+
+    if (m_copiedShapes.isEmpty())
+    {
+        return false;
+    }
+
+    xcanvas::ShapeList shapesToAdd;
+    shapesToAdd.reserve(m_copiedShapes.size());
+
+    QRectF unionRect;
+    bool hasRect = false;
+    for (xcanvas::Shape* shape : m_copiedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        if (xcanvas::Shape* cloned = shape->clone())
+        {
+            const QRectF rect = cloned->boundingRect();
+            if (!hasRect)
+            {
+                unionRect = rect;
+                hasRect = true;
+            }
+            else
+            {
+                unionRect |= rect;
+            }
+            shapesToAdd.append(cloned);
+        }
+    }
+
+    if (shapesToAdd.isEmpty())
+    {
+        return false;
+    }
+
+    if (hasRect && unionRect.isValid())
+    {
+        const QPointF offset = scenePos - unionRect.center();
+        for (xcanvas::Shape* shape : shapesToAdd)
+        {
+            shape->translate(offset);
+        }
+    }
+
+    m_canvas->shapeManager()->deselectAll();
+    m_canvas->addShapes(shapesToAdd);
+    requestFullUpdate();
+    ++m_pasteSerial;
+    return true;
+}
+
+bool MyGraphicsView::deleteSelectedShapes()
+{
+    if (!m_canvas || !m_canvas->shapeManager())
+    {
+        return false;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.isEmpty())
+    {
+        return false;
+    }
+
+    m_canvas->removeShapes(selectedShapes);
+    requestFullUpdate();
+    return true;
+}
+
+bool MyGraphicsView::pasteFromClipboard(const QPointF& scenePos)
+{
+    if (!m_canvas || !m_canvas->shapeManager())
+    {
+        return false;
+    }
+
+    const QClipboard* clipboard = QGuiApplication::clipboard();
+    if (!clipboard)
+    {
+        return false;
+    }
+
+    const QMimeData* mimeData = clipboard->mimeData();
+    if (!mimeData)
+    {
+        return false;
+    }
+
+    const QPointF pasteOffset = QPointF(20.0 * (m_pasteSerial + 1), 20.0 * (m_pasteSerial + 1));
+    const QPointF targetPos = scenePos + pasteOffset;
+
+    QStringList importPaths;
+
+    if (mimeData->hasUrls())
+    {
+        for (const QUrl& url : mimeData->urls())
+        {
+            if (!url.isLocalFile())
+            {
+                continue;
+            }
+
+            const QString localFile = url.toLocalFile();
+            if (ImportManager::instance().canImport(localFile))
+            {
+                importPaths.append(localFile);
+            }
+        }
+    }
+
+    if (importPaths.isEmpty() && mimeData->hasText())
+    {
+        const QStringList lines = mimeData->text().split('\n', Qt::SkipEmptyParts);
+        for (const QString& rawLine : lines)
+        {
+            QString line = rawLine.trimmed();
+            if (line.isEmpty())
+            {
+                continue;
+            }
+            if (line.startsWith('"') && line.endsWith('"') && line.size() > 1)
+            {
+                line = line.mid(1, line.size() - 2);
+            }
+
+            QString localFile = line;
+            const QUrl userUrl = QUrl::fromUserInput(line);
+            if (userUrl.isValid() && userUrl.isLocalFile())
+            {
+                localFile = userUrl.toLocalFile();
+            }
+
+            if (QFileInfo::exists(localFile) && ImportManager::instance().canImport(localFile))
+            {
+                importPaths.append(localFile);
+            }
+        }
+    }
+
+    if (!importPaths.isEmpty())
+    {
+        importFiles(importPaths, targetPos);
+        ++m_pasteSerial;
+        return true;
+    }
+
+    if (mimeData->hasImage())
+    {
+        const QVariant imageData = mimeData->imageData();
+        if (imageData.canConvert<QImage>())
+        {
+            const QImage image = imageData.value<QImage>();
+            if (!image.isNull())
+            {
+                auto* shape = new xcanvas::ShapeImage(image);
+                shape->setSize(image.size());
+                shape->translate(targetPos - QPointF(image.width() / 2.0, image.height() / 2.0));
+                m_canvas->shapeManager()->deselectAll();
+                m_canvas->addShape(shape);
+                m_canvas->shapeManager()->selectShape(shape, true);
+                requestFullUpdate();
+                ++m_pasteSerial;
+                return true;
+            }
+        }
+    }
+
+    if (mimeData->hasText())
+    {
+        const QString text = mimeData->text();
+        if (!text.trimmed().isEmpty())
+        {
+            QFont font;
+            font.setFamily("MiSans");
+            font.setPixelSize(24);
+
+            auto* shape = new xcanvas::ShapeText();
+            shape->setText(text);
+            shape->setFont(font);
+            shape->setColor(AppSettings::instance().activeColor());
+            shape->translate(targetPos);
+
+            m_canvas->shapeManager()->deselectAll();
+            m_canvas->addShape(shape);
+            m_canvas->shapeManager()->selectShape(shape, true);
+            requestFullUpdate();
+            ++m_pasteSerial;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool MyGraphicsView::hasClipboardPasteContent() const
+{
+    const QClipboard* clipboard = QGuiApplication::clipboard();
+    if (!clipboard)
+    {
+        return false;
+    }
+
+    const QMimeData* mimeData = clipboard->mimeData();
+    if (!mimeData)
+    {
+        return false;
+    }
+
+    if (mimeData->hasUrls())
+    {
+        for (const QUrl& url : mimeData->urls())
+        {
+            if (url.isLocalFile() && ImportManager::instance().canImport(url.toLocalFile()))
+            {
+                return true;
+            }
+        }
+    }
+
+    if (mimeData->hasImage())
+    {
+        const QVariant imageData = mimeData->imageData();
+        if (imageData.canConvert<QImage>() && !imageData.value<QImage>().isNull())
+        {
+            return true;
+        }
+    }
+
+    if (mimeData->hasText())
+    {
+        return !mimeData->text().trimmed().isEmpty();
+    }
+
+    return false;
+}
+
+void MyGraphicsView::clearCopiedShapes()
+{
+    qDeleteAll(m_copiedShapes);
+    m_copiedShapes.clear();
 }

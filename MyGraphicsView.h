@@ -4,6 +4,7 @@
 #include <QGraphicsView>
 #include <QSvgRenderer>
 #include <QColor>
+#include <QVector>
 
 class BottomFloatingToolBar;
 class SelectionHudBar;
@@ -15,6 +16,7 @@ class DrawingTool;
 class Canvas;
 class ToolManager;
 class LayerManager;
+class Shape;
 }// namespace xcanvas
 
 class MyGraphicsView : public QGraphicsView
@@ -76,6 +78,15 @@ class MyGraphicsView : public QGraphicsView
     void   fitHeight();
     void   fitCanvas();
     void   fitShapes();
+    void   showCanvasContextMenu(const QPoint& viewPos);
+    bool   copySelectedShapes();
+    bool   cutSelectedShapes();
+    bool   pasteCopiedShapes();
+    bool   pasteCopiedShapesAt(const QPointF& scenePos);
+    bool   deleteSelectedShapes();
+    bool   pasteFromClipboard(const QPointF& scenePos);
+    bool   hasClipboardPasteContent() const;
+    void   clearCopiedShapes();
 
   private:
     xcanvas::Canvas*       m_canvas;
@@ -87,6 +98,10 @@ class MyGraphicsView : public QGraphicsView
     ColorPaletteWidget*    m_colorPaletteWidget;
     std::unique_ptr<xcanvas::ToolManager> m_toolMgr;
     QSvgRenderer                          m_rotateHandle;
+    QVector<xcanvas::Shape*>              m_copiedShapes;
+    QPoint                                m_rightPressPos;
+    bool                                  m_rightDragged;
+    int                                   m_pasteSerial;
 };
 
 #endif// MYGRAPHICSVIEW_H
