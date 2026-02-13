@@ -1,0 +1,449 @@
+#include "DocumentIO.h"
+
+#include "DocumentTypes.h"
+#include "LayerCodec.h"
+#include "ShapeCodec.h"
+
+#include "../Canvas/Canvas.h"
+#include "../Layer/LayerManager.h"
+#include "../Shape/Shape.h"
+#include "../Shape/ShapeManager.h"
+
+#include <QDateTime>
+#include <QProcessEnvironment>
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
+#include <QThread>
+#include <QUndoStack>
+#include <QDebug>
+
+#include <limits>
+#include <zstd.h>
+
+namespace xcanvas::serialization
+{
+namespace
+{
+constexpr const char* kKeyX = "x";
+constexpr const char* kKeyY = "y";
+constexpr const char* kKeyW = "w";
+constexpr const char* kKeyH = "h";
+
+int resolveZstdThreads(const QProcessEnvironment& env)
+{
+    bool envOk = false;
+    int  envThreads = env.value(QString::fromLatin1(kZstdThreadsEnvKey)).toInt(&envOk);
+    if (envOk)
+    {
+        return qBound(0, envThreads, 256);
+    }
+
+    const int ideal = QThread::idealThreadCount();
+    if (ideal <= 1)
+    {
+        return 0;
+    }
+    return qBound(2, ideal, 64);
+}
+
+QByteArray compressWithZstd(const QByteArray& input, const int level, const int workers, QString* err)
+{
+    ZSTD_CCtx* cctx = ZSTD_createCCtx();
+    if (!cctx)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Failed to create zstd context");
+        }
+        return {};
+    }
+
+    size_t code = ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, level);
+    if (ZSTD_isError(code))
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Failed to set zstd level: %1").arg(QString::fromLatin1(ZSTD_getErrorName(code)));
+        }
+        ZSTD_freeCCtx(cctx);
+        return {};
+    }
+
+    code = ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, workers);
+    if (ZSTD_isError(code))
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Failed to set zstd workers: %1").arg(QString::fromLatin1(ZSTD_getErrorName(code)));
+        }
+        ZSTD_freeCCtx(cctx);
+        return {};
+    }
+
+    const size_t bound = ZSTD_compressBound(static_cast<size_t>(input.size()));
+    QByteArray   output;
+    output.resize(static_cast<int>(bound));
+
+    const size_t written = ZSTD_compress2(cctx, output.data(), bound, input.constData(), static_cast<size_t>(input.size()));
+    ZSTD_freeCCtx(cctx);
+    if (ZSTD_isError(written))
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Zstd compress failed: %1").arg(QString::fromLatin1(ZSTD_getErrorName(written)));
+        }
+        return {};
+    }
+
+    output.resize(static_cast<int>(written));
+    return output;
+}
+
+QByteArray decompressWithZstd(const QByteArray& input, QString* err)
+{
+    const unsigned long long rawSize = ZSTD_getFrameContentSize(input.constData(), static_cast<size_t>(input.size()));
+    if (rawSize == ZSTD_CONTENTSIZE_ERROR)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Invalid zstd frame");
+        }
+        return {};
+    }
+    if (rawSize == ZSTD_CONTENTSIZE_UNKNOWN)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Unsupported zstd frame with unknown size");
+        }
+        return {};
+    }
+    if (rawSize > static_cast<unsigned long long>(std::numeric_limits<int>::max()))
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Decompressed payload too large");
+        }
+        return {};
+    }
+
+    QByteArray output;
+    output.resize(static_cast<int>(rawSize));
+
+    const size_t decoded = ZSTD_decompress(output.data(), static_cast<size_t>(output.size()), input.constData(), static_cast<size_t>(input.size()));
+    if (ZSTD_isError(decoded))
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Zstd decompress failed: %1").arg(QString::fromLatin1(ZSTD_getErrorName(decoded)));
+        }
+        return {};
+    }
+
+    output.resize(static_cast<int>(decoded));
+    return output;
+}
+
+QJsonObject encodeRect(const QRectF& rect)
+{
+    QJsonObject obj;
+    obj.insert(kKeyX, rect.x());
+    obj.insert(kKeyY, rect.y());
+    obj.insert(kKeyW, rect.width());
+    obj.insert(kKeyH, rect.height());
+    return obj;
+}
+
+QRectF decodeRect(const QJsonObject& obj, const QRectF& fallback = QRectF())
+{
+    if (!obj.contains(kKeyX) || !obj.contains(kKeyY) || !obj.contains(kKeyW) || !obj.contains(kKeyH))
+    {
+        return fallback;
+    }
+    return QRectF(
+        obj.value(kKeyX).toDouble(fallback.x()),
+        obj.value(kKeyY).toDouble(fallback.y()),
+        obj.value(kKeyW).toDouble(fallback.width()),
+        obj.value(kKeyH).toDouble(fallback.height()));
+}
+}// namespace
+
+bool saveDocument(const Canvas* canvas, const QString& filePath, QString* err)
+{
+    if (!canvas)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Canvas is null");
+        }
+        return false;
+    }
+
+    const ShapeManager* shapeManager = canvas->shapeManager();
+    const LayerManager* layerManager = canvas->layerManager();
+    if (!shapeManager || !layerManager)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Canvas managers are unavailable");
+        }
+        return false;
+    }
+
+    QJsonObject root;
+    root.insert(kKeyVersion, kDocumentVersion);
+    root.insert(kKeyCanvas, encodeRect(canvas->canvasRect()));
+
+    QJsonObject meta;
+    meta.insert(kKeyApp, QStringLiteral("XCanvas"));
+    meta.insert(kKeyTime, QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
+    root.insert(kKeyMeta, meta);
+
+    QJsonArray layers;
+    const QList<int>& order = layerManager->layerOrder();
+    for (int id : order)
+    {
+        const LayerParameter* layer = layerManager->tryGetLayer(id);
+        if (!layer)
+        {
+            continue;
+        }
+        layers.append(encodeLayer(*layer));
+    }
+    root.insert(kKeyLayers, layers);
+
+    QJsonArray shapes;
+    const ShapeList shapeList = shapeManager->shapes();
+    for (const Shape* shape : shapeList)
+    {
+        QJsonObject encoded = encodeShape(shape);
+        if (!encoded.isEmpty())
+        {
+            shapes.append(encoded);
+        }
+    }
+    root.insert(kKeyShapes, shapes);
+
+    QSaveFile out(filePath);
+    if (!out.open(QIODevice::WriteOnly))
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Failed to open file for writing: %1").arg(filePath);
+        }
+        return false;
+    }
+
+    const QByteArray         jsonPayload = QJsonDocument(root).toJson(QJsonDocument::Indented);
+    const QProcessEnvironment env        = QProcessEnvironment::systemEnvironment();
+    const bool               savePlain   = env.value(QString::fromLatin1(kPlainSaveEnvKey)) == QStringLiteral("1");
+
+    QByteArray payload;
+    if (savePlain)
+    {
+        payload = jsonPayload;
+    }
+    else
+    {
+        bool levelOk = false;
+        int  zstdLevel = env.value(QString::fromLatin1(kZstdLevelEnvKey)).toInt(&levelOk);
+        if (!levelOk)
+        {
+            zstdLevel = 6;
+        }
+        zstdLevel = qBound(1, zstdLevel, 22);
+
+        const int  zstdWorkers = resolveZstdThreads(env);
+        qDebug().noquote() << QStringLiteral("[XCanvas] save zstd: level=%1 workers=%2 bytes=%3")
+                                  .arg(zstdLevel)
+                                  .arg(zstdWorkers)
+                                  .arg(jsonPayload.size());
+        QString    compressErr;
+        QByteArray compressed = compressWithZstd(jsonPayload, zstdLevel, zstdWorkers, &compressErr);
+        if (compressed.isEmpty() && !jsonPayload.isEmpty())
+        {
+            if (err)
+            {
+                *err = compressErr.isEmpty() ? QStringLiteral("Zstd compression failed") : compressErr;
+            }
+            out.cancelWriting();
+            return false;
+        }
+
+        payload = QByteArray(kCompressedHeaderZstd);
+        payload += compressed;
+    }
+
+    if (out.write(payload) != payload.size())
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Failed to write complete file: %1").arg(filePath);
+        }
+        out.cancelWriting();
+        return false;
+    }
+
+    if (!out.commit())
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Failed to commit save file: %1").arg(filePath);
+        }
+        return false;
+    }
+
+    return true;
+}
+
+bool loadDocument(Canvas* canvas, const QString& filePath, QString* err)
+{
+    if (!canvas)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Canvas is null");
+        }
+        return false;
+    }
+
+    ShapeManager* shapeManager = canvas->shapeManager();
+    LayerManager* layerManager = canvas->layerManager();
+    QUndoStack*   undoStack    = canvas->undoStack();
+    if (!shapeManager || !layerManager || !undoStack)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Canvas managers are unavailable");
+        }
+        return false;
+    }
+
+    QFile in(filePath);
+    if (!in.open(QIODevice::ReadOnly))
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Failed to open file: %1").arg(filePath);
+        }
+        return false;
+    }
+
+    QByteArray fileBytes = in.readAll();
+    QByteArray jsonBytes;
+    if (fileBytes.startsWith(kCompressedHeaderZstd))
+    {
+        const QByteArray compressed = fileBytes.mid(static_cast<int>(qstrlen(kCompressedHeaderZstd)));
+        QString          decodeErr;
+        jsonBytes = decompressWithZstd(compressed, &decodeErr);
+        if (jsonBytes.isEmpty() && !compressed.isEmpty())
+        {
+            if (err)
+            {
+                *err = decodeErr.isEmpty() ? QStringLiteral("Invalid compressed xcanvas file") : decodeErr;
+            }
+            return false;
+        }
+    }
+    else
+    {
+        jsonBytes = fileBytes;
+    }
+
+    QJsonParseError parseError;
+    const QJsonDocument doc = QJsonDocument::fromJson(jsonBytes, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject())
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Invalid JSON document: %1").arg(parseError.errorString());
+        }
+        return false;
+    }
+
+    const QJsonObject root = doc.object();
+    const int version = root.value(kKeyVersion).toInt(-1);
+    if (version != kDocumentVersion)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Unsupported document version: %1").arg(version);
+        }
+        return false;
+    }
+
+    const QRectF canvasRect = decodeRect(root.value(kKeyCanvas).toObject(), canvas->canvasRect());
+
+    const QJsonArray layersArr = root.value(kKeyLayers).toArray();
+    const QJsonArray shapesArr = root.value(kKeyShapes).toArray();
+
+    ShapeList loadedShapes;
+    loadedShapes.reserve(shapesArr.size());
+    for (const QJsonValue& value : shapesArr)
+    {
+        if (!value.isObject())
+        {
+            continue;
+        }
+        QString parseShapeErr;
+        Shape*  shape = decodeShape(value.toObject(), &parseShapeErr);
+        if (shape)
+        {
+            loadedShapes.append(shape);
+        }
+    }
+
+    // Rebuild scene atomically after successful decode to avoid half-loaded state.
+    shapeManager->clear();
+    layerManager->clearAllLayers();
+    undoStack->clear();
+    canvas->setCanvasRect(canvasRect);
+
+    QList<int> order;
+    order.reserve(layersArr.size());
+    for (const QJsonValue& value : layersArr)
+    {
+        if (!value.isObject())
+        {
+            continue;
+        }
+
+        LayerParameter layer;
+        QString        parseLayerErr;
+        if (!decodeLayer(value.toObject(), &layer, &parseLayerErr))
+        {
+            continue;
+        }
+
+        if (layerManager->createLayerWithId(layer))
+        {
+            order.append(layer.id);
+        }
+    }
+
+    if (!order.isEmpty())
+    {
+        layerManager->setLayerOrder(order);
+    }
+    layerManager->rebuildNextId();
+
+    shapeManager->append(loadedShapes);
+    for (Shape* shape : loadedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        if (!layerManager->bindShapeToLayer(shape, shape->layerId()))
+        {
+            layerManager->addShapeToLayer(shape);
+        }
+    }
+
+    shapeManager->deselectAll();
+    return true;
+}
+}// namespace xcanvas::serialization

@@ -20,6 +20,8 @@ class ShapeImage final : public Shape
     Shape* clone() override;
     ShapeType type() const override;
     void      setSize(const QSizeF& size);
+    const QImage& image() const;
+    QSizeF        imageSize() const;
 
   protected:
     void updatePainterPath() override;

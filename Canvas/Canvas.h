@@ -24,11 +24,14 @@ class Canvas final : public QObject
 
     ShapeManager* shapeManager() const;
     LayerManager* layerManager();
+    const LayerManager* layerManager() const;
     QUndoStack*   undoStack() const;
     void          addShape(xcanvas::Shape* shape);
     void          addShapes(const xcanvas::ShapeList& shapeList);
     void          removeShape(xcanvas::Shape* shape);
     void          removeShapes(const xcanvas::ShapeList& shapeList);
+    bool          saveToFile(const QString& filePath, QString* err = nullptr) const;
+    bool          loadFromFile(const QString& filePath, QString* err = nullptr);
 
   private:
     QRectF        m_canvasRect;

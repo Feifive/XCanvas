@@ -57,6 +57,17 @@ ShapeType ShapeImage::type() const
 
 void ShapeImage::setSize(const QSizeF &size) {
     m_imageSize = size;
+    markDirty();
+}
+
+const QImage& ShapeImage::image() const
+{
+    return m_image;
+}
+
+QSizeF ShapeImage::imageSize() const
+{
+    return m_imageSize;
 }
 
 void ShapeImage::updatePainterPath()

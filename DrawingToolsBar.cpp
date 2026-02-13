@@ -8,6 +8,7 @@
 #include <QFileDialog>
 #include <QLabel>
 #include <QMenu>
+#include <QKeySequence>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidgetAction>
@@ -25,7 +26,7 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
 
     auto MakeButton = [&](const QString& iconPath, bool addToGroup = true)
     {
-        QToolButton* pToolButton = new QToolButton(this);
+        auto* pToolButton = new QToolButton(this);
         pToolButton->setFixedSize(QSize(36, 36));
         pToolButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
         pToolButton->setIcon(QIcon(iconPath));
@@ -67,12 +68,9 @@ DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
     initMainMenu();
 }
 
-DrawingToolsBar::~DrawingToolsBar()
-{
-}
+DrawingToolsBar::~DrawingToolsBar() = default;
 
-void DrawingToolsBar::onFinishDrawing()
-{
+void DrawingToolsBar::onFinishDrawing() const {
     m_pSelectTool->setChecked(true);
 }
 
@@ -126,10 +124,33 @@ void DrawingToolsBar::initMainMenu()
     addContrastAction("网格-中", AppSettings::GridContrast::Medium);
     addContrastAction("网格-弱", AppSettings::GridContrast::Low);
     addContrastAction("网格-关闭", AppSettings::GridContrast::Off);
-    auto* fileMenu  = new XMenu("文件", this);
-    auto* editeMenu = new XMenu("编辑", this);
+    auto* fileMenu = new XMenu("文件", this);
+    auto* newAction = fileMenu->addAction(tr("新建"));
+    fileMenu->addSeparator();
+    auto* openAction = fileMenu->addAction(tr("打开项目"));
+    auto* importAction = fileMenu->addAction(tr("导入"));
+    fileMenu->addSeparator();
+    auto* saveAction = fileMenu->addAction(tr("保存"));
+    auto* saveAsAction = fileMenu->addAction(tr("另存为"));
+
+    auto attachShortcut = [](QAction* action, const QKeySequence& sequence)
+    {
+        action->setShortcut(sequence);
+        action->setShortcutVisibleInContextMenu(true);
+    };
+    attachShortcut(newAction, QKeySequence::New);
+    attachShortcut(openAction, QKeySequence::Open);
+    attachShortcut(importAction, QKeySequence(Qt::CTRL | Qt::Key_I));
+    attachShortcut(saveAction, QKeySequence::Save);
+    attachShortcut(saveAsAction, QKeySequence::SaveAs);
+
+    connect(newAction, &QAction::triggered, this, [] { emit EventBus::instance().newFileRequested(); });
+    connect(openAction, &QAction::triggered, this, [] { emit EventBus::instance().openFileRequested(); });
+    connect(saveAction, &QAction::triggered, this, [] { emit EventBus::instance().saveFileRequested(); });
+    connect(saveAsAction, &QAction::triggered, this, [] { emit EventBus::instance().saveFileAsRequested(); });
+    connect(importAction, &QAction::triggered, this, [] { emit EventBus::instance().importFileRequested(); });
+
     mainMenu->addMenu(fileMenu);
-    mainMenu->addMenu(editeMenu);
     mainMenu->addMenu(gridSetting);
     m_pMainMenu->setMenu(mainMenu);
 }

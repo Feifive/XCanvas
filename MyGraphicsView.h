@@ -53,6 +53,10 @@ class MyGraphicsView : public QGraphicsView
     void onZoomOut();
     void onUndo();
     void onRedo();
+    void onNewDocument();
+    void onOpenDocument();
+    void onSaveDocument();
+    void onSaveDocumentAs();
     void onSelectionChanged();
     void onColorSelected(const QColor& color);
 
@@ -67,6 +71,11 @@ class MyGraphicsView : public QGraphicsView
   private:
     double gridStep(double scale) const;
     void   importFile();
+    void   resetToNewDocument();
+    bool   maybeSaveBeforeProceed();
+    bool   isProjectFilePath(const QString& path) const;
+    bool   openDocumentFile(const QString& path);
+    bool   saveDocumentFile(const QString& path);
     void   importFiles(const QStringList& filePaths);
     void   importFiles(const QStringList& filePaths, const QPointF& targetCenter);
     void   updateBottomFloatingToolBarPos();
@@ -87,6 +96,8 @@ class MyGraphicsView : public QGraphicsView
     bool   pasteFromClipboard(const QPointF& scenePos);
     bool   hasClipboardPasteContent() const;
     void   clearCopiedShapes();
+    void   updateWindowTitle();
+    QString projectDisplayName() const;
 
   private:
     xcanvas::Canvas*       m_canvas;
@@ -102,6 +113,7 @@ class MyGraphicsView : public QGraphicsView
     QPoint                                m_rightPressPos;
     bool                                  m_rightDragged;
     int                                   m_pasteSerial;
+    QString                               m_currentDocumentPath;
 };
 
 #endif// MYGRAPHICSVIEW_H

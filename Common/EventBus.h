@@ -15,7 +15,11 @@ signals:
     void switchTool(DrawingToolType);
     void finishDrawing();
     void zoomChanged(const qreal zoomValue);
+    void newFileRequested();
     void importFileRequested();
+    void openFileRequested();
+    void saveFileRequested();
+    void saveFileAsRequested();
 
 private:
     EventBus() {}

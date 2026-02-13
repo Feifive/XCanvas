@@ -1,6 +1,7 @@
 #include "Canvas.h"
 #include "AddShapesCommand.h"
 #include "RemoveShapesCommand.h"
+#include "../Serialization/DocumentIO.h"
 #include <QUndoStack>
 
 namespace xcanvas
@@ -30,6 +31,11 @@ ShapeManager* Canvas::shapeManager() const
 }
 
 LayerManager* Canvas::layerManager()
+{
+    return m_layerManager;
+}
+
+const LayerManager* Canvas::layerManager() const
 {
     return m_layerManager;
 }
@@ -72,6 +78,16 @@ void Canvas::removeShapes(const ShapeList& shapeList)
     }
 
     m_undoStack->push(new xcanvas::RemoveShapesCommand(m_shapeManager, m_layerManager, shapeList));
+}
+
+bool Canvas::saveToFile(const QString& filePath, QString* err) const
+{
+    return serialization::saveDocument(this, filePath, err);
+}
+
+bool Canvas::loadFromFile(const QString& filePath, QString* err)
+{
+    return serialization::loadDocument(this, filePath, err);
 }
 
 }// namespace xcanvas

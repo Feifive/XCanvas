@@ -12,10 +12,10 @@ class DrawingToolsBar : public QToolBar
     Q_OBJECT
   public:
     explicit DrawingToolsBar(QWidget* parent = nullptr);
-    ~DrawingToolsBar();
+    ~DrawingToolsBar() override;
 
   private:
-    void onFinishDrawing();
+    void onFinishDrawing() const;
     void initMainMenu();
 
   private:

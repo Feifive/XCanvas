@@ -28,7 +28,7 @@ void ColorSwatchButton::paintEvent(QPaintEvent*)
         p.drawRoundedRect(rect(), 4, 4);
     }
 
-    const QRectF r = rect().adjusted(3.5, 3.5, -3.5, -3.5);
+    const QRectF r = rect().adjusted(3, 3, -3, -3);
     const qreal radius = 4.0;
 
     p.setBrush(m_color);

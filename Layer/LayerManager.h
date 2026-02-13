@@ -43,8 +43,11 @@ class LayerManager final : public QObject
 
     int             findOrCreateLayerByShape(const Shape* shape);
     int             createLayer(const QColor& color, bool isImage);
+    bool            createLayerWithId(const LayerParameter& layer);
+    void            clearAllLayers();
     void            removeLayer(int layerId);
     LayerParameter& getLayer(int layerId);
+    const LayerParameter* tryGetLayer(int layerId) const;
     QList<int>      layerIds() const;
 
     // --- 图元与图层的关系维护 ---
@@ -55,6 +58,7 @@ class LayerManager final : public QObject
 
     QSet<Shape*> getShapesInLayer(int layerId) const;
     int          getLayerIdOfShape(Shape* shape) const;
+    bool         bindShapeToLayer(Shape* shape, int layerId);
 
     // --- 批量属性同步 ---
     void setLayerColor(int layerId, const QColor& color);
@@ -62,6 +66,8 @@ class LayerManager final : public QObject
 
     // --- 顺序管理 ---
     const QList<int>& layerOrder() const;
+    bool              setLayerOrder(const QList<int>& order);
+    void              rebuildNextId();
 
     // 将图层从 fromIndex 移动到 toIndex (对应 UI 拖拽)
     void moveLayer(int fromIndex, int toIndex);

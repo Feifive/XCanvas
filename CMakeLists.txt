@@ -35,6 +35,12 @@ find_package(Qt6 REQUIRED COMPONENTS Svg)
 add_subdirectory(3rdparty/pdfium)
 add_subdirectory(3rdparty/Clipper2Lib)
 
+set(ZSTD_BUILD_STATIC ON CACHE INTERNAL "")
+set(ZSTD_BUILD_SHARED OFF CACHE INTERNAL "")
+set(ZSTD_BUILD_PROGRAMS OFF CACHE INTERNAL "")
+set(ZSTD_BUILD_TESTS OFF CACHE INTERNAL "")
+add_subdirectory(3rdparty/zstd/build/cmake EXCLUDE_FROM_ALL)
+
 # ============================================================
 # 源文件
 # ============================================================
@@ -49,6 +55,7 @@ file(GLOB IMPORT_UTILS Import/Utils/*.h Import/Utils/*.cpp)
 file(GLOB IMPORT_DXF  Import/DXF/*.h Import/DXF/*.cpp)
 file(GLOB IMPORT_IMG  Import/Image/*.h Import/Image/*.cpp)
 file(GLOB IMPORT_PDF  Import/PDF/*.h Import/PDF/*.cpp)
+file(GLOB SERIALIZATION  Serialization/*.h Serialization/*.cpp)
 
 source_group("DrawingTool"   FILES ${DRAWINGTOOL})
 source_group("Shape"         FILES ${SHAPE})
@@ -60,6 +67,7 @@ source_group("Import\\Utils" FILES ${IMPORT_UTILS})
 source_group("Import\\DXF"   FILES ${IMPORT_DXF})
 source_group("Import\\Image" FILES ${IMPORT_IMG})
 source_group("Import\\PDF"   FILES ${IMPORT_PDF})
+source_group("Serialization"   FILES ${SERIALIZATION})
 
 set(PROJECT_SOURCES
     main.cpp
@@ -73,6 +81,8 @@ set(PROJECT_SOURCES
     SafeDropShadowEffect.h SafeDropShadowEffect.cpp
     XMenu.h XMenu.cpp
     XHoverMenu.cpp XHoverMenu.h
+    ColorSwatchButton.cpp ColorSwatchButton.h
+    ColorPaletteWidget.cpp ColorPaletteWidget.h
 
     ${DRAWINGTOOL}
     ${SHAPE}
@@ -84,10 +94,7 @@ set(PROJECT_SOURCES
     ${IMPORT_IMG}
     ${IMPORT_PDF}
     ${IMPORT_UTILS}
-        ColorSwatchButton.cpp
-        ColorSwatchButton.h
-        ColorPaletteWidget.cpp
-        ColorPaletteWidget.h
+    ${SERIALIZATION}
 )
 
 # ============================================================
@@ -164,6 +171,7 @@ target_include_directories(XCanvas PRIVATE
     ${PROJECT_SOURCE_DIR}/DrawingTool
     ${PROJECT_SOURCE_DIR}/Common
     ${PROJECT_SOURCE_DIR}/3rdparty/libdxfrw/src
+    ${PROJECT_SOURCE_DIR}/3rdparty/zstd/lib
 )
 
 # ============================================================
@@ -191,6 +199,7 @@ target_link_libraries(XCanvas PRIVATE
     libdxfrw
     thirdparty_pdfium
     clipper2lib
+    libzstd_static
 )
 target_link_libraries(XCanvas PRIVATE Qt6::Svg)
 

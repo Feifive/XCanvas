@@ -12,6 +12,7 @@
 #include "Shape/ShapeImage.h"
 #include "Shape/Shape.h"
 #include "Shape/ShapeText.h"
+#include "Serialization/DocumentTypes.h"
 #include "XMenu.h"
 #include "ToolManager.h"
 #include <QAction>
@@ -32,6 +33,8 @@
 #include <QKeySequence>
 #include <QMimeData>
 #include <QUrl>
+#include <QMessageBox>
+#include <QPushButton>
 
 #include "MyMath.h"
 
@@ -80,7 +83,12 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::redo, this, &MyGraphicsView::onRedo);
     connect(m_canvas->undoStack(), &QUndoStack::canUndoChanged, m_bottomFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
     connect(m_canvas->undoStack(), &QUndoStack::canRedoChanged, m_bottomFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
+    connect(m_canvas->undoStack(), &QUndoStack::cleanChanged, this, [this]() { updateWindowTitle(); });
+    connect(&EventBus::instance(), &EventBus::newFileRequested, this, &MyGraphicsView::onNewDocument);
     connect(&EventBus::instance(), &EventBus::importFileRequested, this, &MyGraphicsView::importFile);
+    connect(&EventBus::instance(), &EventBus::openFileRequested, this, &MyGraphicsView::onOpenDocument);
+    connect(&EventBus::instance(), &EventBus::saveFileRequested, this, &MyGraphicsView::onSaveDocument);
+    connect(&EventBus::instance(), &EventBus::saveFileAsRequested, this, &MyGraphicsView::onSaveDocumentAs);
 
     m_selectionHudBar = new SelectionHudBar(this);
     connect(m_selectionHudBar, &SelectionHudBar::booleanUnion, m_toolMgr.get(), &xcanvas::ToolManager::booleanUnion);
@@ -104,6 +112,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     m_selectionHudBar->setVisible(false);
 
     m_rotateHandle.load(QStringLiteral(":/Resource/Icons/RotateHandle.svg"));
+    updateWindowTitle();
 }
 
 MyGraphicsView::~MyGraphicsView()
@@ -336,6 +345,226 @@ void MyGraphicsView::onRedo()
 {
     m_canvas->undoStack()->redo();
     requestFullUpdate();
+}
+
+void MyGraphicsView::onNewDocument()
+{
+    if (!maybeSaveBeforeProceed())
+    {
+        return;
+    }
+
+    resetToNewDocument();
+}
+
+void MyGraphicsView::onOpenDocument()
+{
+    if (!maybeSaveBeforeProceed())
+    {
+        return;
+    }
+
+    const QString filter = tr("XCanvas File (*%1)")
+                               .arg(QString::fromLatin1(xcanvas::serialization::kDocumentExtension));
+    const QString path = QFileDialog::getOpenFileName(this, tr("打开文件"), QString(), filter);
+    if (path.isEmpty())
+    {
+        return;
+    }
+
+    openDocumentFile(path);
+}
+
+void MyGraphicsView::onSaveDocument()
+{
+    if (m_currentDocumentPath.isEmpty())
+    {
+        onSaveDocumentAs();
+        return;
+    }
+
+    saveDocumentFile(m_currentDocumentPath);
+}
+
+void MyGraphicsView::onSaveDocumentAs()
+{
+    const QString filter = tr("XCanvas File (*%1)")
+                               .arg(QString::fromLatin1(xcanvas::serialization::kDocumentExtension));
+    QString path = QFileDialog::getSaveFileName(this, tr("另存为"), m_currentDocumentPath, filter);
+    if (path.isEmpty())
+    {
+        return;
+    }
+
+    if (!path.endsWith(QString::fromLatin1(xcanvas::serialization::kDocumentExtension), Qt::CaseInsensitive)
+        && QFileInfo(path).suffix().isEmpty())
+    {
+        path += QString::fromLatin1(xcanvas::serialization::kDocumentExtension);
+    }
+
+    if (saveDocumentFile(path))
+    {
+        m_currentDocumentPath = path;
+    }
+}
+
+bool MyGraphicsView::openDocumentFile(const QString& path)
+{
+    if (!m_canvas)
+    {
+        return false;
+    }
+
+    QString err;
+    if (!m_canvas->loadFromFile(path, &err))
+    {
+        QMessageBox::warning(this, tr("打开失败"), err.isEmpty() ? tr("文件打开失败。") : err);
+        return false;
+    }
+
+    m_currentDocumentPath = path;
+    clearCopiedShapes();
+    m_pasteSerial = 0;
+    m_canvas->undoStack()->setClean();
+    if (m_selectionHudBar)
+    {
+        m_selectionHudBar->setVisible(false);
+    }
+    updateWindowTitle();
+    requestFullUpdate();
+    return true;
+}
+
+bool MyGraphicsView::saveDocumentFile(const QString& path)
+{
+    if (!m_canvas)
+    {
+        return false;
+    }
+
+    QString err;
+    if (!m_canvas->saveToFile(path, &err))
+    {
+        QMessageBox::warning(this, tr("保存失败"), err.isEmpty() ? tr("文件保存失败。") : err);
+        return false;
+    }
+
+    m_currentDocumentPath = path;
+    if (m_canvas->undoStack())
+    {
+        m_canvas->undoStack()->setClean();
+    }
+    updateWindowTitle();
+    return true;
+}
+
+void MyGraphicsView::resetToNewDocument()
+{
+    if (!m_canvas)
+    {
+        return;
+    }
+
+    m_canvas->shapeManager()->clear();
+    m_canvas->layerManager()->clearAllLayers();
+    m_canvas->undoStack()->clear();
+    m_canvas->undoStack()->setClean();
+
+    m_currentDocumentPath.clear();
+    clearCopiedShapes();
+    m_pasteSerial = 0;
+    if (m_selectionHudBar)
+    {
+        m_selectionHudBar->setVisible(false);
+    }
+    updateWindowTitle();
+    requestFullUpdate();
+}
+
+bool MyGraphicsView::maybeSaveBeforeProceed()
+{
+    if (!m_canvas || !m_canvas->undoStack() || m_canvas->undoStack()->isClean())
+    {
+        return true;
+    }
+
+    QMessageBox message(this);
+    message.setIcon(QMessageBox::Question);
+    message.setWindowTitle(tr("未保存更改"));
+    message.setText(tr("当前工程已修改，是否先保存？"));
+    QPushButton* saveButton    = message.addButton(tr("保存"), QMessageBox::AcceptRole);
+    QPushButton* discardButton = message.addButton(tr("不保存"), QMessageBox::DestructiveRole);
+    message.addButton(tr("取消"), QMessageBox::RejectRole);
+    message.setDefaultButton(saveButton);
+    message.exec();
+
+    if (message.clickedButton() == discardButton)
+    {
+        return true;
+    }
+
+    if (message.clickedButton() != saveButton)
+    {
+        return false;
+    }
+
+    if (m_currentDocumentPath.isEmpty())
+    {
+        const QString filter = tr("XCanvas File (*%1)")
+                                   .arg(QString::fromLatin1(xcanvas::serialization::kDocumentExtension));
+        QString path = QFileDialog::getSaveFileName(this, tr("保存工程"), QString(), filter);
+        if (path.isEmpty())
+        {
+            return false;
+        }
+
+        if (!path.endsWith(QString::fromLatin1(xcanvas::serialization::kDocumentExtension), Qt::CaseInsensitive)
+            && QFileInfo(path).suffix().isEmpty())
+        {
+            path += QString::fromLatin1(xcanvas::serialization::kDocumentExtension);
+        }
+        return saveDocumentFile(path);
+    }
+
+    return saveDocumentFile(m_currentDocumentPath);
+}
+
+bool MyGraphicsView::isProjectFilePath(const QString& path) const
+{
+    const QString lowerPath = path.toLower();
+    return lowerPath.endsWith(QString::fromLatin1(xcanvas::serialization::kDocumentExtension));
+}
+
+QString MyGraphicsView::projectDisplayName() const
+{
+    if (m_currentDocumentPath.isEmpty())
+    {
+        return QStringLiteral("untitled");
+    }
+
+    const QString fileName = QFileInfo(m_currentDocumentPath).fileName();
+    const QString baseName = QFileInfo(fileName).completeBaseName();
+    if (baseName.isEmpty())
+    {
+        return QStringLiteral("untitled");
+    }
+    return baseName;
+}
+
+void MyGraphicsView::updateWindowTitle()
+{
+    QWidget* topLevel = window();
+    if (!topLevel || !m_canvas || !m_canvas->undoStack())
+    {
+        return;
+    }
+
+    QString title = projectDisplayName();
+    if (!m_canvas->undoStack()->isClean())
+    {
+        title += QStringLiteral("*");
+    }
+    topLevel->setWindowTitle(title);
 }
 
 void MyGraphicsView::onSelectionChanged()
@@ -911,7 +1140,7 @@ void MyGraphicsView::dragEnterEvent(QDragEnterEvent* event)
             if (url.isLocalFile())
             {
                 const QString filePath = url.toLocalFile();
-                if (ImportManager::instance().canImport(filePath))
+                if (isProjectFilePath(filePath) || ImportManager::instance().canImport(filePath))
                 {
                     event->acceptProposedAction();
                     return;
@@ -933,7 +1162,7 @@ void MyGraphicsView::dragMoveEvent(QDragMoveEvent* event)
             if (url.isLocalFile())
             {
                 const QString filePath = url.toLocalFile();
-                if (ImportManager::instance().canImport(filePath))
+                if (isProjectFilePath(filePath) || ImportManager::instance().canImport(filePath))
                 {
                     event->acceptProposedAction();
                     return;
@@ -953,23 +1182,42 @@ void MyGraphicsView::dropEvent(QDropEvent* event)
     }
 
     const QList<QUrl> urls = event->mimeData()->urls();
+    QStringList projectPaths;
     QStringList filePaths;
     for (const QUrl& url : urls)
     {
         if (url.isLocalFile())
         {
-            filePaths.append(url.toLocalFile());
+            const QString path = url.toLocalFile();
+            if (isProjectFilePath(path))
+            {
+                projectPaths.append(path);
+            }
+            else
+            {
+                filePaths.append(path);
+            }
         }
     }
 
-    if (filePaths.isEmpty())
+    if (projectPaths.isEmpty() && filePaths.isEmpty())
     {
         event->ignore();
         return;
     }
 
     event->acceptProposedAction();
-    const QPointF mouseScenePos = mapToScene(event->pos());
+    if (!projectPaths.isEmpty())
+    {
+        if (!maybeSaveBeforeProceed())
+        {
+            return;
+        }
+        openDocumentFile(projectPaths.first());
+        return;
+    }
+
+    const QPointF mouseScenePos = mapToScene(event->position().toPoint());
     importFiles(filePaths, mouseScenePos);
 }
 
