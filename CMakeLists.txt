@@ -219,13 +219,12 @@ elseif (APPLE)
         COMMAND ${CMAKE_COMMAND} -E make_directory "${_frameworks_dir}"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_pdfium_dylib}" "${_frameworks_dir}"
         COMMAND /usr/bin/install_name_tool -id "@rpath/libpdfium.dylib" "${_frameworks_dir}/libpdfium.dylib"
-        COMMAND /usr/bin/install_name_tool -delete_rpath "/Users/ze/Desktop/QtProjects/XCanvas/3rdparty/pdfium/macos/lib" "$<TARGET_FILE:XCanvas>"
-        COMMAND /usr/bin/install_name_tool -delete_rpath "/Users/ze/Qt/6.10.1/macos/lib" "$<TARGET_FILE:XCanvas>"
         VERBATIM
     )
     set_target_properties(XCanvas PROPERTIES
-        BUILD_RPATH "@executable_path/../Frameworks"
-        INSTALL_RPATH "@executable_path/../Frameworks"
+            SKIP_BUILD_RPATH FALSE
+            BUILD_WITH_INSTALL_RPATH TRUE
+            INSTALL_RPATH "@executable_path/../Frameworks"
     )
 endif()
 
