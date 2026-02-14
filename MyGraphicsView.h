@@ -9,6 +9,9 @@
 class BottomFloatingToolBar;
 class SelectionHudBar;
 class ColorPaletteWidget;
+class QThread;
+class QObject;
+class MessageWidget;
 
 namespace xcanvas
 {
@@ -76,6 +79,12 @@ class MyGraphicsView : public QGraphicsView
     bool   isProjectFilePath(const QString& path) const;
     bool   openDocumentFile(const QString& path);
     bool   saveDocumentFile(const QString& path);
+    bool   saveDocumentFileBlocking(const QString& path);
+    void   openDocumentFileAsync(const QString& path);
+    void   saveDocumentFileAsync(const QString& path, bool updateCurrentPath);
+    void   setFileActionsEnabled(bool enabled);
+    void   showFileTaskLoading(const QString& text);
+    void   closeFileTaskLoading();
     void   importFiles(const QStringList& filePaths);
     void   importFiles(const QStringList& filePaths, const QPointF& targetCenter);
     void   updateBottomFloatingToolBarPos();
@@ -114,6 +123,10 @@ class MyGraphicsView : public QGraphicsView
     bool                                  m_rightDragged;
     int                                   m_pasteSerial;
     QString                               m_currentDocumentPath;
+    QThread*                              m_fileIoThread;
+    QObject*                              m_fileIoContext;
+    bool                                  m_fileTaskRunning;
+    MessageWidget*                        m_fileTaskMessage;
 };
 
 #endif// MYGRAPHICSVIEW_H

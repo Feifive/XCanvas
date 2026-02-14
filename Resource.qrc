@@ -40,5 +40,6 @@
         <file>Resource/Icons/Error.svg</file>
         <file>Resource/Icons/Warning.svg</file>
         <file>Resource/Icons/Loading.gif</file>
+        <file>Resource/Icons/Info.svg</file>
     </qresource>
 </RCC>

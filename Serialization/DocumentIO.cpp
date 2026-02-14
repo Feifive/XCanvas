@@ -171,8 +171,36 @@ QRectF decodeRect(const QJsonObject& obj, const QRectF& fallback = QRectF())
 }
 }// namespace
 
-bool saveDocument(const Canvas* canvas, const QString& filePath, QString* err)
+void clearLoadedDocument(LoadedDocument* doc)
 {
+    if (!doc)
+    {
+        return;
+    }
+
+    for (Shape* shape : doc->shapes)
+    {
+        delete shape;
+    }
+    doc->shapes.clear();
+    doc->layers.clear();
+    doc->layerOrder.clear();
+    doc->canvasRect = QRectF();
+}
+
+bool buildDocumentSnapshot(const Canvas* canvas, LoadedDocument* out, QString* err)
+{
+    if (!out)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Snapshot output is null");
+        }
+        return false;
+    }
+
+    clearLoadedDocument(out);
+
     if (!canvas)
     {
         if (err)
@@ -193,9 +221,52 @@ bool saveDocument(const Canvas* canvas, const QString& filePath, QString* err)
         return false;
     }
 
+    out->canvasRect = canvas->canvasRect();
+
+    out->layerOrder = layerManager->layerOrder();
+    out->layers.reserve(out->layerOrder.size());
+    for (int id : out->layerOrder)
+    {
+        const LayerParameter* layer = layerManager->tryGetLayer(id);
+        if (!layer)
+        {
+            continue;
+        }
+
+        LayerSnapshot snapshot;
+        snapshot.id       = layer->id;
+        snapshot.color    = layer->color;
+        snapshot.visible  = layer->visible;
+        snapshot.output   = layer->output;
+        snapshot.mode     = layer->mode;
+        snapshot.speed    = layer->speed;
+        snapshot.minPower = layer->minPower;
+        snapshot.maxPower = layer->maxPower;
+        out->layers.append(snapshot);
+    }
+
+    const ShapeList sourceShapes = shapeManager->shapes();
+    out->shapes.reserve(sourceShapes.size());
+    for (const Shape* shape : sourceShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        if (Shape* copy = const_cast<Shape*>(shape)->clone())
+        {
+            out->shapes.append(copy);
+        }
+    }
+
+    return true;
+}
+
+bool writeDocument(const LoadedDocument& doc, const QString& filePath, QString* err)
+{
     QJsonObject root;
     root.insert(kKeyVersion, kDocumentVersion);
-    root.insert(kKeyCanvas, encodeRect(canvas->canvasRect()));
+    root.insert(kKeyCanvas, encodeRect(doc.canvasRect));
 
     QJsonObject meta;
     meta.insert(kKeyApp, QStringLiteral("XCanvas"));
@@ -203,21 +274,23 @@ bool saveDocument(const Canvas* canvas, const QString& filePath, QString* err)
     root.insert(kKeyMeta, meta);
 
     QJsonArray layers;
-    const QList<int>& order = layerManager->layerOrder();
-    for (int id : order)
+    for (const LayerSnapshot& layer : doc.layers)
     {
-        const LayerParameter* layer = layerManager->tryGetLayer(id);
-        if (!layer)
-        {
-            continue;
-        }
-        layers.append(encodeLayer(*layer));
+        LayerParameter encodedLayer;
+        encodedLayer.id       = layer.id;
+        encodedLayer.color    = layer.color;
+        encodedLayer.visible  = layer.visible;
+        encodedLayer.output   = layer.output;
+        encodedLayer.mode     = layer.mode;
+        encodedLayer.speed    = layer.speed;
+        encodedLayer.minPower = layer.minPower;
+        encodedLayer.maxPower = layer.maxPower;
+        layers.append(encodeLayer(encodedLayer));
     }
     root.insert(kKeyLayers, layers);
 
     QJsonArray shapes;
-    const ShapeList shapeList = shapeManager->shapes();
-    for (const Shape* shape : shapeList)
+    for (const Shape* shape : doc.shapes)
     {
         QJsonObject encoded = encodeShape(shape);
         if (!encoded.isEmpty())
@@ -299,28 +372,18 @@ bool saveDocument(const Canvas* canvas, const QString& filePath, QString* err)
     return true;
 }
 
-bool loadDocument(Canvas* canvas, const QString& filePath, QString* err)
+bool readDocument(const QString& filePath, LoadedDocument* out, QString* err)
 {
-    if (!canvas)
+    if (!out)
     {
         if (err)
         {
-            *err = QStringLiteral("Canvas is null");
+            *err = QStringLiteral("Loaded document output is null");
         }
         return false;
     }
 
-    ShapeManager* shapeManager = canvas->shapeManager();
-    LayerManager* layerManager = canvas->layerManager();
-    QUndoStack*   undoStack    = canvas->undoStack();
-    if (!shapeManager || !layerManager || !undoStack)
-    {
-        if (err)
-        {
-            *err = QStringLiteral("Canvas managers are unavailable");
-        }
-        return false;
-    }
+    clearLoadedDocument(out);
 
     QFile in(filePath);
     if (!in.open(QIODevice::ReadOnly))
@@ -375,35 +438,13 @@ bool loadDocument(Canvas* canvas, const QString& filePath, QString* err)
         return false;
     }
 
-    const QRectF canvasRect = decodeRect(root.value(kKeyCanvas).toObject(), canvas->canvasRect());
+    out->canvasRect = decodeRect(root.value(kKeyCanvas).toObject(), QRectF(10000, 10000, 900, 600));
 
     const QJsonArray layersArr = root.value(kKeyLayers).toArray();
     const QJsonArray shapesArr = root.value(kKeyShapes).toArray();
 
-    ShapeList loadedShapes;
-    loadedShapes.reserve(shapesArr.size());
-    for (const QJsonValue& value : shapesArr)
-    {
-        if (!value.isObject())
-        {
-            continue;
-        }
-        QString parseShapeErr;
-        Shape*  shape = decodeShape(value.toObject(), &parseShapeErr);
-        if (shape)
-        {
-            loadedShapes.append(shape);
-        }
-    }
-
-    // Rebuild scene atomically after successful decode to avoid half-loaded state.
-    shapeManager->clear();
-    layerManager->clearAllLayers();
-    undoStack->clear();
-    canvas->setCanvasRect(canvasRect);
-
-    QList<int> order;
-    order.reserve(layersArr.size());
+    out->layers.reserve(layersArr.size());
+    out->layerOrder.reserve(layersArr.size());
     for (const QJsonValue& value : layersArr)
     {
         if (!value.isObject())
@@ -418,6 +459,81 @@ bool loadDocument(Canvas* canvas, const QString& filePath, QString* err)
             continue;
         }
 
+        LayerSnapshot snapshot;
+        snapshot.id       = layer.id;
+        snapshot.color    = layer.color;
+        snapshot.visible  = layer.visible;
+        snapshot.output   = layer.output;
+        snapshot.mode     = layer.mode;
+        snapshot.speed    = layer.speed;
+        snapshot.minPower = layer.minPower;
+        snapshot.maxPower = layer.maxPower;
+        out->layers.append(snapshot);
+        out->layerOrder.append(snapshot.id);
+    }
+
+    out->shapes.reserve(shapesArr.size());
+    for (const QJsonValue& value : shapesArr)
+    {
+        if (!value.isObject())
+        {
+            continue;
+        }
+        QString parseShapeErr;
+        Shape*  shape = decodeShape(value.toObject(), &parseShapeErr);
+        if (shape)
+        {
+            out->shapes.append(shape);
+        }
+    }
+
+    return true;
+}
+
+bool applyDocumentToCanvas(Canvas* canvas, LoadedDocument&& doc, QString* err)
+{
+    if (!canvas)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Canvas is null");
+        }
+        return false;
+    }
+
+    ShapeManager* shapeManager = canvas->shapeManager();
+    LayerManager* layerManager = canvas->layerManager();
+    QUndoStack*   undoStack    = canvas->undoStack();
+    if (!shapeManager || !layerManager || !undoStack)
+    {
+        if (err)
+        {
+            *err = QStringLiteral("Canvas managers are unavailable");
+        }
+        return false;
+    }
+
+    // Rebuild scene atomically after successful decode to avoid half-loaded state.
+    shapeManager->clear();
+    layerManager->clearAllLayers();
+    undoStack->clear();
+    canvas->setCanvasRect(doc.canvasRect);
+
+    QList<int> order;
+    order.reserve(doc.layerOrder.size());
+    for (const LayerSnapshot& layerSnapshot : doc.layers)
+    {
+        LayerParameter layer;
+        layer.id       = layerSnapshot.id;
+        layer.color    = layerSnapshot.color;
+        layer.visible  = layerSnapshot.visible;
+        layer.output   = layerSnapshot.output;
+        layer.mode     = layerSnapshot.mode;
+        layer.speed    = layerSnapshot.speed;
+        layer.minPower = layerSnapshot.minPower;
+        layer.maxPower = layerSnapshot.maxPower;
+        layer.shapes.clear();
+
         if (layerManager->createLayerWithId(layer))
         {
             order.append(layer.id);
@@ -430,8 +546,8 @@ bool loadDocument(Canvas* canvas, const QString& filePath, QString* err)
     }
     layerManager->rebuildNextId();
 
-    shapeManager->append(loadedShapes);
-    for (Shape* shape : loadedShapes)
+    shapeManager->append(doc.shapes);
+    for (Shape* shape : doc.shapes)
     {
         if (!shape)
         {
@@ -444,6 +560,37 @@ bool loadDocument(Canvas* canvas, const QString& filePath, QString* err)
     }
 
     shapeManager->deselectAll();
+    doc.shapes.clear();
+    doc.layers.clear();
+    doc.layerOrder.clear();
     return true;
+}
+
+bool saveDocument(const Canvas* canvas, const QString& filePath, QString* err)
+{
+    LoadedDocument snapshot;
+    if (!buildDocumentSnapshot(canvas, &snapshot, err))
+    {
+        clearLoadedDocument(&snapshot);
+        return false;
+    }
+
+    const bool ok = writeDocument(snapshot, filePath, err);
+    clearLoadedDocument(&snapshot);
+    return ok;
+}
+
+bool loadDocument(Canvas* canvas, const QString& filePath, QString* err)
+{
+    LoadedDocument loaded;
+    if (!readDocument(filePath, &loaded, err))
+    {
+        clearLoadedDocument(&loaded);
+        return false;
+    }
+
+    const bool ok = applyDocumentToCanvas(canvas, std::move(loaded), err);
+    clearLoadedDocument(&loaded);
+    return ok;
 }
 }// namespace xcanvas::serialization

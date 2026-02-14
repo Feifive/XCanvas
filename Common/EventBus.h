@@ -20,6 +20,7 @@ signals:
     void openFileRequested();
     void saveFileRequested();
     void saveFileAsRequested();
+    void fileActionsEnabledChanged(bool enabled);
 
 private:
     EventBus() {}

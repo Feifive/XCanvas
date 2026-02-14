@@ -7,7 +7,7 @@
 
 #include  <QWidget>
 
-enum class MessageType {Success, Warning, Error, Loading };
+enum class MessageType {Info, Success, Warning, Error, Loading };
 
 class MessageWidget : public QWidget {
     Q_OBJECT

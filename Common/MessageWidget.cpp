@@ -49,6 +49,7 @@ void MessageWidget::setupUi() {
 
     QString iconPath;
     switch (m_type) {
+        case MessageType::Info:    iconPath = ":/Resources/Icons/Info.png"; break;
         case MessageType::Success: iconPath = ":/Resource/Icons/Success.svg"; break;
         case MessageType::Warning: iconPath = ":/Resource/Icons/Warning.svg"; break;
         case MessageType::Error:   iconPath = ":/Resource/Icons/Error.svg";   break;

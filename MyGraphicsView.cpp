@@ -4,15 +4,18 @@
 #include "Canvas/Canvas.h"
 #include "ColorPaletteWidget.h"
 #include "EventBus.h"
+#include "MessageWidget.h"
 #include "Import/DXF/DXFImporter.h"
 #include "Import/Image/ImageImporter.h"
 #include "Import/ImportManager.h"
 #include "Import/PDF/PDFImporter.h"
+#include "MessageBox.h"
 #include "SelectionHudBar.h"
 #include "Shape/ShapeImage.h"
 #include "Shape/Shape.h"
 #include "Shape/ShapeText.h"
 #include "Serialization/DocumentTypes.h"
+#include "Serialization/DocumentIO.h"
 #include "XMenu.h"
 #include "ToolManager.h"
 #include <QAction>
@@ -28,18 +31,31 @@
 #include <QScrollBar>
 #include <QTimer>
 #include <QUndoStack>
+#include <QThread>
+#include <QEventLoop>
+#include <QPointer>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QKeySequence>
 #include <QMimeData>
 #include <QUrl>
-#include <QMessageBox>
-#include <QPushButton>
 
 #include "MyMath.h"
 
 MyGraphicsView::MyGraphicsView(QWidget* parent)
-    : m_dScaleFactor(1.0), m_startPos(-1, -1), m_bDragging(false), m_canvas(new xcanvas::Canvas(this)), QGraphicsView{parent}, m_bottomFloatingToolBar(nullptr), m_rightPressPos(-1, -1), m_rightDragged(false), m_pasteSerial(0)
+    : m_dScaleFactor(1.0),
+      m_startPos(-1, -1),
+      m_bDragging(false),
+      m_canvas(new xcanvas::Canvas(this)),
+      QGraphicsView{parent},
+      m_bottomFloatingToolBar(nullptr),
+      m_rightPressPos(-1, -1),
+      m_rightDragged(false),
+      m_pasteSerial(0),
+      m_fileIoThread(new QThread(this)),
+      m_fileIoContext(new QObject()),
+      m_fileTaskRunning(false),
+      m_fileTaskMessage(nullptr)
 {
     setObjectName("MyGraphicsView");
     setTransformationAnchor(QGraphicsView::NoAnchor);
@@ -113,11 +129,21 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
 
     m_rotateHandle.load(QStringLiteral(":/Resource/Icons/RotateHandle.svg"));
     updateWindowTitle();
+
+    m_fileIoContext->moveToThread(m_fileIoThread);
+    connect(m_fileIoThread, &QThread::finished, m_fileIoContext, &QObject::deleteLater);
+    m_fileIoThread->start();
 }
 
 MyGraphicsView::~MyGraphicsView()
 {
     clearCopiedShapes();
+    closeFileTaskLoading();
+    if (m_fileIoThread)
+    {
+        m_fileIoThread->quit();
+        m_fileIoThread->wait();
+    }
 }
 
 double MyGraphicsView::zoomValue()
@@ -359,6 +385,12 @@ void MyGraphicsView::onNewDocument()
 
 void MyGraphicsView::onOpenDocument()
 {
+    if (m_fileTaskRunning)
+    {
+        MessageWidget::showWarning(window(), tr("正在处理文件，请稍候。"));
+        return;
+    }
+
     if (!maybeSaveBeforeProceed())
     {
         return;
@@ -372,22 +404,34 @@ void MyGraphicsView::onOpenDocument()
         return;
     }
 
-    openDocumentFile(path);
+    openDocumentFileAsync(path);
 }
 
 void MyGraphicsView::onSaveDocument()
 {
+    if (m_fileTaskRunning)
+    {
+        MessageWidget::showWarning(window(), tr("正在处理文件，请稍候。"));
+        return;
+    }
+
     if (m_currentDocumentPath.isEmpty())
     {
         onSaveDocumentAs();
         return;
     }
 
-    saveDocumentFile(m_currentDocumentPath);
+    saveDocumentFileAsync(m_currentDocumentPath, false);
 }
 
 void MyGraphicsView::onSaveDocumentAs()
 {
+    if (m_fileTaskRunning)
+    {
+        MessageWidget::showWarning(window(), tr("正在处理文件，请稍候。"));
+        return;
+    }
+
     const QString filter = tr("XCanvas File (*%1)")
                                .arg(QString::fromLatin1(xcanvas::serialization::kDocumentExtension));
     QString path = QFileDialog::getSaveFileName(this, tr("另存为"), m_currentDocumentPath, filter);
@@ -402,50 +446,199 @@ void MyGraphicsView::onSaveDocumentAs()
         path += QString::fromLatin1(xcanvas::serialization::kDocumentExtension);
     }
 
-    if (saveDocumentFile(path))
-    {
-        m_currentDocumentPath = path;
-    }
+    saveDocumentFileAsync(path, true);
 }
 
 bool MyGraphicsView::openDocumentFile(const QString& path)
 {
-    if (!m_canvas)
-    {
-        return false;
-    }
-
-    QString err;
-    if (!m_canvas->loadFromFile(path, &err))
-    {
-        QMessageBox::warning(this, tr("打开失败"), err.isEmpty() ? tr("文件打开失败。") : err);
-        return false;
-    }
-
-    m_currentDocumentPath = path;
-    clearCopiedShapes();
-    m_pasteSerial = 0;
-    m_canvas->undoStack()->setClean();
-    if (m_selectionHudBar)
-    {
-        m_selectionHudBar->setVisible(false);
-    }
-    updateWindowTitle();
-    requestFullUpdate();
+    openDocumentFileAsync(path);
     return true;
 }
 
 bool MyGraphicsView::saveDocumentFile(const QString& path)
 {
-    if (!m_canvas)
+    saveDocumentFileAsync(path, true);
+    return true;
+}
+
+void MyGraphicsView::setFileActionsEnabled(const bool enabled)
+{
+    emit EventBus::instance().fileActionsEnabledChanged(enabled);
+}
+
+void MyGraphicsView::showFileTaskLoading(const QString& text)
+{
+    closeFileTaskLoading();
+    m_fileTaskMessage = MessageWidget::showLoading(window(), text);
+}
+
+void MyGraphicsView::closeFileTaskLoading()
+{
+    if (!m_fileTaskMessage)
+    {
+        return;
+    }
+    MessageWidget::removeMessage(m_fileTaskMessage);
+    m_fileTaskMessage = nullptr;
+}
+
+void MyGraphicsView::openDocumentFileAsync(const QString& path)
+{
+    if (!m_canvas || !m_fileIoContext || !m_fileIoThread || m_fileTaskRunning)
+    {
+        return;
+    }
+
+    m_fileTaskRunning = true;
+    setFileActionsEnabled(false);
+    showFileTaskLoading(tr("正在打开工程..."));
+
+    const QPointer<MyGraphicsView> self(this);
+    const QString filePath = path;
+    QMetaObject::invokeMethod(m_fileIoContext, [self, filePath]()
+    {
+        xcanvas::serialization::LoadedDocument loaded;
+        QString                                err;
+        const bool ok = xcanvas::serialization::readDocument(filePath, &loaded, &err);
+
+        QMetaObject::invokeMethod(self, [self, filePath, ok, err, loaded = std::move(loaded)]() mutable
+        {
+            if (!self)
+            {
+                xcanvas::serialization::clearLoadedDocument(&loaded);
+                return;
+            }
+
+            bool    applied = false;
+            QString applyErr;
+            if (ok)
+            {
+                applied = xcanvas::serialization::applyDocumentToCanvas(self->m_canvas, std::move(loaded), &applyErr);
+            }
+            xcanvas::serialization::clearLoadedDocument(&loaded);
+
+            self->closeFileTaskLoading();
+            self->setFileActionsEnabled(true);
+            self->m_fileTaskRunning = false;
+
+            if (!ok || !applied)
+            {
+                const QString errorText = !ok ? err : applyErr;
+                MessageWidget::showError(self->window(), errorText.isEmpty() ? self->tr("文件打开失败。") : errorText);
+                return;
+            }
+
+            self->m_currentDocumentPath = filePath;
+            self->clearCopiedShapes();
+            self->m_pasteSerial = 0;
+            self->m_canvas->undoStack()->setClean();
+            if (self->m_selectionHudBar)
+            {
+                self->m_selectionHudBar->setVisible(false);
+            }
+            self->updateWindowTitle();
+            self->requestFullUpdate();
+            MessageWidget::showSuccess(self->window(), self->tr("工程已打开"));
+        }, Qt::QueuedConnection);
+    }, Qt::QueuedConnection);
+}
+
+void MyGraphicsView::saveDocumentFileAsync(const QString& path, const bool updateCurrentPath)
+{
+    if (!m_canvas || !m_fileIoContext || !m_fileIoThread || m_fileTaskRunning)
+    {
+        return;
+    }
+
+    xcanvas::serialization::LoadedDocument snapshot;
+    QString                                snapshotErr;
+    if (!xcanvas::serialization::buildDocumentSnapshot(m_canvas, &snapshot, &snapshotErr))
+    {
+        xcanvas::serialization::clearLoadedDocument(&snapshot);
+        MessageWidget::showError(window(), snapshotErr.isEmpty() ? tr("文件保存失败。") : snapshotErr);
+        return;
+    }
+
+    m_fileTaskRunning = true;
+    setFileActionsEnabled(false);
+    showFileTaskLoading(tr("正在保存工程..."));
+
+    const QPointer<MyGraphicsView> self(this);
+    const QString filePath = path;
+    QMetaObject::invokeMethod(m_fileIoContext, [self, filePath, updateCurrentPath, snapshot = std::move(snapshot)]() mutable
+    {
+        QString err;
+        const bool ok = xcanvas::serialization::writeDocument(snapshot, filePath, &err);
+        xcanvas::serialization::clearLoadedDocument(&snapshot);
+
+        QMetaObject::invokeMethod(self, [self, filePath, updateCurrentPath, ok, err]()
+        {
+            if (!self)
+            {
+                return;
+            }
+
+            self->closeFileTaskLoading();
+            self->setFileActionsEnabled(true);
+            self->m_fileTaskRunning = false;
+
+            if (!ok)
+            {
+                MessageWidget::showError(self->window(), err.isEmpty() ? self->tr("文件保存失败。") : err);
+                return;
+            }
+
+            if (updateCurrentPath || self->m_currentDocumentPath.isEmpty())
+            {
+                self->m_currentDocumentPath = filePath;
+            }
+            if (self->m_canvas->undoStack())
+            {
+                self->m_canvas->undoStack()->setClean();
+            }
+            self->updateWindowTitle();
+            MessageWidget::showSuccess(self->window(), self->tr("工程已保存"));
+        }, Qt::QueuedConnection);
+    }, Qt::QueuedConnection);
+}
+
+bool MyGraphicsView::saveDocumentFileBlocking(const QString& path)
+{
+    if (!m_canvas || !m_fileIoContext || !m_fileIoThread || m_fileTaskRunning)
     {
         return false;
     }
 
+    xcanvas::serialization::LoadedDocument snapshot;
     QString err;
-    if (!m_canvas->saveToFile(path, &err))
+    if (!xcanvas::serialization::buildDocumentSnapshot(m_canvas, &snapshot, &err))
     {
-        QMessageBox::warning(this, tr("保存失败"), err.isEmpty() ? tr("文件保存失败。") : err);
+        xcanvas::serialization::clearLoadedDocument(&snapshot);
+        MessageWidget::showError(window(), err.isEmpty() ? tr("文件保存失败。") : err);
+        return false;
+    }
+
+    bool ok = false;
+    m_fileTaskRunning = true;
+    showFileTaskLoading(tr("正在保存工程..."));
+    setFileActionsEnabled(false);
+
+    QEventLoop loop;
+    QMetaObject::invokeMethod(m_fileIoContext, [this, &snapshot, &ok, &err, &loop, path]()
+    {
+        ok = xcanvas::serialization::writeDocument(snapshot, path, &err);
+        xcanvas::serialization::clearLoadedDocument(&snapshot);
+        QMetaObject::invokeMethod(&loop, "quit", Qt::QueuedConnection);
+    }, Qt::QueuedConnection);
+    loop.exec();
+
+    closeFileTaskLoading();
+    setFileActionsEnabled(true);
+    m_fileTaskRunning = false;
+
+    if (!ok)
+    {
+        MessageWidget::showError(window(), err.isEmpty() ? tr("文件保存失败。") : err);
         return false;
     }
 
@@ -455,6 +648,7 @@ bool MyGraphicsView::saveDocumentFile(const QString& path)
         m_canvas->undoStack()->setClean();
     }
     updateWindowTitle();
+    MessageWidget::showSuccess(window(), tr("工程已保存"));
     return true;
 }
 
@@ -488,22 +682,19 @@ bool MyGraphicsView::maybeSaveBeforeProceed()
         return true;
     }
 
-    QMessageBox message(this);
-    message.setIcon(QMessageBox::Question);
-    message.setWindowTitle(tr("未保存更改"));
-    message.setText(tr("当前工程已修改，是否先保存？"));
-    QPushButton* saveButton    = message.addButton(tr("保存"), QMessageBox::AcceptRole);
-    QPushButton* discardButton = message.addButton(tr("不保存"), QMessageBox::DestructiveRole);
-    message.addButton(tr("取消"), QMessageBox::RejectRole);
-    message.setDefaultButton(saveButton);
-    message.exec();
+    const MessageBox::ClickedButton result = MessageBox::ask(
+        this,
+        tr("内容未保存"),
+        tr("当前工程已修改，是否先保存？"),
+        tr("保存"),
+        tr("不保存"));
 
-    if (message.clickedButton() == discardButton)
+    if (result == MessageBox::ClickedButton::Secondary)
     {
         return true;
     }
 
-    if (message.clickedButton() != saveButton)
+    if (result != MessageBox::ClickedButton::Primary)
     {
         return false;
     }
@@ -523,10 +714,10 @@ bool MyGraphicsView::maybeSaveBeforeProceed()
         {
             path += QString::fromLatin1(xcanvas::serialization::kDocumentExtension);
         }
-        return saveDocumentFile(path);
+        return saveDocumentFileBlocking(path);
     }
 
-    return saveDocumentFile(m_currentDocumentPath);
+    return saveDocumentFileBlocking(m_currentDocumentPath);
 }
 
 bool MyGraphicsView::isProjectFilePath(const QString& path) const
@@ -930,50 +1121,84 @@ void MyGraphicsView::drawCanvas(QPainter* painter)
 
 void MyGraphicsView::importFile()
 {
+    if (m_fileTaskRunning)
+    {
+        MessageWidget::showWarning(window(), tr("正在处理文件，请稍候。"));
+        return;
+    }
+
     const QStringList filePaths = QFileDialog::getOpenFileNames(this, tr("Import Files"), QString(), ImportManager::instance().buildDialogFilter());
     importFiles(filePaths);
 }
 
 void MyGraphicsView::importFiles(const QStringList& filePaths, const QPointF& targetCenter)
 {
-    if (filePaths.isEmpty())
+    if (filePaths.isEmpty() || !m_fileIoContext || !m_fileIoThread || m_fileTaskRunning)
     {
         return;
     }
 
-    ImportContext ctx;
-    ctx.targetCenter = targetCenter;
+    m_fileTaskRunning = true;
+    setFileActionsEnabled(false);
+    showFileTaskLoading(tr("正在导入文件..."));
 
-    xcanvas::ShapeList allShapes;
-    for (const QString& filePath : filePaths)
+    const QPointer<MyGraphicsView> self(this);
+    const QStringList paths = filePaths;
+    QMetaObject::invokeMethod(m_fileIoContext, [self, paths, targetCenter]()
     {
-        xcanvas::ShapeList shapeList = ImportManager::instance().importFile(filePath, ctx);
-        if (!shapeList.empty())
-        {
-            allShapes.append(shapeList);
-        }
-    }
+        ImportContext       ctx;
+        ctx.targetCenter = targetCenter;
 
-    if (!allShapes.isEmpty())
-    {
-        m_canvas->shapeManager()->deselectAll();
-
-        // 统一居中
-        QRectF rect;
-        for (auto* shape : allShapes)
+        xcanvas::ShapeList allShapes;
+        for (const QString& filePath : paths)
         {
-            rect |= shape->boundingRect();
+            xcanvas::ShapeList shapeList = ImportManager::instance().importFile(filePath, ctx);
+            if (!shapeList.empty())
+            {
+                allShapes.append(shapeList);
+            }
         }
 
-        const QPointF offset = ctx.targetCenter - rect.center();
-        for (auto* shape : allShapes)
+        QMetaObject::invokeMethod(self, [self, targetCenter, allShapes = std::move(allShapes)]() mutable
         {
-            shape->translate(offset);
-        }
+            if (!self)
+            {
+                for (xcanvas::Shape* shape : allShapes)
+                {
+                    delete shape;
+                }
+                return;
+            }
 
-        m_canvas->addShapes(allShapes);
-        requestFullUpdate();
-    }
+            self->closeFileTaskLoading();
+            self->setFileActionsEnabled(true);
+            self->m_fileTaskRunning = false;
+
+            if (allShapes.isEmpty())
+            {
+                MessageWidget::showWarning(self->window(), self->tr("未导入到可用图形。"));
+                return;
+            }
+
+            self->m_canvas->shapeManager()->deselectAll();
+
+            QRectF rect;
+            for (auto* shape : allShapes)
+            {
+                rect |= shape->boundingRect();
+            }
+
+            const QPointF offset = targetCenter - rect.center();
+            for (auto* shape : allShapes)
+            {
+                shape->translate(offset);
+            }
+
+            self->m_canvas->addShapes(allShapes);
+            self->requestFullUpdate();
+            MessageWidget::showSuccess(self->window(), self->tr("导入完成"));
+        }, Qt::QueuedConnection);
+    }, Qt::QueuedConnection);
 }
 
 void MyGraphicsView::importFiles(const QStringList& filePaths)

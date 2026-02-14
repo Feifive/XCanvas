@@ -6,6 +6,7 @@
 
 class QToolButton;
 class QButtonGroup;
+class QAction;
 
 class DrawingToolsBar : public QToolBar
 {
@@ -17,6 +18,7 @@ class DrawingToolsBar : public QToolBar
   private:
     void onFinishDrawing() const;
     void initMainMenu();
+    void onFileActionsEnabledChanged(bool enabled) const;
 
   private:
     QToolButton* m_pMainMenu;
@@ -30,6 +32,10 @@ class DrawingToolsBar : public QToolBar
     QToolButton* m_pPolygonTool;
 
     QButtonGroup* m_pGroup;
+    QAction*      m_openAction   = nullptr;
+    QAction*      m_importAction = nullptr;
+    QAction*      m_saveAction   = nullptr;
+    QAction*      m_saveAsAction = nullptr;
 };
 
 #endif// DRAWINGTOOLSBAR_H

@@ -74,6 +74,30 @@ void DrawingToolsBar::onFinishDrawing() const {
     m_pSelectTool->setChecked(true);
 }
 
+void DrawingToolsBar::onFileActionsEnabledChanged(const bool enabled) const
+{
+    if (m_openAction)
+    {
+        m_openAction->setEnabled(enabled);
+    }
+    if (m_importAction)
+    {
+        m_importAction->setEnabled(enabled);
+    }
+    if (m_saveAction)
+    {
+        m_saveAction->setEnabled(enabled);
+    }
+    if (m_saveAsAction)
+    {
+        m_saveAsAction->setEnabled(enabled);
+    }
+    if (m_pImport)
+    {
+        m_pImport->setEnabled(enabled);
+    }
+}
+
 void DrawingToolsBar::initMainMenu()
 {
     m_pMainMenu->setPopupMode(QToolButton::InstantPopup);
@@ -127,11 +151,11 @@ void DrawingToolsBar::initMainMenu()
     auto* fileMenu = new XMenu("文件", this);
     auto* newAction = fileMenu->addAction(tr("新建"));
     fileMenu->addSeparator();
-    auto* openAction = fileMenu->addAction(tr("打开项目"));
-    auto* importAction = fileMenu->addAction(tr("导入"));
+    m_openAction = fileMenu->addAction(tr("打开项目"));
+    m_importAction = fileMenu->addAction(tr("导入"));
     fileMenu->addSeparator();
-    auto* saveAction = fileMenu->addAction(tr("保存"));
-    auto* saveAsAction = fileMenu->addAction(tr("另存为"));
+    m_saveAction = fileMenu->addAction(tr("保存"));
+    m_saveAsAction = fileMenu->addAction(tr("另存为"));
 
     auto attachShortcut = [](QAction* action, const QKeySequence& sequence)
     {
@@ -139,16 +163,17 @@ void DrawingToolsBar::initMainMenu()
         action->setShortcutVisibleInContextMenu(true);
     };
     attachShortcut(newAction, QKeySequence::New);
-    attachShortcut(openAction, QKeySequence::Open);
-    attachShortcut(importAction, QKeySequence(Qt::CTRL | Qt::Key_I));
-    attachShortcut(saveAction, QKeySequence::Save);
-    attachShortcut(saveAsAction, QKeySequence::SaveAs);
+    attachShortcut(m_openAction, QKeySequence::Open);
+    attachShortcut(m_importAction, QKeySequence(Qt::CTRL | Qt::Key_I));
+    attachShortcut(m_saveAction, QKeySequence::Save);
+    attachShortcut(m_saveAsAction, QKeySequence::SaveAs);
 
     connect(newAction, &QAction::triggered, this, [] { emit EventBus::instance().newFileRequested(); });
-    connect(openAction, &QAction::triggered, this, [] { emit EventBus::instance().openFileRequested(); });
-    connect(saveAction, &QAction::triggered, this, [] { emit EventBus::instance().saveFileRequested(); });
-    connect(saveAsAction, &QAction::triggered, this, [] { emit EventBus::instance().saveFileAsRequested(); });
-    connect(importAction, &QAction::triggered, this, [] { emit EventBus::instance().importFileRequested(); });
+    connect(m_openAction, &QAction::triggered, this, [] { emit EventBus::instance().openFileRequested(); });
+    connect(m_saveAction, &QAction::triggered, this, [] { emit EventBus::instance().saveFileRequested(); });
+    connect(m_saveAsAction, &QAction::triggered, this, [] { emit EventBus::instance().saveFileAsRequested(); });
+    connect(m_importAction, &QAction::triggered, this, [] { emit EventBus::instance().importFileRequested(); });
+    connect(&EventBus::instance(), &EventBus::fileActionsEnabledChanged, this, &DrawingToolsBar::onFileActionsEnabledChanged);
 
     mainMenu->addMenu(fileMenu);
     mainMenu->addMenu(gridSetting);
