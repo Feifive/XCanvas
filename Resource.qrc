@@ -36,5 +36,9 @@
         <file>Resource/Icons/AlignCenter.svg</file>
         <file>Resource/Icons/DistributeHorizontally.svg</file>
         <file>Resource/Icons/DistributeVertically.svg</file>
+        <file>Resource/Icons/Success.svg</file>
+        <file>Resource/Icons/Error.svg</file>
+        <file>Resource/Icons/Warning.svg</file>
+        <file>Resource/Icons/Loading.gif</file>
     </qresource>
 </RCC>
