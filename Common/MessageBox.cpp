@@ -62,19 +62,10 @@ MessageBox::MessageBox(QWidget* parent)
     auto* titleIconLabel = new QLabel(m_panel);
     constexpr QSize iconSize(18, 18);
     titleIconLabel->setFixedSize(iconSize);
-    {
-        QSvgRenderer renderer(QStringLiteral(":/Resource/Icons/Warning.svg"));
-        const qreal dpr = devicePixelRatioF();
-        QPixmap pixmap(iconSize * dpr);
-        pixmap.setDevicePixelRatio(dpr);
-        pixmap.fill(Qt::transparent);
+    const QIcon icon(":/Resource/Icons/Warning.svg");
+    const QPixmap iconPixmap(icon.pixmap(iconSize));
+    titleIconLabel->setPixmap(iconPixmap);
 
-        QPainter painter(&pixmap);
-        painter.setRenderHint(QPainter::Antialiasing, true);
-        painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-        renderer.render(&painter, QRectF(QPointF(0, 0), QSizeF(iconSize)));
-        titleIconLabel->setPixmap(pixmap);
-    }
     headerLayout->addWidget(titleIconLabel, 0, Qt::AlignVCenter);
 
     m_titleLabel = new QLabel(tr("提示"), m_panel);

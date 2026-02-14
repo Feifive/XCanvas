@@ -60,7 +60,7 @@ void MessageWidget::setupUi() {
         if (m_type == MessageType::Loading) {
             auto *movie = new QMovie(iconPath, QByteArray(), iconLabel);
             iconLabel->setAlignment(Qt::AlignCenter);
-            QObject::connect(movie, &QMovie::frameChanged, iconLabel, [this, movie, iconLabel, iconSize]() {
+            connect(movie, &QMovie::frameChanged, iconLabel, [this, movie, iconLabel, iconSize]() {
                 const qreal dpr = devicePixelRatioF();
                 const QImage frame = movie->currentImage();
                 if (frame.isNull()) return;
@@ -72,18 +72,9 @@ void MessageWidget::setupUi() {
             });
             movie->start();
         } else {
-            QSvgRenderer renderer(iconPath);
-            const qreal dpr = devicePixelRatioF();
-            QPixmap pixmap(iconSize * dpr);
-            pixmap.setDevicePixelRatio(dpr);
-            pixmap.fill(Qt::transparent);
-
-            QPainter painter(&pixmap);
-            painter.setRenderHint(QPainter::Antialiasing, true);
-            painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-            renderer.render(&painter, QRectF(QPointF(0, 0), QSizeF(iconSize)));
-
-            iconLabel->setPixmap(pixmap);
+            const QIcon icon(iconPath);
+            const QPixmap iconPixmap(icon.pixmap(iconSize));
+            iconLabel->setPixmap(iconPixmap);
         }
     }
 
