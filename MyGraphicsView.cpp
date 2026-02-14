@@ -720,6 +720,11 @@ bool MyGraphicsView::maybeSaveBeforeProceed()
     return saveDocumentFileBlocking(m_currentDocumentPath);
 }
 
+bool MyGraphicsView::maybeSaveBeforeClose()
+{
+    return maybeSaveBeforeProceed();
+}
+
 bool MyGraphicsView::isProjectFilePath(const QString& path) const
 {
     const QString lowerPath = path.toLower();

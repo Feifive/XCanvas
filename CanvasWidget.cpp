@@ -54,3 +54,12 @@ xcanvas::LayerManager* CanvasWidget::layerManager()
     }
     return nullptr;
 }
+
+bool CanvasWidget::maybeSaveBeforeClose()
+{
+    if (!m_pGraphicsView)
+    {
+        return true;
+    }
+    return m_pGraphicsView->maybeSaveBeforeClose();
+}

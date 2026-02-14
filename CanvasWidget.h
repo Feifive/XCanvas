@@ -17,6 +17,7 @@ class CanvasWidget : public QWidget
   public:
     explicit CanvasWidget(QWidget* parent = nullptr);
     xcanvas::LayerManager* layerManager();
+    bool                   maybeSaveBeforeClose();
 
   private:
     QGraphicsScene* m_pGraphicsScene;

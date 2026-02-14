@@ -8,10 +8,12 @@
 #include "DrawingToolsBar.h"
 #include "Layer/LayerPanel.h"
 
+#include <QCloseEvent>
 #include <QFileSystemWatcher>
 #include <QFontDatabase>
 
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow)
+MainWindow::MainWindow(QWidget* parent)
+    : QMainWindow(parent), ui(new Ui::MainWindow), m_pDrawingToolsBar(nullptr), m_pCanvasWidget(nullptr)
 {
     ui->setupUi(this);
     init();
@@ -54,9 +56,20 @@ void MainWindow::init()
     ui->verticalLayout_toolbar->addWidget(m_pDrawingToolsBar);
 
     // 画布
-    CanvasWidget* pCanvasWidget = new CanvasWidget(ui->widget_canvas);
-    ui->verticalLayout_canvas->addWidget(pCanvasWidget);
+    m_pCanvasWidget = new CanvasWidget(ui->widget_canvas);
+    ui->verticalLayout_canvas->addWidget(m_pCanvasWidget);
 
-    LayerPanel* pLayerPanel = new LayerPanel(pCanvasWidget->layerManager(), ui->widget_rightPanel);
+    LayerPanel* pLayerPanel = new LayerPanel(m_pCanvasWidget->layerManager(), ui->widget_rightPanel);
     ui->verticalLayout_rightPanel->addWidget(pLayerPanel);
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    if (m_pCanvasWidget && !m_pCanvasWidget->maybeSaveBeforeClose())
+    {
+        event->ignore();
+        return;
+    }
+
+    QMainWindow::closeEvent(event);
 }

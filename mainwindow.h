@@ -11,6 +11,8 @@ QT_END_NAMESPACE
 
 class MyGraphicsView;
 class DrawingToolsBar;
+class CanvasWidget;
+class QCloseEvent;
 
 class MainWindow : public QMainWindow
 {
@@ -20,11 +22,15 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+protected:
+    void closeEvent(QCloseEvent* event) override;
+
 private:
     void init();
 
 private:
     Ui::MainWindow *ui;
     DrawingToolsBar* m_pDrawingToolsBar;
+    CanvasWidget*    m_pCanvasWidget;
 };
 #endif // MAINWINDOW_H

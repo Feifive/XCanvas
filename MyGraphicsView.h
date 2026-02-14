@@ -33,6 +33,7 @@ class MyGraphicsView : public QGraphicsView
     void                   requestFullUpdate();
     void                   updateSelectionHud();
     xcanvas::LayerManager* layerManager();
+    bool                   maybeSaveBeforeClose();
 
   signals:
     void mouseMovePos(QPointF pos);
