@@ -16,6 +16,7 @@ public:
     explicit SelectionHudBar(QWidget *parent = nullptr);
     ~SelectionHudBar() override;
     void setSummary(const SelectionSummary& summary);
+    bool keepAspectRatio() const;
 
     QDoubleSpinBox* spinX() const     { return m_spinX; }
     QDoubleSpinBox* spinY() const     { return m_spinY; }
@@ -37,6 +38,11 @@ signals:
     void alignHorizontalCenter();
     void alignVerticalCenter();
     void alignCenter();
+    void xEdited(double value);
+    void yEdited(double value);
+    void wEdited(double value);
+    void hEdited(double value);
+    void keepAspectRatioToggled(bool enabled);
 
 private:
     void hideGridColumn(int col, bool hide);
@@ -48,6 +54,7 @@ private:
     QDoubleSpinBox* m_spinW     = nullptr;
     QDoubleSpinBox* m_spinH     = nullptr;
     QDoubleSpinBox* m_spinAngle = nullptr;
+    QToolButton*    m_keepAspectRatioButton = nullptr;
 
     QToolButton* m_booleanTool;
 };

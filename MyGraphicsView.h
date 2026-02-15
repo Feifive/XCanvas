@@ -107,6 +107,11 @@ class MyGraphicsView : public QGraphicsView
     bool   hasClipboardPasteContent() const;
     void   clearCopiedShapes();
     void   updateWindowTitle();
+    void   applySelectionHudX(double newX);
+    void   applySelectionHudY(double newY);
+    void   applySelectionHudW(double newW);
+    void   applySelectionHudH(double newH);
+    void   onKeepAspectRatioToggled(bool enabled);
     QString projectDisplayName() const;
 
   private:
@@ -128,6 +133,7 @@ class MyGraphicsView : public QGraphicsView
     QObject*                              m_fileIoContext;
     bool                                  m_fileTaskRunning;
     MessageWidget*                        m_fileTaskMessage;
+    bool                                  m_keepAspectRatio;
 };
 
 #endif// MYGRAPHICSVIEW_H

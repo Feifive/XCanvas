@@ -14,6 +14,7 @@
 #include "Shape/ShapeImage.h"
 #include "Shape/Shape.h"
 #include "Shape/ShapeText.h"
+#include "Shape/TransformCommand.h"
 #include "Serialization/DocumentTypes.h"
 #include "Serialization/DocumentIO.h"
 #include "XMenu.h"
@@ -38,7 +39,9 @@
 #include <QDropEvent>
 #include <QKeySequence>
 #include <QMimeData>
+#include <QSignalBlocker>
 #include <QUrl>
+#include <map>
 
 #include "MyMath.h"
 
@@ -55,7 +58,8 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
       m_fileIoThread(new QThread(this)),
       m_fileIoContext(new QObject()),
       m_fileTaskRunning(false),
-      m_fileTaskMessage(nullptr)
+      m_fileTaskMessage(nullptr),
+      m_keepAspectRatio(false)
 {
     setObjectName("MyGraphicsView");
     setTransformationAnchor(QGraphicsView::NoAnchor);
@@ -120,6 +124,11 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     connect(m_selectionHudBar, &SelectionHudBar::alignHorizontalCenter, m_toolMgr.get(), &xcanvas::ToolManager::alignHorizontalCenter);
     connect(m_selectionHudBar, &SelectionHudBar::alignVerticalCenter, m_toolMgr.get(), &xcanvas::ToolManager::alignVerticalCenter);
     connect(m_selectionHudBar, &SelectionHudBar::alignCenter, m_toolMgr.get(), &xcanvas::ToolManager::alignCenter);
+    connect(m_selectionHudBar, &SelectionHudBar::xEdited, this, &MyGraphicsView::applySelectionHudX);
+    connect(m_selectionHudBar, &SelectionHudBar::yEdited, this, &MyGraphicsView::applySelectionHudY);
+    connect(m_selectionHudBar, &SelectionHudBar::wEdited, this, &MyGraphicsView::applySelectionHudW);
+    connect(m_selectionHudBar, &SelectionHudBar::hEdited, this, &MyGraphicsView::applySelectionHudH);
+    connect(m_selectionHudBar, &SelectionHudBar::keepAspectRatioToggled, this, &MyGraphicsView::onKeepAspectRatioToggled);
     m_selectionHudBar->adjustSize();
 
     QTimer::singleShot(0, this, [this]() { fitCanvas(); });
@@ -807,6 +816,207 @@ void MyGraphicsView::onColorSelected(const QColor& color)
     requestFullUpdate();
 }
 
+void MyGraphicsView::applySelectionHudX(const double newX)
+{
+    if (!m_canvas || !m_canvas->shapeManager() || !m_canvas->undoStack())
+    {
+        return;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.isEmpty())
+    {
+        return;
+    }
+
+    const QRectF selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
+    const qreal  currentX      = sceneToCanvas(selectionRect.topLeft()).x();
+    const qreal  dx            = newX - currentX;
+    if (qAbs(dx) < 1e-6)
+    {
+        return;
+    }
+
+    std::map<xcanvas::Shape*, QTransform> beforeTransform;
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        beforeTransform[shape] = shape->transform();
+        shape->translate(QPointF(dx, 0));
+    }
+
+    if (beforeTransform.empty())
+    {
+        return;
+    }
+
+    m_canvas->undoStack()->push(new xcanvas::TransformCommand(m_canvas->shapeManager(), std::move(beforeTransform), QStringLiteral("Move Selection X")));
+    requestFullUpdate();
+    updateSelectionHud();
+}
+
+void MyGraphicsView::applySelectionHudY(const double newY)
+{
+    if (!m_canvas || !m_canvas->shapeManager() || !m_canvas->undoStack())
+    {
+        return;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.isEmpty())
+    {
+        return;
+    }
+
+    const QRectF selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
+    const qreal  currentY      = sceneToCanvas(selectionRect.topLeft()).y();
+    const qreal  dy            = newY - currentY;
+    if (qAbs(dy) < 1e-6)
+    {
+        return;
+    }
+
+    std::map<xcanvas::Shape*, QTransform> beforeTransform;
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        beforeTransform[shape] = shape->transform();
+        shape->translate(QPointF(0, dy));
+    }
+
+    if (beforeTransform.empty())
+    {
+        return;
+    }
+
+    m_canvas->undoStack()->push(new xcanvas::TransformCommand(m_canvas->shapeManager(), std::move(beforeTransform), QStringLiteral("Move Selection Y")));
+    requestFullUpdate();
+    updateSelectionHud();
+}
+
+void MyGraphicsView::applySelectionHudW(const double newW)
+{
+    if (!m_canvas || !m_canvas->shapeManager() || !m_canvas->undoStack() || newW <= 0.0)
+    {
+        return;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.isEmpty())
+    {
+        return;
+    }
+
+    const QRectF selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
+    const qreal  oldW          = selectionRect.width();
+    if (oldW < 1e-6)
+    {
+        return;
+    }
+
+    const qreal sx = newW / oldW;
+    if (qAbs(sx - 1.0) < 1e-6)
+    {
+        return;
+    }
+
+    const QPointF anchor = selectionRect.topLeft();
+    std::map<xcanvas::Shape*, QTransform> beforeTransform;
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        beforeTransform[shape] = shape->transform();
+        if (m_keepAspectRatio)
+        {
+            shape->scale(sx, sx, anchor);
+        }
+        else
+        {
+            shape->scale(sx, 1.0, anchor);
+        }
+    }
+
+    if (beforeTransform.empty())
+    {
+        return;
+    }
+
+    const QString cmdText = m_keepAspectRatio ? QStringLiteral("Resize Selection (Keep Ratio)") : QStringLiteral("Resize Selection Width");
+    m_canvas->undoStack()->push(new xcanvas::TransformCommand(m_canvas->shapeManager(), std::move(beforeTransform), cmdText));
+    requestFullUpdate();
+    updateSelectionHud();
+}
+
+void MyGraphicsView::applySelectionHudH(const double newH)
+{
+    if (!m_canvas || !m_canvas->shapeManager() || !m_canvas->undoStack() || newH <= 0.0)
+    {
+        return;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.isEmpty())
+    {
+        return;
+    }
+
+    const QRectF selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
+    const qreal  oldH          = selectionRect.height();
+    if (oldH < 1e-6)
+    {
+        return;
+    }
+
+    const qreal sy = newH / oldH;
+    if (qAbs(sy - 1.0) < 1e-6)
+    {
+        return;
+    }
+
+    const QPointF anchor = selectionRect.topLeft();
+    std::map<xcanvas::Shape*, QTransform> beforeTransform;
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        beforeTransform[shape] = shape->transform();
+        if (m_keepAspectRatio)
+        {
+            shape->scale(sy, sy, anchor);
+        }
+        else
+        {
+            shape->scale(1.0, sy, anchor);
+        }
+    }
+
+    if (beforeTransform.empty())
+    {
+        return;
+    }
+
+    const QString cmdText = m_keepAspectRatio ? QStringLiteral("Resize Selection (Keep Ratio)") : QStringLiteral("Resize Selection Height");
+    m_canvas->undoStack()->push(new xcanvas::TransformCommand(m_canvas->shapeManager(), std::move(beforeTransform), cmdText));
+    requestFullUpdate();
+    updateSelectionHud();
+}
+
+void MyGraphicsView::onKeepAspectRatioToggled(const bool enabled)
+{
+    m_keepAspectRatio = enabled;
+}
+
 void MyGraphicsView::updateSelectionHud()
 {
     if (!m_selectionHudBar || !m_canvas || !m_canvas->shapeManager() || !m_selectionHudBar->isVisible())
@@ -816,6 +1026,11 @@ void MyGraphicsView::updateSelectionHud()
 
     const QRectF  selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
     const QPointF canvasPos     = sceneToCanvas(selectionRect.topLeft());
+    const QSignalBlocker blockerX(m_selectionHudBar->spinX());
+    const QSignalBlocker blockerY(m_selectionHudBar->spinY());
+    const QSignalBlocker blockerW(m_selectionHudBar->spinW());
+    const QSignalBlocker blockerH(m_selectionHudBar->spinH());
+
     m_selectionHudBar->spinX()->setValue(canvasPos.x());
     m_selectionHudBar->spinY()->setValue(canvasPos.y());
     m_selectionHudBar->spinW()->setValue(selectionRect.width());

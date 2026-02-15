@@ -41,5 +41,7 @@
         <file>Resource/Icons/Warning.svg</file>
         <file>Resource/Icons/Loading.gif</file>
         <file>Resource/Icons/Info.svg</file>
+        <file>Resource/Icons/AspectRatioClose.svg</file>
+        <file>Resource/Icons/KeepAspectRatio.svg</file>
     </qresource>
 </RCC>
