@@ -111,6 +111,7 @@ class MyGraphicsView : public QGraphicsView
     void   applySelectionHudY(double newY);
     void   applySelectionHudW(double newW);
     void   applySelectionHudH(double newH);
+    void   applySelectionHudAngle(double newAngle);
     void   onKeepAspectRatioToggled(bool enabled);
     QString projectDisplayName() const;
 

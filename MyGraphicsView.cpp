@@ -128,6 +128,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     connect(m_selectionHudBar, &SelectionHudBar::yEdited, this, &MyGraphicsView::applySelectionHudY);
     connect(m_selectionHudBar, &SelectionHudBar::wEdited, this, &MyGraphicsView::applySelectionHudW);
     connect(m_selectionHudBar, &SelectionHudBar::hEdited, this, &MyGraphicsView::applySelectionHudH);
+    connect(m_selectionHudBar, &SelectionHudBar::angleEdited, this, &MyGraphicsView::applySelectionHudAngle);
     connect(m_selectionHudBar, &SelectionHudBar::keepAspectRatioToggled, this, &MyGraphicsView::onKeepAspectRatioToggled);
     m_selectionHudBar->adjustSize();
 
@@ -1012,6 +1013,75 @@ void MyGraphicsView::applySelectionHudH(const double newH)
     updateSelectionHud();
 }
 
+void MyGraphicsView::applySelectionHudAngle(const double newAngle)
+{
+    if (!m_canvas || !m_canvas->shapeManager() || !m_canvas->undoStack())
+    {
+        return;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.isEmpty())
+    {
+        return;
+    }
+
+    std::map<xcanvas::Shape*, QTransform> beforeTransform;
+    if (selectedShapes.size() == 1)
+    {
+        xcanvas::Shape* shape = selectedShapes.first();
+        if (!shape)
+        {
+            return;
+        }
+
+        qreal delta = newAngle - shape->rotationDeg();
+        if (delta > 180.0)
+        {
+            delta -= 360.0;
+        }
+        else if (delta < -180.0)
+        {
+            delta += 360.0;
+        }
+        if (qAbs(delta) < 1e-6)
+        {
+            return;
+        }
+
+        beforeTransform[shape] = shape->transform();
+        shape->rotate(delta, shape->boundingRect().center());
+    }
+    else
+    {
+        const qreal delta = newAngle;
+        if (qAbs(delta) < 1e-6)
+        {
+            return;
+        }
+
+        const QPointF center = m_canvas->shapeManager()->selectedBoundingRect().center();
+        for (xcanvas::Shape* shape : selectedShapes)
+        {
+            if (!shape)
+            {
+                continue;
+            }
+            beforeTransform[shape] = shape->transform();
+            shape->rotate(delta, center);
+        }
+    }
+
+    if (beforeTransform.empty())
+    {
+        return;
+    }
+
+    m_canvas->undoStack()->push(new xcanvas::TransformCommand(m_canvas->shapeManager(), std::move(beforeTransform), QStringLiteral("Rotate Selection")));
+    requestFullUpdate();
+    updateSelectionHud();
+}
+
 void MyGraphicsView::onKeepAspectRatioToggled(const bool enabled)
 {
     m_keepAspectRatio = enabled;
@@ -1030,11 +1100,20 @@ void MyGraphicsView::updateSelectionHud()
     const QSignalBlocker blockerY(m_selectionHudBar->spinY());
     const QSignalBlocker blockerW(m_selectionHudBar->spinW());
     const QSignalBlocker blockerH(m_selectionHudBar->spinH());
+    const QSignalBlocker blockerAngle(m_selectionHudBar->spinAngle());
 
     m_selectionHudBar->spinX()->setValue(canvasPos.x());
     m_selectionHudBar->spinY()->setValue(canvasPos.y());
     m_selectionHudBar->spinW()->setValue(selectionRect.width());
     m_selectionHudBar->spinH()->setValue(selectionRect.height());
+    if (const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList(); selectedShapes.size() == 1 && selectedShapes.first())
+    {
+        m_selectionHudBar->spinAngle()->setValue(selectedShapes.first()->rotationDeg());
+    }
+    else
+    {
+        m_selectionHudBar->spinAngle()->setValue(0.0);
+    }
 }
 
 xcanvas::LayerManager* MyGraphicsView::layerManager()

@@ -3,6 +3,8 @@
 #include "MyMath.h"
 #include <QPainter>
 #include <QPainterPath>
+#include <QtMath>
+#include <cmath>
 
 namespace xcanvas {
     Shape::Shape(const Shape& other) :
@@ -137,6 +139,22 @@ namespace xcanvas {
         delta.scale(safeSx, safeSy);
         delta.translate(-anchor.x(), -anchor.y());
         setTransform(m_transform * delta);
+    }
+
+    double Shape::rotationDeg() const
+    {
+        // Qt 画布坐标系下使用 m12/m11 可得到顺时针角度
+        double deg = qRadiansToDegrees(qAtan2(m_transform.m12(), m_transform.m11()));
+        deg = std::fmod(deg, 360.0);
+        if (deg < 0.0)
+        {
+            deg += 360.0;
+        }
+        if (qAbs(deg - 360.0) < 1e-6)
+        {
+            deg = 0.0;
+        }
+        return deg;
     }
 
     QPainterPath& Shape::path() const

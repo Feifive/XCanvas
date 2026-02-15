@@ -37,6 +37,7 @@ class Shape
     virtual void translate(const QPointF& offset);
     virtual void rotate(double angle, const QPointF& center);
     virtual void scale(double sx, double sy, const QPointF& anchor);
+    double rotationDeg() const;
 
     virtual QPainterPath& path() const;
     virtual QRectF        boundingRect() const;

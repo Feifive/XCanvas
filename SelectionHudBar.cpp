@@ -51,12 +51,13 @@ SelectionHudBar::SelectionHudBar(QWidget* parent) : QWidget(parent), m_booleanTo
     m_spinW->setRange(0.01, 1e9);
     m_spinH->setRange(0.01, 1e9);
     m_spinAngle->setSuffix("°");
-    m_spinAngle->setRange(-360.0, 360.0);
+    m_spinAngle->setRange(0.0, 360.0);
 
     connect(m_spinX, &QDoubleSpinBox::editingFinished, this, [this]() { emit xEdited(m_spinX->value()); });
     connect(m_spinY, &QDoubleSpinBox::editingFinished, this, [this]() { emit yEdited(m_spinY->value()); });
     connect(m_spinW, &QDoubleSpinBox::editingFinished, this, [this]() { emit wEdited(m_spinW->value()); });
     connect(m_spinH, &QDoubleSpinBox::editingFinished, this, [this]() { emit hEdited(m_spinH->value()); });
+    connect(m_spinAngle, &QDoubleSpinBox::editingFinished, this, [this]() { emit angleEdited(m_spinAngle->value()); });
 
     m_keepAspectRatioButton = new QToolButton;
     m_keepAspectRatioButton->setObjectName("HudKeepAspectButton");

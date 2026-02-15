@@ -42,6 +42,7 @@ signals:
     void yEdited(double value);
     void wEdited(double value);
     void hEdited(double value);
+    void angleEdited(double value);
     void keepAspectRatioToggled(bool enabled);
 
 private:
