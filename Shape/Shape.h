@@ -5,6 +5,7 @@
 #include <QPainterPath>
 #include <QPointF>
 #include <QRectF>
+#include <QString>
 
 class QPainter;
 
@@ -52,6 +53,8 @@ class Shape
 
     int layerId() const;
     void setLayerId(int layerId);
+    QString groupId() const;
+    void setGroupId(const QString& groupId);
 
   protected:
     Shape();
@@ -73,6 +76,7 @@ class Shape
     double               m_rotation;
     QTransform           m_transform;
     int m_layerId = -1;
+    QString m_groupId;
 
   friend class ShapeManager;
 };

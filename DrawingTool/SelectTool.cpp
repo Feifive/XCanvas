@@ -323,7 +323,31 @@ void xcanvas::SelectTool::setCanvasCursorShape(int nHitPos)
 void xcanvas::SelectTool::updateHighlight(const Shape& shape)
 {
     m_highlightPath = QPainterPath();
-    m_highlightPath.addPath(shape.path());
+    const QString groupId = shape.groupId();
+    if (groupId.isEmpty())
+    {
+        m_highlightPath.addPath(shape.path());
+        return;
+    }
+
+    const ShapeManager* shapeManager = m_canvas->shapeManager();
+    if (!shapeManager)
+    {
+        m_highlightPath.addPath(shape.path());
+        return;
+    }
+
+    for (Shape* candidate : shapeManager->shapes())
+    {
+        if (!candidate || !candidate->isVisible())
+        {
+            continue;
+        }
+        if (candidate->groupId() == groupId)
+        {
+            m_highlightPath.addPath(candidate->path());
+        }
+    }
 }
 
 void xcanvas::SelectTool::clearHighlight()

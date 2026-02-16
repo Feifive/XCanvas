@@ -103,6 +103,8 @@ class MyGraphicsView : public QGraphicsView
     bool   pasteCopiedShapes();
     bool   pasteCopiedShapesAt(const QPointF& scenePos);
     bool   deleteSelectedShapes();
+    bool   groupSelectedShapes();
+    bool   ungroupSelectedShapes();
     bool   pasteFromClipboard(const QPointF& scenePos);
     bool   hasClipboardPasteContent() const;
     void   clearCopiedShapes();
@@ -135,6 +137,7 @@ class MyGraphicsView : public QGraphicsView
     bool                                  m_fileTaskRunning;
     MessageWidget*                        m_fileTaskMessage;
     bool                                  m_keepAspectRatio;
+    bool                                  m_isDestroying;
 };
 
 #endif// MYGRAPHICSVIEW_H

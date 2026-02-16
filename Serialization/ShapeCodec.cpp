@@ -21,6 +21,7 @@ constexpr const char* kKeyType      = "type";
 constexpr const char* kKeyColor     = "color";
 constexpr const char* kKeyVisible   = "visible";
 constexpr const char* kKeyLayerId   = "layerId";
+constexpr const char* kKeyGroupId   = "groupId";
 constexpr const char* kKeyTransform = "transform";
 
 constexpr const char* kTypeVector = "vector";
@@ -253,6 +254,7 @@ void setCommonShapeFields(const QJsonObject& obj, Shape* shape)
     shape->setColor(QColor(obj.value(kKeyColor).toString(shape->color().name(QColor::HexArgb))));
     shape->setVisible(obj.value(kKeyVisible).toBool(true));
     shape->setLayerId(obj.value(kKeyLayerId).toInt(-1));
+    shape->setGroupId(obj.value(kKeyGroupId).toString());
 
     QTransform transform;
     if (decodeTransform(obj.value(kKeyTransform), &transform))
@@ -306,6 +308,7 @@ QJsonObject encodeShape(const Shape* shape)
     obj.insert(kKeyColor, shape->color().name(QColor::HexArgb));
     obj.insert(kKeyVisible, shape->isVisible());
     obj.insert(kKeyLayerId, shape->layerId());
+    obj.insert(kKeyGroupId, shape->groupId());
     obj.insert(kKeyTransform, encodeTransform(shape->transform()));
 
     switch (shape->type())

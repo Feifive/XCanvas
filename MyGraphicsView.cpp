@@ -14,6 +14,7 @@
 #include "Shape/ShapeImage.h"
 #include "Shape/Shape.h"
 #include "Shape/ShapeText.h"
+#include "Shape/GroupCommand.h"
 #include "Shape/TransformCommand.h"
 #include "Serialization/DocumentTypes.h"
 #include "Serialization/DocumentIO.h"
@@ -41,6 +42,7 @@
 #include <QMimeData>
 #include <QSignalBlocker>
 #include <QUrl>
+#include <QUuid>
 #include <map>
 
 #include "MyMath.h"
@@ -59,7 +61,8 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
       m_fileIoContext(new QObject()),
       m_fileTaskRunning(false),
       m_fileTaskMessage(nullptr),
-      m_keepAspectRatio(false)
+      m_keepAspectRatio(true),
+      m_isDestroying(false)
 {
     setObjectName("MyGraphicsView");
     setTransformationAnchor(QGraphicsView::NoAnchor);
@@ -104,6 +107,15 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     connect(m_canvas->undoStack(), &QUndoStack::canUndoChanged, m_bottomFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
     connect(m_canvas->undoStack(), &QUndoStack::canRedoChanged, m_bottomFloatingToolBar, &BottomFloatingToolBar::setCanRedo);
     connect(m_canvas->undoStack(), &QUndoStack::cleanChanged, this, [this]() { updateWindowTitle(); });
+    connect(m_canvas->undoStack(), &QUndoStack::indexChanged, this, [this](int) {
+        if (m_isDestroying)
+        {
+            return;
+        }
+        updateSelectionHud();
+        updateSelectionHudBarPos();
+        requestFullUpdate();
+    });
     connect(&EventBus::instance(), &EventBus::newFileRequested, this, &MyGraphicsView::onNewDocument);
     connect(&EventBus::instance(), &EventBus::importFileRequested, this, &MyGraphicsView::importFile);
     connect(&EventBus::instance(), &EventBus::openFileRequested, this, &MyGraphicsView::onOpenDocument);
@@ -147,6 +159,11 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
 
 MyGraphicsView::~MyGraphicsView()
 {
+    m_isDestroying = true;
+    if (m_canvas && m_canvas->undoStack())
+    {
+        disconnect(m_canvas->undoStack(), nullptr, this, nullptr);
+    }
     clearCopiedShapes();
     closeFileTaskLoading();
     if (m_fileIoThread)
@@ -163,7 +180,15 @@ double MyGraphicsView::zoomValue()
 
 void MyGraphicsView::requestFullUpdate()
 {
-    viewport()->update();
+    if (m_isDestroying)
+    {
+        return;
+    }
+
+    if (QWidget* vp = viewport())
+    {
+        vp->update();
+    }
 }
 
 void MyGraphicsView::mousePressEvent(QMouseEvent* event)
@@ -243,6 +268,20 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
 
 void MyGraphicsView::keyPressEvent(QKeyEvent* event)
 {
+    if (event->key() == Qt::Key_G && event->modifiers().testFlag(Qt::ControlModifier))
+    {
+        if (event->modifiers().testFlag(Qt::ShiftModifier))
+        {
+            ungroupSelectedShapes();
+        }
+        else
+        {
+            groupSelectedShapes();
+        }
+        event->accept();
+        return;
+    }
+
     if (event->matches(QKeySequence::Cut))
     {
         cutSelectedShapes();
@@ -260,6 +299,17 @@ void MyGraphicsView::keyPressEvent(QKeyEvent* event)
     if (event->matches(QKeySequence::Paste))
     {
         pasteCopiedShapes();
+        event->accept();
+        return;
+    }
+
+    if (event->matches(QKeySequence::SelectAll))
+    {
+        if (m_canvas && m_canvas->shapeManager())
+        {
+            m_canvas->shapeManager()->selectAll();
+            requestFullUpdate();
+        }
         event->accept();
         return;
     }
@@ -1089,7 +1139,7 @@ void MyGraphicsView::onKeepAspectRatioToggled(const bool enabled)
 
 void MyGraphicsView::updateSelectionHud()
 {
-    if (!m_selectionHudBar || !m_canvas || !m_canvas->shapeManager() || !m_selectionHudBar->isVisible())
+    if (m_isDestroying || !m_selectionHudBar || !m_canvas || !m_canvas->shapeManager() || !m_selectionHudBar->isVisible())
     {
         return;
     }
@@ -1529,7 +1579,7 @@ void MyGraphicsView::updateBottomFloatingToolBarPos()
 
 void MyGraphicsView::updateSelectionHudBarPos()
 {
-    if (!m_selectionHudBar && !m_selectionHudBar->isVisible())
+    if (m_isDestroying || !m_selectionHudBar || !m_selectionHudBar->isVisible())
     {
         return;
     }
@@ -1751,6 +1801,39 @@ void MyGraphicsView::showCanvasContextMenu(const QPoint& viewPos)
     const bool canCut = canCopy;
     const bool canPaste = hasClipboardPasteContent() || !m_copiedShapes.isEmpty();
     const bool canDelete = canCopy;
+    const xcanvas::ShapeList selectedShapes = (m_canvas && m_canvas->shapeManager()) ? m_canvas->shapeManager()->selectedShapeList() : xcanvas::ShapeList();
+    bool allSameNonEmptyGroup = selectedShapes.size() >= 2;
+    QString firstGroupId;
+    bool firstGroupSet = false;
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape || shape->groupId().isEmpty())
+        {
+            allSameNonEmptyGroup = false;
+            break;
+        }
+        if (!firstGroupSet)
+        {
+            firstGroupId = shape->groupId();
+            firstGroupSet = true;
+            continue;
+        }
+        if (shape->groupId() != firstGroupId)
+        {
+            allSameNonEmptyGroup = false;
+            break;
+        }
+    }
+    const bool canGroup = selectedShapes.size() >= 2 && !allSameNonEmptyGroup;
+    bool canUngroup = false;
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (shape && !shape->groupId().isEmpty())
+        {
+            canUngroup = true;
+            break;
+        }
+    }
 
     XMenu menu(this);
 
@@ -1758,6 +1841,8 @@ void MyGraphicsView::showCanvasContextMenu(const QPoint& viewPos)
     QAction* copyAction = nullptr;
     QAction* pasteAction = nullptr;
     QAction* deleteAction = nullptr;
+    QAction* groupAction = nullptr;
+    QAction* ungroupAction = nullptr;
     QAction* selectAllAction = nullptr;
     QAction* zoomInAction = nullptr;
     QAction* zoomOutAction = nullptr;
@@ -1790,6 +1875,20 @@ void MyGraphicsView::showCanvasContextMenu(const QPoint& viewPos)
         deleteAction->setShortcutVisibleInContextMenu(true);
     }
 
+    if (canGroup)
+    {
+        groupAction = menu.addAction(tr("成组"));
+        groupAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_G));
+        groupAction->setShortcutVisibleInContextMenu(true);
+    }
+
+    if (canUngroup)
+    {
+        ungroupAction = menu.addAction(tr("取消成组"));
+        ungroupAction->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_G));
+        ungroupAction->setShortcutVisibleInContextMenu(true);
+    }
+
     menu.addSeparator();
 
     selectAllAction = menu.addAction(tr("全选"));
@@ -1820,6 +1919,14 @@ void MyGraphicsView::showCanvasContextMenu(const QPoint& viewPos)
     else if (result == deleteAction)
     {
         deleteSelectedShapes();
+    }
+    else if (result == groupAction)
+    {
+        groupSelectedShapes();
+    }
+    else if (result == ungroupAction)
+    {
+        ungroupSelectedShapes();
     }
     else if (result == selectAllAction)
     {
@@ -1923,6 +2030,22 @@ bool MyGraphicsView::pasteCopiedShapes()
         return false;
     }
 
+    std::map<QString, QString> groupRemap;
+    for (xcanvas::Shape* shape : shapesToAdd)
+    {
+        const QString oldGroupId = shape->groupId();
+        if (oldGroupId.isEmpty())
+        {
+            continue;
+        }
+        auto it = groupRemap.find(oldGroupId);
+        if (it == groupRemap.end())
+        {
+            it = groupRemap.emplace(oldGroupId, QUuid::createUuid().toString(QUuid::WithoutBraces)).first;
+        }
+        shape->setGroupId(it->second);
+    }
+
     const QPointF offset = QPointF(20.0 * (m_pasteSerial + 1), 20.0 * (m_pasteSerial + 1));
     ++m_pasteSerial;
     for (xcanvas::Shape* shape : shapesToAdd)
@@ -1985,6 +2108,22 @@ bool MyGraphicsView::pasteCopiedShapesAt(const QPointF& scenePos)
         return false;
     }
 
+    std::map<QString, QString> groupRemap;
+    for (xcanvas::Shape* shape : shapesToAdd)
+    {
+        const QString oldGroupId = shape->groupId();
+        if (oldGroupId.isEmpty())
+        {
+            continue;
+        }
+        auto it = groupRemap.find(oldGroupId);
+        if (it == groupRemap.end())
+        {
+            it = groupRemap.emplace(oldGroupId, QUuid::createUuid().toString(QUuid::WithoutBraces)).first;
+        }
+        shape->setGroupId(it->second);
+    }
+
     if (hasRect && unionRect.isValid())
     {
         const QPointF offset = scenePos - unionRect.center();
@@ -2015,6 +2154,102 @@ bool MyGraphicsView::deleteSelectedShapes()
     }
 
     m_canvas->removeShapes(selectedShapes);
+    requestFullUpdate();
+    return true;
+}
+
+bool MyGraphicsView::groupSelectedShapes()
+{
+    if (!m_canvas || !m_canvas->shapeManager() || !m_canvas->undoStack())
+    {
+        return false;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.size() < 2)
+    {
+        return false;
+    }
+
+    bool allSameNonEmptyGroup = true;
+    QString firstGroupId;
+    bool firstGroupSet = false;
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape || shape->groupId().isEmpty())
+        {
+            allSameNonEmptyGroup = false;
+            break;
+        }
+        if (!firstGroupSet)
+        {
+            firstGroupId = shape->groupId();
+            firstGroupSet = true;
+            continue;
+        }
+        if (shape->groupId() != firstGroupId)
+        {
+            allSameNonEmptyGroup = false;
+            break;
+        }
+    }
+    if (allSameNonEmptyGroup)
+    {
+        return false;
+    }
+
+    const QString newGroupId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    std::map<xcanvas::Shape*, QString> beforeGroupId;
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape)
+        {
+            continue;
+        }
+        beforeGroupId[shape] = shape->groupId();
+        shape->setGroupId(newGroupId);
+    }
+
+    if (beforeGroupId.empty())
+    {
+        return false;
+    }
+
+    m_canvas->undoStack()->push(new xcanvas::GroupCommand(m_canvas->shapeManager(), std::move(beforeGroupId), tr("Group Shapes")));
+    requestFullUpdate();
+    return true;
+}
+
+bool MyGraphicsView::ungroupSelectedShapes()
+{
+    if (!m_canvas || !m_canvas->shapeManager() || !m_canvas->undoStack())
+    {
+        return false;
+    }
+
+    const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList();
+    if (selectedShapes.isEmpty())
+    {
+        return false;
+    }
+
+    std::map<xcanvas::Shape*, QString> beforeGroupId;
+    for (xcanvas::Shape* shape : selectedShapes)
+    {
+        if (!shape || shape->groupId().isEmpty())
+        {
+            continue;
+        }
+        beforeGroupId[shape] = shape->groupId();
+        shape->setGroupId(QString());
+    }
+
+    if (beforeGroupId.empty())
+    {
+        return false;
+    }
+
+    m_canvas->undoStack()->push(new xcanvas::GroupCommand(m_canvas->shapeManager(), std::move(beforeGroupId), tr("Ungroup Shapes")));
     requestFullUpdate();
     return true;
 }

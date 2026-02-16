@@ -16,12 +16,23 @@ namespace xcanvas {
         m_originalPath(other.m_originalPath),
         m_color(other.m_color),
         m_rotation(other.m_rotation),
-        m_transform(other.m_transform)
+        m_transform(other.m_transform),
+        m_groupId(other.m_groupId)
     {
     }
 
     void Shape::setLayerId(int layerId) {
         m_layerId = layerId;
+    }
+
+    QString Shape::groupId() const
+    {
+        return m_groupId;
+    }
+
+    void Shape::setGroupId(const QString& groupId)
+    {
+        m_groupId = groupId;
     }
 
     Shape::Shape() :

@@ -206,20 +206,44 @@ namespace xcanvas {
 
     void ShapeManager::selectInRect(const QRectF& rect)
     {
-        deselectAll();
+        const bool hadSelection = !m_selectedShapes.isEmpty();
+        clearSelectionInternal();
 
-        m_selectedShapes.reserve(qMin(1000, m_shapes.size()));
-
+        QSet<QString> selectedGroupIds;
         for (Shape* shape : m_shapes)
         {
             if (rect.contains(shape->boundingRect()))
             {
-                shape->setSelected(true);
-                m_selectedShapes.insert(shape);
+                const QString gid = shape->groupId();
+                if (gid.isEmpty())
+                {
+                    shape->setSelected(true);
+                    m_selectedShapes.insert(shape);
+                }
+                else
+                {
+                    selectedGroupIds.insert(gid);
+                }
             }
         }
-        m_isSelectedRectDirty = true;
-        emit selectionChanged();
+
+        if (!selectedGroupIds.isEmpty())
+        {
+            for (Shape* shape : m_shapes)
+            {
+                if (selectedGroupIds.contains(shape->groupId()))
+                {
+                    shape->setSelected(true);
+                    m_selectedShapes.insert(shape);
+                }
+            }
+        }
+
+        if (hadSelection || !m_selectedShapes.isEmpty())
+        {
+            m_isSelectedRectDirty = true;
+            emit selectionChanged();
+        }
     }
 
     void ShapeManager::invertSelection()
@@ -260,13 +284,39 @@ namespace xcanvas {
             return;
         }
 
+        bool selectionChangedFlag = false;
         if (replace) {
-            clearSelectionInternal(); // 如果是单选模式，先清空之前的
+            if (!m_selectedShapes.isEmpty())
+            {
+                clearSelectionInternal(); // 如果是单选模式，先清空之前的
+                selectionChangedFlag = true;
+            }
         }
 
-        if (!m_selectedShapes.contains(shape)) {
-            shape->setSelected(true);
-            m_selectedShapes.insert(shape);
+        const QString gid = shape->groupId();
+        if (gid.isEmpty())
+        {
+            if (!m_selectedShapes.contains(shape))
+            {
+                shape->setSelected(true);
+                m_selectedShapes.insert(shape);
+                selectionChangedFlag = true;
+            }
+        }
+        else
+        {
+            for (Shape* candidate : m_shapes)
+            {
+                if (candidate->groupId() == gid && !m_selectedShapes.contains(candidate))
+                {
+                    candidate->setSelected(true);
+                    m_selectedShapes.insert(candidate);
+                    selectionChangedFlag = true;
+                }
+            }
+        }
+
+        if (selectionChangedFlag) {
             m_isSelectedRectDirty = true;
             emit selectionChanged();
         }
