@@ -4,14 +4,20 @@
 #include <QGraphicsView>
 #include <QSvgRenderer>
 #include <QColor>
-#include <QVector>
 
 class BottomFloatingToolBar;
 class SelectionHudBar;
 class ColorPaletteWidget;
-class QThread;
-class QObject;
-class MessageWidget;
+class SelectionHudController;
+class ClipboardCommandService;
+class ViewportTransformController;
+class ViewRenderController;
+class ViewInteractionController;
+class ViewLayoutController;
+class DocumentSessionController;
+class AsyncFileTaskRunner;
+class DocumentIoController;
+class SelectionUiCoordinator;
 
 namespace xcanvas
 {
@@ -20,6 +26,7 @@ class Canvas;
 class ToolManager;
 class LayerManager;
 class Shape;
+class ShapeText;
 }// namespace xcanvas
 
 class MyGraphicsView : public QGraphicsView
@@ -29,19 +36,21 @@ class MyGraphicsView : public QGraphicsView
     explicit MyGraphicsView(QWidget* parent = nullptr);
     ~MyGraphicsView() override;
 
-    double                 zoomValue();
-    void                   requestFullUpdate();
-    void                   updateSelectionHud();
-    xcanvas::LayerManager* layerManager();
-    bool                   maybeSaveBeforeClose();
+    double                 zoomValue() const;
+    void                   requestFullUpdate() const;
+    void                   updateSelectionHud() const;
+    xcanvas::LayerManager* layerManager() const;
+    bool                   maybeSaveBeforeClose() const;
 
   signals:
     void mouseMovePos(QPointF pos);
 
   protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void mouseDoubleClickEvent(QMouseEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
@@ -53,91 +62,61 @@ class MyGraphicsView : public QGraphicsView
     void dropEvent(QDropEvent* event) override;
 
   private slots:
-    void onZoomIn();
-    void onZoomOut();
-    void onUndo();
-    void onRedo();
-    void onNewDocument();
-    void onOpenDocument();
-    void onSaveDocument();
-    void onSaveDocumentAs();
-    void onSelectionChanged();
-    void onColorSelected(const QColor& color);
+    void onColorSelected(const QColor& color) const;
 
   private:
-    void drawShapes(QPainter* painter, const QRectF& visibleRect);
-    void drawNormalShapes(QPainter* painter, const QRectF& visibleRect);
-    void drawSelectedShapes(QPainter* painter, const QRectF& visibleRect);
-    void drawGrid(QPainter* painter);
-    void drawTrace(QPainter* painter);
-    void drawCanvas(QPainter* painter);
+    void initView();
+    void initCore();
+    void initWidgets();
+    void initControllers();
+    void initConnections();
+    void initStartup();
 
-  private:
-    double gridStep(double scale) const;
     void   importFile();
-    void   resetToNewDocument();
-    bool   maybeSaveBeforeProceed();
+    void   resetToNewDocument() const;
+    bool   maybeSaveBeforeProceed() const;
     bool   isProjectFilePath(const QString& path) const;
-    bool   openDocumentFile(const QString& path);
-    bool   saveDocumentFile(const QString& path);
-    bool   saveDocumentFileBlocking(const QString& path);
-    void   openDocumentFileAsync(const QString& path);
-    void   saveDocumentFileAsync(const QString& path, bool updateCurrentPath);
-    void   setFileActionsEnabled(bool enabled);
-    void   showFileTaskLoading(const QString& text);
-    void   closeFileTaskLoading();
-    void   importFiles(const QStringList& filePaths);
-    void   importFiles(const QStringList& filePaths, const QPointF& targetCenter);
-    void   updateBottomFloatingToolBarPos();
-    void   updateSelectionHudBarPos();
-    void   zoomIn(const QPointF& zoomCenterPoint);
-    void   zoomOut(const QPointF& zoomCenterPoint);
-    void   zoomTo(qreal zoomValue);
-    void   fitWidth();
-    void   fitHeight();
-    void   fitCanvas();
-    void   fitShapes();
-    void   showCanvasContextMenu(const QPoint& viewPos);
-    bool   copySelectedShapes();
-    bool   cutSelectedShapes();
-    bool   pasteCopiedShapes();
-    bool   pasteCopiedShapesAt(const QPointF& scenePos);
-    bool   deleteSelectedShapes();
-    bool   groupSelectedShapes();
-    bool   ungroupSelectedShapes();
-    bool   pasteFromClipboard(const QPointF& scenePos);
-    bool   hasClipboardPasteContent() const;
-    void   clearCopiedShapes();
-    void   updateWindowTitle();
-    void   applySelectionHudX(double newX);
-    void   applySelectionHudY(double newY);
-    void   applySelectionHudW(double newW);
-    void   applySelectionHudH(double newH);
-    void   applySelectionHudAngle(double newAngle);
-    void   onKeepAspectRatioToggled(bool enabled);
+    bool   saveDocumentFileBlocking(const QString& path) const;
+    void   openDocumentFileAsync(const QString& path) const;
+    void   saveDocumentFileAsync(const QString& path, bool updateCurrentPath) const;
+    void   importFiles(const QStringList& filePaths) const;
+    void   importFiles(const QStringList& filePaths, const QPointF& targetCenter) const;
+    void   updateBottomFloatingToolBarPos() const;
+    void   updateSelectionHudBarPos() const;
+    void   zoomIn(const QPointF& zoomCenterPoint) const;
+    void   zoomOut(const QPointF& zoomCenterPoint) const;
+    void   zoomTo(qreal zoomValue) const;
+    void   fitWidth() const;
+    void   fitHeight() const;
+    void   fitCanvas() const;
+    void   fitShapes() const;
+    void   updateWindowTitle() const;
     QString projectDisplayName() const;
+    xcanvas::Shape* findTopShapeAtScenePos(const QPointF& scenePos) const;
+    void            beginInlineTextEdit(xcanvas::ShapeText* shape);
+    void            finishInlineTextEdit(bool commit);
 
   private:
     xcanvas::Canvas*       m_canvas;
-    QPointF                m_startPos;
-    bool                   m_bDragging;
-    double                 m_dScaleFactor;
     BottomFloatingToolBar* m_bottomFloatingToolBar;
     SelectionHudBar*       m_selectionHudBar;
     ColorPaletteWidget*    m_colorPaletteWidget;
+    std::unique_ptr<SelectionHudController> m_selectionHudController;
+    std::unique_ptr<SelectionUiCoordinator> m_selectionUiCoordinator;
+    std::unique_ptr<ViewLayoutController> m_viewLayoutController;
+    std::unique_ptr<ViewportTransformController> m_viewportTransformController;
+    std::unique_ptr<ViewRenderController> m_viewRenderController;
     std::unique_ptr<xcanvas::ToolManager> m_toolMgr;
     QSvgRenderer                          m_rotateHandle;
-    QVector<xcanvas::Shape*>              m_copiedShapes;
-    QPoint                                m_rightPressPos;
-    bool                                  m_rightDragged;
-    int                                   m_pasteSerial;
-    QString                               m_currentDocumentPath;
-    QThread*                              m_fileIoThread;
-    QObject*                              m_fileIoContext;
-    bool                                  m_fileTaskRunning;
-    MessageWidget*                        m_fileTaskMessage;
-    bool                                  m_keepAspectRatio;
+    std::unique_ptr<AsyncFileTaskRunner>  m_fileTaskRunner;
     bool                                  m_isDestroying;
+    std::unique_ptr<ClipboardCommandService> m_clipboardCommandService;
+    std::unique_ptr<DocumentSessionController> m_documentSessionController;
+    std::unique_ptr<ViewInteractionController> m_viewInteractionController;
+    std::unique_ptr<DocumentIoController> m_documentIoController;
+    class QGraphicsTextItem*                 m_inlineTextEditor;
+    xcanvas::ShapeText*                      m_inlineEditingShape;
+    QString                                  m_inlineOriginalText;
 };
 
 #endif// MYGRAPHICSVIEW_H

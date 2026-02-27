@@ -36,3 +36,12 @@
 
 # debug information files
 *.dwo
+
+# Build directories
+build/
+cmake-build-*/
+
+# IDE directories
+.idea/
+.qtcreator/
+.vscode/

@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QStandardPaths>
 
@@ -86,6 +87,40 @@ void AppSettings::save()
 QString AppSettings::lastOpenedPath() const
 {
     return m_lastOpenedPath;
+}
+
+QString AppSettings::lastOpenedPathOrDocumentsPath() const
+{
+    if (!m_lastOpenedPath.isEmpty())
+    {
+        return m_lastOpenedPath;
+    }
+
+    const QString documentsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    return documentsPath.isEmpty() ? QDir::homePath() : documentsPath;
+}
+
+void AppSettings::setLastOpenedPath(const QString& path)
+{
+    if (path.isEmpty())
+    {
+        if (!m_lastOpenedPath.isEmpty())
+        {
+            m_lastOpenedPath.clear();
+            emit settingsChanged();
+        }
+        return;
+    }
+
+    QFileInfo fileInfo(path);
+    const QString normalizedPath = fileInfo.isDir() ? fileInfo.absoluteFilePath() : fileInfo.absolutePath();
+    if (normalizedPath.isEmpty() || m_lastOpenedPath == normalizedPath)
+    {
+        return;
+    }
+
+    m_lastOpenedPath = normalizedPath;
+    emit settingsChanged();
 }
 
 QColor AppSettings::activeColor() const {

@@ -64,6 +64,16 @@ bool CSwitchButton::GetEnabled() const
     return m_bEnabled;
 }
 
+QColor CSwitchButton::GetBackColorOn() const
+{
+    return m_backColorOn;
+}
+
+QColor CSwitchButton::GetBackColorOff() const
+{
+    return m_backColorOff;
+}
+
 void CSwitchButton::SetBackColorOn(const QColor& color)
 {
     m_backColorOn = color;

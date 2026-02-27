@@ -14,8 +14,8 @@ class CSwitchButton : public QWidget
     Q_OBJECT
     Q_PROPERTY(QColor backColor MEMBER m_backColor)//新增背景颜色属性,用于动画
     Q_PROPERTY(bool enabled READ GetEnabled WRITE SetEnabled)
-    Q_PROPERTY(QColor backColorOn WRITE SetBackColorOn)
-    Q_PROPERTY(QColor backColorOff WRITE SetBackColorOff)
+    Q_PROPERTY(QColor backColorOn READ GetBackColorOn WRITE SetBackColorOn)
+    Q_PROPERTY(QColor backColorOff READ GetBackColorOff WRITE SetBackColorOff)
 
   public:
     explicit CSwitchButton(QWidget* parent = nullptr);
@@ -27,6 +27,8 @@ class CSwitchButton : public QWidget
     void   SetEnabled(bool enable);
     bool   GetEnabled() const;
     QColor GetBackColor() const;
+    QColor GetBackColorOn() const;
+    QColor GetBackColorOff() const;
     void   SetBackColor(const QColor& color);
     void   SetBackColorOn(const QColor& color);
     void   SetBackColorOff(const QColor& color);

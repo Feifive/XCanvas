@@ -56,6 +56,7 @@ file(GLOB IMPORT_DXF  Import/DXF/*.h Import/DXF/*.cpp)
 file(GLOB IMPORT_IMG  Import/Image/*.h Import/Image/*.cpp)
 file(GLOB IMPORT_PDF  Import/PDF/*.h Import/PDF/*.cpp)
 file(GLOB SERIALIZATION  Serialization/*.h Serialization/*.cpp)
+file(GLOB CONTROLLER  Controller/*.h Controller/*.cpp)
 
 source_group("DrawingTool"   FILES ${DRAWINGTOOL})
 source_group("Shape"         FILES ${SHAPE})
@@ -67,7 +68,8 @@ source_group("Import\\Utils" FILES ${IMPORT_UTILS})
 source_group("Import\\DXF"   FILES ${IMPORT_DXF})
 source_group("Import\\Image" FILES ${IMPORT_IMG})
 source_group("Import\\PDF"   FILES ${IMPORT_PDF})
-source_group("Serialization"   FILES ${SERIALIZATION})
+source_group("Serialization" FILES ${SERIALIZATION})
+source_group("Controller"    FILES ${CONTROLLER})
 
 set(PROJECT_SOURCES
     main.cpp
@@ -95,6 +97,7 @@ set(PROJECT_SOURCES
     ${IMPORT_PDF}
     ${IMPORT_UTILS}
     ${SERIALIZATION}
+    ${CONTROLLER}
 )
 
 # ============================================================

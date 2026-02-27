@@ -203,12 +203,26 @@ void xcanvas::SelectTool::mouseReleaseEvent(QMouseEvent* event)
         m_canvasView->requestFullUpdate();
     }
     else if ((m_bMovingItem || m_rotating || m_resizing) && !m_initialTransforms.empty()) {
-        QString text;
-        if (m_bMovingItem) text = "Translate Shapes";
-        else if (m_rotating) text = "Rotate Shapes";
-        else if (m_resizing) text = "Resize Shapes";
+        bool transformed = false;
+        for (const auto& [shape, initMatrix] : m_initialTransforms)
+        {
+            if (shape && shape->transform() != initMatrix)
+            {
+                transformed = true;
+                break;
+            }
+        }
 
-        m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), std::move(m_initialTransforms), text));
+        if (transformed)
+        {
+            QString text;
+            if (m_bMovingItem) text = "Translate Shapes";
+            else if (m_rotating) text = "Rotate Shapes";
+            else if (m_resizing) text = "Resize Shapes";
+
+            m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), std::move(m_initialTransforms), text));
+        }
+
         m_bMovingItem = m_rotating = m_resizing = false;
         m_initialTransforms.clear();
         m_canvasView->requestFullUpdate();

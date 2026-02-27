@@ -29,6 +29,7 @@ class AppSettings : public QObject
     void         setGridContrast(GridContrast contrast);
 
     QString lastOpenedPath() const;
+    QString lastOpenedPathOrDocumentsPath() const;
     void    setLastOpenedPath(const QString& path);
 
     QColor activeColor() const;

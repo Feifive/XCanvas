@@ -20,7 +20,7 @@ MessageBox::MessageBox(QWidget* parent)
       m_primaryButton(nullptr),
       m_clickedButton(ClickedButton::Closed)
 {
-    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+    setWindowFlags(windowFlags() | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
     setAttribute(Qt::WA_TranslucentBackground, true);
     setModal(true);
 
