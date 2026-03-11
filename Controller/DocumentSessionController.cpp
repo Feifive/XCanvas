@@ -10,7 +10,7 @@
 #include <QPushButton>
 #include <QUndoStack>
 #include <QWidget>
-#include <qtfluentwidgets.h>
+#include "components/dialog_box/dialog.h"
 
 DocumentSessionController::DocumentSessionController(
     QWidget* const             hostView,
