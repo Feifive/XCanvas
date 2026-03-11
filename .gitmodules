@@ -1,0 +1,3 @@
+[submodule "3rdparty/Qt-Fluent-Widgets"]
+	path = 3rdparty/Qt-Fluent-Widgets
+	url = https://github.com/Fairy-Oracle-Sanctuary/Qt-Fluent-Widgets.git
