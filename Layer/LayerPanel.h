@@ -2,12 +2,9 @@
 #define LAYERPANEL_H
 
 #include "LayerManager.h"
-#include <QCheckBox>
-#include <QComboBox>
 #include <QDoubleSpinBox>
-#include <QPushButton>
-#include <QTableWidget>
 #include <QWidget>
+#include <qtfluentwidgets.h>
 
 class LayerPanel : public QWidget
 {
@@ -30,6 +27,7 @@ class LayerPanel : public QWidget
     // 单元格构建辅助函数
     void     setRowWidgets(int row, const xcanvas::LayerParameter& param);
     QWidget* createCheckBoxWidget(bool checked, int layerId, bool isVisibility);
+    QWidget* createCenteredCellWidget(QWidget* inner, int hMargin = 2, int vMargin = 2) const;
 
   private slots:
     void onRowMoved(int logicalIndex, int oldVisualIndex, int newVisualIndex);
@@ -48,7 +46,7 @@ class LayerPanel : public QWidget
         Count
     };
 
-    QTableWidget*          m_table;
+    qfw::TableWidget*      m_table;
     xcanvas::LayerManager* m_mgr;
 };
 

@@ -315,22 +315,28 @@ void SelectionHudController::updateSelectionHud(const bool isDestroying)
 
     const QRectF  selectionRect = m_canvas->shapeManager()->selectedBoundingRect();
     const QPointF canvasPos     = sceneToCanvas(selectionRect.topLeft());
-    const QSignalBlocker blockerX(m_selectionHudBar->spinX());
-    const QSignalBlocker blockerY(m_selectionHudBar->spinY());
-    const QSignalBlocker blockerW(m_selectionHudBar->spinW());
-    const QSignalBlocker blockerH(m_selectionHudBar->spinH());
-    const QSignalBlocker blockerAngle(m_selectionHudBar->spinAngle());
+    auto* spinX     = m_selectionHudBar->spinX();
+    auto* spinY     = m_selectionHudBar->spinY();
+    auto* spinW     = m_selectionHudBar->spinW();
+    auto* spinH     = m_selectionHudBar->spinH();
+    auto* spinAngle = m_selectionHudBar->spinAngle();
 
-    m_selectionHudBar->spinX()->setValue(canvasPos.x());
-    m_selectionHudBar->spinY()->setValue(canvasPos.y());
-    m_selectionHudBar->spinW()->setValue(selectionRect.width());
-    m_selectionHudBar->spinH()->setValue(selectionRect.height());
+    const QSignalBlocker blockerX(spinX);
+    const QSignalBlocker blockerY(spinY);
+    const QSignalBlocker blockerW(spinW);
+    const QSignalBlocker blockerH(spinH);
+    const QSignalBlocker blockerAngle(spinAngle);
+
+    spinX->setValue(canvasPos.x());
+    spinY->setValue(canvasPos.y());
+    spinW->setValue(selectionRect.width());
+    spinH->setValue(selectionRect.height());
     if (const xcanvas::ShapeList selectedShapes = m_canvas->shapeManager()->selectedShapeList(); selectedShapes.size() == 1 && selectedShapes.first())
     {
-        m_selectionHudBar->spinAngle()->setValue(selectedShapes.first()->rotationDeg());
+        spinAngle->setValue(selectedShapes.first()->rotationDeg());
     }
     else
     {
-        m_selectionHudBar->spinAngle()->setValue(0.0);
+        spinAngle->setValue(0.0);
     }
 }

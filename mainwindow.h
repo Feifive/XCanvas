@@ -1,20 +1,14 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
+#include <qtfluentwidgets.h>
 
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
-QT_END_NAMESPACE
-
-class MyGraphicsView;
-class DrawingToolsBar;
-class CanvasWidget;
+class QWidget;
+class QStackedWidget;
 class QCloseEvent;
+class EditorPageManager;
 
-class MainWindow : public QMainWindow
+class MainWindow : public qfw::FluentWindow
 {
     Q_OBJECT
 
@@ -23,14 +17,18 @@ public:
     ~MainWindow();
 
 protected:
+    void showEvent(QShowEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
 
 private:
     void init();
+    void initMultiPageLayout();
+    void fixTitleBarGeometry();
 
 private:
-    Ui::MainWindow *ui;
-    DrawingToolsBar* m_pDrawingToolsBar;
-    CanvasWidget*    m_pCanvasWidget;
+    QStackedWidget* m_pPageStack;
+    qfw::TabBar*    m_pTabBar;
+    EditorPageManager* m_editorPageManager;
 };
 #endif // MAINWINDOW_H

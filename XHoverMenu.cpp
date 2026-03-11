@@ -2,7 +2,8 @@
 #include <QCoreApplication>
 #include <QToolButton>
 
-XHoverMenu::XHoverMenu(QToolButton* button, const PopupOrientation orientation, QWidget* parent) : XMenu(parent, false), m_button(button), m_orientation(orientation)
+XHoverMenu::XHoverMenu(QToolButton* button, const PopupOrientation orientation, QWidget* parent)
+    : qfw::RoundMenu(QString(), parent), m_button(button), m_orientation(orientation)
 {
     if (button)
     {
@@ -68,8 +69,7 @@ void XHoverMenu::onCloseTimeout()
     }
 
     const QPoint globalPos = QCursor::pos();
-
-    const QRect menuRect = rect().adjusted(blurRadius, blurRadius, -blurRadius, -blurRadius);
+    const QRect menuRect = rect();
 
     const QPoint menuPos = mapFromGlobal(globalPos);
     const QPoint btnPos  = m_button->mapFromGlobal(globalPos);
@@ -88,23 +88,32 @@ void XHoverMenu::showMenu()
         return;
     }
 
-    const QSize btnSize  = m_button->size();
-    const QSize menuSize = sizeHint();
+    // Match qfw::RoundMenu animation manager offsets so final popup position stays correct.
+    constexpr int kDropDownOffsetY = 4;
+    constexpr int kPullUpOffsetY   = 10;
+
+    const QSize btnSize   = m_button->size();
+    const QSize menuSize  = sizeHint();
+    const int leftMargin  = layout() ? layout()->contentsMargins().left() : 0;
+    const int centeredPos = btnSize.width() / 2 - menuSize.width() / 2 + leftMargin;
 
     QPoint localPos;
+    qfw::MenuAnimationType aniType = qfw::MenuAnimationType::DropDown;
 
     switch (m_orientation)
     {
     case PopupOrientation::Bottom:
     {
-        localPos.setX(btnSize.width() / 2 - menuSize.width() / 2);
-        localPos.setY(btnSize.height() + m_gap - blurRadius);
+        localPos.setX(centeredPos);
+        localPos.setY(btnSize.height() + m_gap + kDropDownOffsetY);
+        aniType = qfw::MenuAnimationType::DropDown;
         break;
     }
     case PopupOrientation::Top:
     {
-        localPos.setX(btnSize.width() / 2 - menuSize.width() / 2);
-        localPos.setY(-menuSize.height() - m_gap + blurRadius);
+        localPos.setX(centeredPos);
+        localPos.setY(-m_gap - kPullUpOffsetY);
+        aniType = qfw::MenuAnimationType::PullUp;
         break;
     }
     default:
@@ -112,6 +121,6 @@ void XHoverMenu::showMenu()
     }
 
     const QPoint globalPos = m_button->mapToGlobal(localPos);
-    popup(globalPos);
+    execAt(globalPos, true, aniType);
     m_button->update();
 }

@@ -1,4 +1,5 @@
 #include "ColorSwatchButton.h"
+#include <qtfluentwidgets.h>
 #include <QPainter>
 #include <QMouseEvent>
 
@@ -21,10 +22,11 @@ void ColorSwatchButton::paintEvent(QPaintEvent*)
 {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
+    const bool dark = qfw::isDarkTheme();
 
     if (m_hovered && !m_selected) {
         p.setPen(Qt::NoPen);
-        p.setBrush(QColor(243, 243, 247));
+        p.setBrush(dark ? QColor(255, 255, 255, 18) : QColor(243, 243, 247));
         p.drawRoundedRect(rect(), 4, 4);
     }
 
@@ -38,7 +40,7 @@ void ColorSwatchButton::paintEvent(QPaintEvent*)
     if (m_selected)
     {
         const qreal padding = 2.5;
-        const QPen selectPen(QColor(45, 54, 65), 1);
+        const QPen selectPen(dark ? QColor(212, 220, 232) : QColor(45, 54, 65), 1);
         p.setPen(selectPen);
         p.setBrush(Qt::NoBrush);
         p.drawRoundedRect(r.adjusted(-padding, -padding, padding, padding),

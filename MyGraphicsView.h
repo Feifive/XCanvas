@@ -5,6 +5,7 @@
 #include <QSvgRenderer>
 #include <QColor>
 
+class QString;
 class BottomFloatingToolBar;
 class SelectionHudBar;
 class ColorPaletteWidget;
@@ -18,6 +19,7 @@ class DocumentSessionController;
 class AsyncFileTaskRunner;
 class DocumentIoController;
 class SelectionUiCoordinator;
+class EditorSession;
 
 namespace xcanvas
 {
@@ -33,7 +35,7 @@ class MyGraphicsView : public QGraphicsView
 {
     Q_OBJECT
   public:
-    explicit MyGraphicsView(QWidget* parent = nullptr);
+    explicit MyGraphicsView(EditorSession* session, QWidget* parent = nullptr);
     ~MyGraphicsView() override;
 
     double                 zoomValue() const;
@@ -41,9 +43,12 @@ class MyGraphicsView : public QGraphicsView
     void                   updateSelectionHud() const;
     xcanvas::LayerManager* layerManager() const;
     bool                   maybeSaveBeforeClose() const;
+    QString                currentDocumentPath() const;
+    bool                   openDocumentFile(const QString& path) const;
 
   signals:
     void mouseMovePos(QPointF pos);
+    void documentDisplayNameChanged(const QString& name) const;
 
   protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -71,6 +76,7 @@ class MyGraphicsView : public QGraphicsView
     void initControllers();
     void initConnections();
     void initStartup();
+    void applyStyle();
 
     void   importFile();
     void   resetToNewDocument() const;
@@ -117,6 +123,7 @@ class MyGraphicsView : public QGraphicsView
     class QGraphicsTextItem*                 m_inlineTextEditor;
     xcanvas::ShapeText*                      m_inlineEditingShape;
     QString                                  m_inlineOriginalText;
+    EditorSession*                           m_editorSession;
 };
 
 #endif// MYGRAPHICSVIEW_H

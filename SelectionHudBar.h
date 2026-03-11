@@ -2,10 +2,10 @@
 #define SELECTIONHUDBAR_H
 
 #include "SelectionSummary.h"
+#include <qtfluentwidgets.h>
 #include <QWidget>
 
 class QDoubleSpinBox;
-class QToolButton;
 class QGridLayout;
 
 class SelectionHudBar final : public QWidget
@@ -18,11 +18,11 @@ public:
     void setSummary(const SelectionSummary& summary);
     bool keepAspectRatio() const;
 
-    QDoubleSpinBox* spinX() const     { return m_spinX; }
-    QDoubleSpinBox* spinY() const     { return m_spinY; }
-    QDoubleSpinBox* spinW() const     { return m_spinW; }
-    QDoubleSpinBox* spinH() const     { return m_spinH; }
-    QDoubleSpinBox* spinAngle() const { return m_spinAngle; }
+    qfw::DoubleSpinBox* spinX() const     { return m_spinX; }
+    qfw::DoubleSpinBox* spinY() const     { return m_spinY; }
+    qfw::DoubleSpinBox* spinW() const     { return m_spinW; }
+    qfw::DoubleSpinBox* spinH() const     { return m_spinH; }
+    qfw::DoubleSpinBox* spinAngle() const { return m_spinAngle; }
 
 signals:
     void booleanUnion();
@@ -47,16 +47,17 @@ signals:
 
 private:
     void hideGridColumn(int col, bool hide);
+    void applyStyle();
 
 private:
     QGridLayout* m_gridLayout;
-    QDoubleSpinBox* m_spinX     = nullptr;
-    QDoubleSpinBox* m_spinY     = nullptr;
-    QDoubleSpinBox* m_spinW     = nullptr;
-    QDoubleSpinBox* m_spinH     = nullptr;
-    QDoubleSpinBox* m_spinAngle = nullptr;
-    QToolButton*    m_keepAspectRatioButton = nullptr;
+    qfw::DoubleSpinBox* m_spinX     = nullptr;
+    qfw::DoubleSpinBox* m_spinY     = nullptr;
+    qfw::DoubleSpinBox* m_spinW     = nullptr;
+    qfw::DoubleSpinBox* m_spinH     = nullptr;
+    qfw::DoubleSpinBox* m_spinAngle = nullptr;
+    qfw::TransparentToolButton* m_keepAspectRatioButton = nullptr;
 
-    QToolButton* m_booleanTool;
+    qfw::TransparentToolButton* m_booleanTool;
 };
 #endif

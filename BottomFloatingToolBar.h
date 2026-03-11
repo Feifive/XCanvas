@@ -3,15 +3,19 @@
 
 #include <QWidget>
 
-class QToolButton;
 class XHoverMenu;
 class QTimer;
+class EditorSession;
+namespace qfw
+{
+class TransparentToolButton;
+}
 
 class BottomFloatingToolBar final : public QWidget
 {
     Q_OBJECT
   public:
-    explicit BottomFloatingToolBar(QWidget* parent = nullptr);
+    explicit BottomFloatingToolBar(EditorSession* session, QWidget* parent = nullptr);
     ~BottomFloatingToolBar() override;
     void setCanUndo(bool canUndo) const;
     void setCanRedo(bool canRedo) const;
@@ -33,13 +37,15 @@ class BottomFloatingToolBar final : public QWidget
   private:
     void init();
     void initMenu();
+    void applyStyle();
 
-    QToolButton* m_pUndo;
-    QToolButton* m_pRedo;
-    QToolButton* m_pZoomIn;
-    QToolButton* m_pZoomOut;
-    QToolButton* m_pZoomTool;
+    qfw::TransparentToolButton* m_pUndo;
+    qfw::TransparentToolButton* m_pRedo;
+    qfw::TransparentToolButton* m_pZoomIn;
+    qfw::TransparentToolButton* m_pZoomOut;
+    qfw::TransparentToolButton* m_pZoomTool;
     XHoverMenu*  m_pZoomMenu;
+    EditorSession* m_editorSession = nullptr;
 };
 
 #endif//BOTTOMFLOATINGTOOLBAR_H

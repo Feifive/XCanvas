@@ -46,6 +46,7 @@ public:
 
 signals:
     void toolChanged(DrawingToolType type);
+    void drawingFinished();
 
 private:
     std::unique_ptr<DrawingTool> createTool(DrawingToolType type);

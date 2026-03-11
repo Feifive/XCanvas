@@ -1,8 +1,6 @@
 #include "ToolManager.h"
 #include "../MyGraphicsView.h"
 
-#include "EventBus.h"
-
 #include "SelectTool.h"
 #include "RectTool.h"
 #include "EllipseTool.h"
@@ -36,7 +34,7 @@ void ToolManager::setTool(const DrawingToolType type)
     if (m_currentTool) {
         connect(m_currentTool.get(), &DrawingTool::finished, this, [this]() {
             setTool(DrawingToolType::Select);
-            emit EventBus::instance().finishDrawing();
+            emit drawingFinished();
         });
     }
     emit toolChanged(type);

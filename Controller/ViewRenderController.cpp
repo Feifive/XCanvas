@@ -4,6 +4,7 @@
 #include "../Canvas/Canvas.h"
 #include "MyMath.h"
 #include "../Shape/Shape.h"
+#include <qtfluentwidgets.h>
 
 #include <QGraphicsView>
 #include <QPainter>
@@ -202,20 +203,21 @@ void ViewRenderController::drawGrid(QPainter* const p)
 
     QColor minorColor;
     QColor majorColor;
+    const bool dark = qfw::isDarkTheme();
 
     switch (AppSettings::instance().gridContrast())
     {
     case AppSettings::GridContrast::Low:
-        majorColor = QColor("#E0E0E0");
-        minorColor = QColor("#ECECEC");
+        majorColor = dark ? QColor("#4A4F57") : QColor("#E0E0E0");
+        minorColor = dark ? QColor("#3D4148") : QColor("#ECECEC");
         break;
     case AppSettings::GridContrast::Medium:
-        majorColor = QColor("#D0D0D0");
-        minorColor = QColor("#E4E4E4");
+        majorColor = dark ? QColor("#59606A") : QColor("#D0D0D0");
+        minorColor = dark ? QColor("#474D56") : QColor("#E4E4E4");
         break;
     case AppSettings::GridContrast::High:
-        majorColor = QColor("#C0C0C0");
-        minorColor = QColor("#DCDCDC");
+        majorColor = dark ? QColor("#6E7683") : QColor("#C0C0C0");
+        minorColor = dark ? QColor("#565D68") : QColor("#DCDCDC");
         break;
     default:
         break;
@@ -347,11 +349,12 @@ void ViewRenderController::drawCanvas(QPainter* painter)
 
     const QTransform oldWorldTransform = painter->worldTransform();
     painter->setWorldTransform(QTransform());
-    painter->fillRect(m_view->rect(), QColor("#E7E9ED"));
+    const bool dark = qfw::isDarkTheme();
+    painter->fillRect(m_view->rect(), dark ? QColor("#1D2025") : QColor("#E7E9ED"));
     painter->setWorldTransform(oldWorldTransform);
 
     painter->setPen(Qt::NoPen);
-    painter->setBrush(Qt::white);
+    painter->setBrush(dark ? QColor("#2A2E36") : QColor("#FFFFFF"));
     painter->drawRect(m_canvas->canvasRect());
 
     painter->restore();

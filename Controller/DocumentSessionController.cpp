@@ -2,13 +2,15 @@
 
 #include "AppSettings.h"
 #include "../Canvas/Canvas.h"
-#include "MessageBox.h"
 #include "../Serialization/DocumentTypes.h"
 
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QDialog>
+#include <QPushButton>
 #include <QUndoStack>
 #include <QWidget>
+#include <qtfluentwidgets.h>
 
 DocumentSessionController::DocumentSessionController(
     QWidget* const             hostView,
@@ -143,47 +145,64 @@ bool DocumentSessionController::maybeSaveBeforeProceed()
         return true;
     }
 
-    const MessageBox::ClickedButton result = MessageBox::ask(
-        m_hostView,
+    qfw::MessageBox messageBox(
         QObject::tr("内容未保存"),
         QObject::tr("当前工程已修改，是否先保存？"),
-        QObject::tr("保存"),
-        QObject::tr("不保存"));
+        m_hostView ? m_hostView->window() : nullptr);
+    bool isDontSaveClicked = false;
+    if (messageBox.ui() && messageBox.ui()->yesButton && messageBox.ui()->cancelButton)
+    {
+        messageBox.ui()->yesButton->setText(QObject::tr("保存"));
+        messageBox.ui()->cancelButton->setText(QObject::tr("取消"));
 
-    if (result == MessageBox::ClickedButton::Secondary)
+        auto* dontSaveButton = new QPushButton(QObject::tr("不保存"), messageBox.ui()->buttonGroup);
+        dontSaveButton->setObjectName(QStringLiteral("cancelButton"));
+        dontSaveButton->setAttribute(Qt::WA_LayoutUsesWidgetRect);
+        messageBox.ui()->buttonLayout->insertWidget(1, dontSaveButton, 1, Qt::AlignVCenter);
+        QObject::connect(dontSaveButton, &QPushButton::clicked, &messageBox,
+                         [&messageBox, &isDontSaveClicked]()
+                         {
+                             isDontSaveClicked = true;
+                             messageBox.reject();
+                         });
+    }
+
+    const int execResult = messageBox.exec();
+
+    if (execResult == QDialog::Accepted)
+    {
+        if (m_currentDocumentPath.isEmpty())
+        {
+            const QString filter = QObject::tr("XCanvas File (*%1)")
+                                       .arg(QString::fromLatin1(xcanvas::serialization::kDocumentExtension));
+            QString path = QFileDialog::getSaveFileName(
+                m_hostView,
+                QObject::tr("保存工程"),
+                AppSettings::instance().lastOpenedPathOrDocumentsPath(),
+                filter);
+            if (path.isEmpty())
+            {
+                return false;
+            }
+
+            if (!path.endsWith(QString::fromLatin1(xcanvas::serialization::kDocumentExtension), Qt::CaseInsensitive)
+                && QFileInfo(path).suffix().isEmpty())
+            {
+                path += QString::fromLatin1(xcanvas::serialization::kDocumentExtension);
+            }
+            AppSettings::instance().setLastOpenedPath(path);
+            return m_saveDocumentBlocking ? m_saveDocumentBlocking(path) : false;
+        }
+
+        return m_saveDocumentBlocking ? m_saveDocumentBlocking(m_currentDocumentPath) : false;
+    }
+
+    if (isDontSaveClicked)
     {
         return true;
     }
 
-    if (result != MessageBox::ClickedButton::Primary)
-    {
-        return false;
-    }
-
-    if (m_currentDocumentPath.isEmpty())
-    {
-        const QString filter = QObject::tr("XCanvas File (*%1)")
-                                   .arg(QString::fromLatin1(xcanvas::serialization::kDocumentExtension));
-        QString path = QFileDialog::getSaveFileName(
-            m_hostView,
-            QObject::tr("保存工程"),
-            AppSettings::instance().lastOpenedPathOrDocumentsPath(),
-            filter);
-        if (path.isEmpty())
-        {
-            return false;
-        }
-
-        if (!path.endsWith(QString::fromLatin1(xcanvas::serialization::kDocumentExtension), Qt::CaseInsensitive)
-            && QFileInfo(path).suffix().isEmpty())
-        {
-            path += QString::fromLatin1(xcanvas::serialization::kDocumentExtension);
-        }
-        AppSettings::instance().setLastOpenedPath(path);
-        return m_saveDocumentBlocking ? m_saveDocumentBlocking(path) : false;
-    }
-
-    return m_saveDocumentBlocking ? m_saveDocumentBlocking(m_currentDocumentPath) : false;
+    return false;
 }
 
 bool DocumentSessionController::maybeSaveBeforeClose()

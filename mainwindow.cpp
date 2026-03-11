@@ -1,31 +1,41 @@
 #include "mainwindow.h"
 
-#include <qfile.h>
+#include "EditorPageManager.h"
+#include "Common/XTitleBar.h"
 
-#include "./ui_mainwindow.h"
-
-#include "CanvasWidget.h"
-#include "DrawingToolsBar.h"
-#include "Layer/LayerPanel.h"
-
+#include <QApplication>
 #include <QCloseEvent>
-#include <QFileSystemWatcher>
 #include <QFontDatabase>
+#include <QStackedWidget>
+#include <QVBoxLayout>
+#include <QWidget>
 
 MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow), m_pDrawingToolsBar(nullptr), m_pCanvasWidget(nullptr)
+    : qfw::FluentWindow(parent), m_pPageStack(nullptr), m_pTabBar(nullptr), m_editorPageManager(nullptr)
 {
-    ui->setupUi(this);
     init();
 }
 
 MainWindow::~MainWindow()
 {
-    delete ui;
+}
+
+void MainWindow::showEvent(QShowEvent* event)
+{
+    qfw::FluentWindow::showEvent(event);
+    fixTitleBarGeometry();
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event)
+{
+    qfw::FluentWindow::resizeEvent(event);
+    fixTitleBarGeometry();
 }
 
 void MainWindow::init()
 {
+    setWindowTitle(QStringLiteral("XCanvas"));
+
     if (const int fontId = QFontDatabase::addApplicationFont(":/Resource/Font/MiSans-Medium.ttf"); fontId != -1)
     {
         QFont font("MiSans");
@@ -33,43 +43,52 @@ void MainWindow::init()
         QApplication::setFont(font);
     }
 
-    if (QFile qssFile(":/Resource/StyleSheet/Default.qss"); qssFile.open(QFile::ReadOnly))
+    initMultiPageLayout();
+}
+
+void MainWindow::initMultiPageLayout()
+{
+    auto* xTitleBar = new XTitleBar(this);
+    setTitleBar(xTitleBar);
+
+    auto* contentHost = new QWidget(this);
+    auto* contentLayout = new QVBoxLayout(contentHost);
+    contentLayout->setContentsMargins(0, xTitleBar->height(), 0, 0);
+    contentLayout->setSpacing(0);
+
+    m_pPageStack = new QStackedWidget(contentHost);
+    contentLayout->addWidget(m_pPageStack);
+    setContentWidget(contentHost);
+
+    m_pTabBar = xTitleBar->tabBar();
+
+    m_editorPageManager = new EditorPageManager(this, m_pPageStack, m_pTabBar, this);
+    connect(m_pTabBar, &qfw::TabBar::currentChanged, m_editorPageManager, &EditorPageManager::onTabChanged);
+    connect(m_pTabBar, &qfw::TabBar::tabCloseRequested, m_editorPageManager, &EditorPageManager::onTabCloseRequested);
+    connect(m_pTabBar, &qfw::TabBar::tabAddRequested, m_editorPageManager, &EditorPageManager::onTabAddRequested);
+    connect(m_pTabBar, &qfw::TabBar::tabMoved, m_editorPageManager, &EditorPageManager::onTabMoved);
+    m_editorPageManager->initDefaultPage();
+}
+
+void MainWindow::fixTitleBarGeometry()
+{
+    if (!titleBar())
     {
-        const QString styleSheet = qssFile.readAll();
-        qApp->setStyleSheet(styleSheet);
+        return;
     }
 
-    QFileSystemWatcher* fileWatcher = new QFileSystemWatcher(this);
-    fileWatcher->addPath("/Users/ze/Desktop/QtProjects/XCanvas/Resource/StyleSheet/Default.qss");
-    connect(fileWatcher, &QFileSystemWatcher::fileChanged, this,
-            [this]()
-            {
-                if (QFile qssFile("/Users/ze/Desktop/QtProjects/XCanvas/Resource/StyleSheet/Default.qss"); qssFile.open(QFile::ReadOnly))
-                {
-                    const QString styleSheet = qssFile.readAll();
-                    qApp->setStyleSheet(styleSheet);
-                }
-            });
-
-    // 左侧工具栏
-    m_pDrawingToolsBar = new DrawingToolsBar(ui->widget_toolbar);
-    ui->verticalLayout_toolbar->addWidget(m_pDrawingToolsBar);
-
-    // 画布
-    m_pCanvasWidget = new CanvasWidget(ui->widget_canvas);
-    ui->verticalLayout_canvas->addWidget(m_pCanvasWidget);
-
-    LayerPanel* pLayerPanel = new LayerPanel(m_pCanvasWidget->layerManager(), ui->widget_rightPanel);
-    ui->verticalLayout_rightPanel->addWidget(pLayerPanel);
+    titleBar()->move(0, 0);
+    titleBar()->resize(width(), titleBar()->height());
+    titleBar()->updateGeometry();
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
-    if (m_pCanvasWidget && !m_pCanvasWidget->maybeSaveBeforeClose())
+    if (m_editorPageManager && !m_editorPageManager->maybeSaveAllBeforeClose())
     {
         event->ignore();
         return;
     }
 
-    QMainWindow::closeEvent(event);
+    qfw::FluentWindow::closeEvent(event);
 }

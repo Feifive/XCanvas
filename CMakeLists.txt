@@ -34,6 +34,7 @@ find_package(Qt6 REQUIRED COMPONENTS Svg)
 
 add_subdirectory(3rdparty/pdfium)
 add_subdirectory(3rdparty/Clipper2Lib)
+add_subdirectory(3rdparty/Qt-Fluent-Widgets)
 
 set(ZSTD_BUILD_STATIC ON CACHE INTERNAL "")
 set(ZSTD_BUILD_SHARED OFF CACHE INTERNAL "")
@@ -73,7 +74,8 @@ source_group("Controller"    FILES ${CONTROLLER})
 
 set(PROJECT_SOURCES
     main.cpp
-    mainwindow.cpp mainwindow.h mainwindow.ui
+    mainwindow.cpp mainwindow.h
+    EditorPageManager.cpp EditorPageManager.h
     BottomFloatingToolBar.cpp BottomFloatingToolBar.h
     SelectionHudBar.cpp SelectionHudBar.h
     MyGraphicsView.cpp MyGraphicsView.h
@@ -203,6 +205,7 @@ target_link_libraries(XCanvas PRIVATE
     thirdparty_pdfium
     clipper2lib
     libzstd_static
+    qtfluentwidgets
 )
 target_link_libraries(XCanvas PRIVATE Qt6::Svg)
 

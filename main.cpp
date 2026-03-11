@@ -1,14 +1,14 @@
 #include "mainwindow.h"
 
 #include <QApplication>
-#include <QStyleFactory>
+#include <qtfluentwidgets.h>
 
 int main(int argc, char* argv[])
 {
-#ifdef Q_OS_WIN
-    QApplication::setStyle(QStyleFactory::create("Windows"));
-#endif
     QApplication a(argc, argv);
+    Q_INIT_RESOURCE(resource);
+    qfw::setTheme(qfw::Theme::Auto);
+
     MainWindow   w;
     w.showMaximized();
     return a.exec();

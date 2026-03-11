@@ -1,17 +1,18 @@
 #include "CanvasWidget.h"
-#include "EventBus.h"
+#include "EditorSession.h"
 #include "Global.h"
 #include "MyGraphicsView.h"
 #include "RulerWidget.h"
+#include <qtfluentwidgets.h>
 #include <QGraphicsScene>
 #include <QGridLayout>
 #include <QScrollBar>
 
-CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
+CanvasWidget::CanvasWidget(EditorSession* session, QWidget* parent) : QWidget{parent}
 {
     QGridLayout* pGridLayout = new QGridLayout(this);
 
-    m_pGraphicsView  = new MyGraphicsView(this);
+    m_pGraphicsView  = new MyGraphicsView(session, this);
     m_pGraphicsScene = new QGraphicsScene(this);
     m_pGraphicsScene->setSceneRect(0, 0, 20000, 20000);
     m_pGraphicsView->setScene(m_pGraphicsScene);
@@ -21,14 +22,13 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
 
     m_pRulerHorizontal     = new RulerWidget(Qt::Horizontal, this);
     m_pRulerVertical       = new RulerWidget(Qt::Vertical, this);
-    QWidget* pCornerWidget = new QWidget(this);
-    pCornerWidget->setStyleSheet("background-color: #E7E9ED");
+    m_pCornerWidget = new QWidget(this);
 
     m_pRulerHorizontal->attachView(m_pGraphicsView);
     m_pRulerVertical->attachView(m_pGraphicsView);
-    pCornerWidget->setFixedSize(m_pRulerVertical->width(), m_pRulerHorizontal->height());
+    m_pCornerWidget->setFixedSize(m_pRulerVertical->width(), m_pRulerHorizontal->height());
 
-    pGridLayout->addWidget(pCornerWidget, 0, 0);
+    pGridLayout->addWidget(m_pCornerWidget, 0, 0);
     pGridLayout->addWidget(m_pRulerHorizontal, 0, 1);
     pGridLayout->addWidget(m_pRulerVertical, 1, 0);
     pGridLayout->addWidget(m_pGraphicsView, 1, 1);
@@ -41,9 +41,35 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget{parent}
     connect(m_pGraphicsView->horizontalScrollBar(), &QScrollBar::valueChanged, m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
     connect(m_pGraphicsView->verticalScrollBar(), &QScrollBar::valueChanged, m_pRulerVertical, QOverload<>::of(&RulerWidget::update));
 
-    connect(&EventBus::instance(), &EventBus::zoomChanged,// Qt6 才有；没有的话你在 zoom 那里手动调用
-            m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
-    connect(&EventBus::instance(), &EventBus::zoomChanged, m_pRulerVertical, QOverload<>::of(&RulerWidget::update));
+    if (session)
+    {
+        connect(session, &EditorSession::zoomChanged,
+                m_pRulerHorizontal, QOverload<>::of(&RulerWidget::update));
+        connect(session, &EditorSession::zoomChanged,
+                m_pRulerVertical, QOverload<>::of(&RulerWidget::update));
+    }
+    connect(m_pGraphicsView, &MyGraphicsView::documentDisplayNameChanged,
+            this, &CanvasWidget::documentDisplayNameChanged);
+
+    connect(&qfw::QConfig::instance(), &qfw::QConfig::themeChanged, this,
+            [this](qfw::Theme)
+            {
+                applyTheme();
+                if (m_pRulerHorizontal)
+                {
+                    m_pRulerHorizontal->update();
+                }
+                if (m_pRulerVertical)
+                {
+                    m_pRulerVertical->update();
+                }
+                if (m_pGraphicsView)
+                {
+                    m_pGraphicsView->requestFullUpdate();
+                }
+            });
+
+    applyTheme();
 }
 
 xcanvas::LayerManager* CanvasWidget::layerManager()
@@ -62,4 +88,27 @@ bool CanvasWidget::maybeSaveBeforeClose()
         return true;
     }
     return m_pGraphicsView->maybeSaveBeforeClose();
+}
+
+QString CanvasWidget::currentDocumentPath() const
+{
+    return m_pGraphicsView ? m_pGraphicsView->currentDocumentPath() : QString();
+}
+
+bool CanvasWidget::openDocumentFile(const QString& path) const
+{
+    return m_pGraphicsView ? m_pGraphicsView->openDocumentFile(path) : false;
+}
+
+void CanvasWidget::applyTheme()
+{
+    if (!m_pCornerWidget)
+    {
+        return;
+    }
+
+    const bool dark = qfw::isDarkTheme();
+    m_pCornerWidget->setStyleSheet(QStringLiteral("background-color: %1;")
+                                       .arg(dark ? QStringLiteral("#23262B")
+                                                 : QStringLiteral("#E7E9ED")));
 }

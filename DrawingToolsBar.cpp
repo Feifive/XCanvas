@@ -1,74 +1,117 @@
 #include "DrawingToolsBar.h"
 #include "AppSettings.h"
-#include "EventBus.h"
-#include "XMenu.h"
+#include "EditorSession.h"
 #include <QActionGroup>
 #include <QButtonGroup>
-#include <QDebug>
 #include <QFileDialog>
-#include <QLabel>
-#include <QMenu>
 #include <QKeySequence>
-#include <QToolButton>
-#include <QVBoxLayout>
-#include <QWidgetAction>
 
-DrawingToolsBar::DrawingToolsBar(QWidget* parent) : QToolBar{parent}
+DrawingToolsBar::DrawingToolsBar(EditorSession* session, QWidget* parent)
+    : QToolBar{parent}, m_editorSession(session)
 {
     setObjectName("DrawingToolsBar");
     setOrientation(Qt::Vertical);
-    setIconSize(QSize(24, 24));
     setMovable(false);
     setFloatable(false);
+    applyStyle();
+    createToolBar();
+}
 
+DrawingToolsBar::~DrawingToolsBar() = default;
+
+void DrawingToolsBar::createToolBar() {
     m_pGroup = new QButtonGroup(this);
     m_pGroup->setExclusive(true);
 
-    auto MakeButton = [&](const QString& iconPath, bool addToGroup = true)
-    {
-        auto* pToolButton = new QToolButton(this);
-        pToolButton->setFixedSize(QSize(36, 36));
-        pToolButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
-        pToolButton->setIcon(QIcon(iconPath));
-        if (addToGroup)
-        {
-            pToolButton->setCheckable(true);
-            m_pGroup->addButton(pToolButton);
-        }
-        addWidget(pToolButton);
-        return pToolButton;
-    };
-
-    m_pMainMenu     = MakeButton(":/Resource/Icons/MainMenu.svg", false);
-    m_pImport       = MakeButton(":/Resource/Icons/Import.svg", false);
-    m_pPolylineTool = MakeButton(":/Resource/Icons/Polyline.svg");
-    m_pCurveTool    = MakeButton(":/Resource/Icons/Curve.svg");
-    m_pRectTool     = MakeButton(":/Resource/Icons/Rect.svg");
-    m_pEllipseTool  = MakeButton(":/Resource/Icons/Ellipse.svg");
-    m_pPolygonTool  = MakeButton(":/Resource/Icons/Polygon.svg");
-    m_pText         = MakeButton(":/Resource/Icons/Text.svg");
+    m_pMainMenu     = makeActionButton(XCanvasIconType::MainMenu);
+    m_pImport       = makeActionButton(XCanvasIconType::Import);
+    m_pPolylineTool = makeToggleButton(XCanvasIconType::Polyline);
+    m_pCurveTool    = makeToggleButton(XCanvasIconType::Curve);
+    m_pRectTool     = makeToggleButton(XCanvasIconType::Rect);
+    m_pEllipseTool  = makeToggleButton(XCanvasIconType::Ellipse);
+    m_pPolygonTool  = makeToggleButton(XCanvasIconType::Polygon);
+    m_pText         = makeToggleButton(XCanvasIconType::Text);
 
     // 垂直弹簧
     auto* pSpring = new QWidget(this);
     pSpring->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     addWidget(pSpring);
-    m_pSelectTool = MakeButton(":/Resource/Icons/Select.svg");
+    m_pSelectTool = makeToggleButton(XCanvasIconType::Select);
 
-    connect(m_pSelectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Select); });
-    connect(m_pImport, &QToolButton::clicked, this, [=] { emit EventBus::instance().importFileRequested(); });
-    connect(m_pText, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Text); });
-    connect(m_pRectTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Rect); });
-    connect(m_pPolylineTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Polyline); });
-    connect(m_pEllipseTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Ellipse); });
-    connect(m_pCurveTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Curve); });
-    connect(m_pPolygonTool, &QToolButton::clicked, this, [=] { emit EventBus::instance().switchTool(DrawingToolType::Polygon); });
-    connect(&EventBus::instance(), &EventBus::finishDrawing, this, &DrawingToolsBar::onFinishDrawing);
+    setupToolTip(m_pMainMenu, tr("主菜单"));
+    setupToolTip(m_pImport, tr("导入"));
+    setupToolTip(m_pPolylineTool, tr("折线"));
+    setupToolTip(m_pCurveTool, tr("曲线"));
+    setupToolTip(m_pRectTool, tr("矩形"));
+    setupToolTip(m_pEllipseTool, tr("椭圆"));
+    setupToolTip(m_pPolygonTool, tr("多边形"));
+    setupToolTip(m_pText, tr("文字"));
+    setupToolTip(m_pSelectTool, tr("选择"));
+
+    connect(m_pSelectTool, &QToolButton::clicked, this, [this]
+    {
+        if (m_editorSession)
+        {
+            m_editorSession->requestSwitchTool(DrawingToolType::Select);
+        }
+    });
+    connect(m_pImport, &QToolButton::clicked, this, [this]
+    {
+        if (m_editorSession)
+        {
+            m_editorSession->requestImportFile();
+        }
+    });
+    connect(m_pText, &QToolButton::clicked, this, [this]
+    {
+        if (m_editorSession)
+        {
+            m_editorSession->requestSwitchTool(DrawingToolType::Text);
+        }
+    });
+    connect(m_pRectTool, &QToolButton::clicked, this, [this]
+    {
+        if (m_editorSession)
+        {
+            m_editorSession->requestSwitchTool(DrawingToolType::Rect);
+        }
+    });
+    connect(m_pPolylineTool, &QToolButton::clicked, this, [this]
+    {
+        if (m_editorSession)
+        {
+            m_editorSession->requestSwitchTool(DrawingToolType::Polyline);
+        }
+    });
+    connect(m_pEllipseTool, &QToolButton::clicked, this, [this]
+    {
+        if (m_editorSession)
+        {
+            m_editorSession->requestSwitchTool(DrawingToolType::Ellipse);
+        }
+    });
+    connect(m_pCurveTool, &QToolButton::clicked, this, [this]
+    {
+        if (m_editorSession)
+        {
+            m_editorSession->requestSwitchTool(DrawingToolType::Curve);
+        }
+    });
+    connect(m_pPolygonTool, &QToolButton::clicked, this, [this]
+    {
+        if (m_editorSession)
+        {
+            m_editorSession->requestSwitchTool(DrawingToolType::Polygon);
+        }
+    });
+    if (m_editorSession)
+    {
+        connect(m_editorSession, &EditorSession::finishDrawing, this, &DrawingToolsBar::onFinishDrawing);
+    }
 
     m_pSelectTool->setChecked(true);
     initMainMenu();
 }
-
-DrawingToolsBar::~DrawingToolsBar() = default;
 
 void DrawingToolsBar::onFinishDrawing() const {
     m_pSelectTool->setChecked(true);
@@ -98,84 +141,167 @@ void DrawingToolsBar::onFileActionsEnabledChanged(const bool enabled) const
     }
 }
 
+void DrawingToolsBar::applyStyle()
+{
+    setStyleSheet(QStringLiteral(R"(
+        QToolBar#DrawingToolsBar {
+            background: transparent;
+            spacing: 8px;
+            border: none;
+        }
+    )"));
+}
+
+void DrawingToolsBar::setupToolTip(QWidget *button, const QString &text) {
+    if (!button)
+    {
+        return;
+    }
+    button->setToolTip(text);
+    button->setToolTipDuration(5000);
+    button->installEventFilter(new qfw::ToolTipFilter(button, 500, qfw::ToolTipPosition::Right));
+}
+
+qfw::TransparentToggleToolButton * DrawingToolsBar::
+makeToggleButton(const XCanvasIconType iconType) {
+    auto* pToolButton = new qfw::TransparentToggleToolButton(this);
+    pToolButton->setFixedSize(QSize(36, 36));
+    pToolButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    pToolButton->setIcon(XCanvasIcon(iconType));
+    if (m_pGroup) {
+        m_pGroup->addButton(pToolButton);
+    }
+    addWidget(pToolButton);
+    return pToolButton;
+}
+
+qfw::TransparentToolButton * DrawingToolsBar::makeActionButton(const XCanvasIconType iconType) {
+    auto* pToolButton = new qfw::TransparentToolButton(this);
+    pToolButton->setFixedSize(QSize(36, 36));
+    pToolButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    pToolButton->setIcon(XCanvasIcon(iconType));
+    addWidget(pToolButton);
+    return pToolButton;
+}
+
 void DrawingToolsBar::initMainMenu()
 {
-    m_pMainMenu->setPopupMode(QToolButton::InstantPopup);
+    connect(m_pMainMenu, &QToolButton::clicked, this,
+            [this]()
+            {
+                const QPoint pos = m_pMainMenu->mapToGlobal(QPoint(m_pMainMenu->width(), 0));
+                createMainMenu(pos);
+            });
+}
 
-    auto* group = new QActionGroup(this);
-    group->setExclusive(true);
-
-    auto* gridSetting       = new XMenu("画布和网格", this);
-    auto  addContrastAction = [&](const QString& text, AppSettings::GridContrast value)
+qfw::RoundMenu* DrawingToolsBar::createMainMenu(const QPoint& pos)
+{
+    if (!m_pMainRoundMenu)
     {
-        QAction* action = gridSetting->addAction(text);
-        action->setCheckable(true);
-        group->addAction(action);
+        m_pMainRoundMenu = new qfw::RoundMenu(QString(), this);
+        m_pMainRoundMenu->setMinimumSize(180, 30);
 
-        if (AppSettings::instance().gridContrast() == value)
+        auto* group = new QActionGroup(m_pMainRoundMenu);
+        group->setExclusive(true);
+
+        auto* gridSetting       = new qfw::CheckableMenu("画布和网格", m_pMainRoundMenu, qfw::MenuIndicatorType::Radio);
+        auto  addContrastAction = [&](const QString& text, AppSettings::GridContrast value)
         {
-            action->setChecked(true);
-            action->setIcon(QIcon(":/Resource/Icons/PickOn.svg"));
+            auto* action = new qfw::Action(text, gridSetting);
+            action->setCheckable(true);
+            gridSetting->addAction(action);
+            group->addAction(action);
+
+            if (AppSettings::instance().gridContrast() == value)
+            {
+                action->setChecked(true);
+            }
+
+            connect(action, &QAction::triggered, this,
+                    [value]()
+                    {
+                        AppSettings::instance().setGridContrast(value);
+                    });
+
+            return action;
+        };
+
+        gridSetting->setMinimumSize(150, 30);
+        addContrastAction("网格-强", AppSettings::GridContrast::High);
+        addContrastAction("网格-中", AppSettings::GridContrast::Medium);
+        addContrastAction("网格-弱", AppSettings::GridContrast::Low);
+        addContrastAction("网格-关闭", AppSettings::GridContrast::Off);
+
+        auto* fileMenu = new qfw::RoundMenu("文件", m_pMainRoundMenu);
+        auto* newAction = new qfw::Action(tr("新建"), fileMenu);
+        fileMenu->addAction(newAction);
+        fileMenu->addSeparator();
+        m_openAction = new qfw::Action(tr("打开项目"), fileMenu);
+        fileMenu->addAction(m_openAction);
+        m_importAction = new qfw::Action(tr("导入"), fileMenu);
+        fileMenu->addAction(m_importAction);
+        fileMenu->addSeparator();
+        m_saveAction = new qfw::Action(tr("保存"), fileMenu);
+        fileMenu->addAction(m_saveAction);
+        m_saveAsAction = new qfw::Action(tr("另存为"), fileMenu);
+        fileMenu->addAction(m_saveAsAction);
+
+        auto attachShortcut = [](QAction* action, const QKeySequence& sequence)
+        {
+            action->setShortcut(sequence);
+            action->setShortcutVisibleInContextMenu(true);
+        };
+        attachShortcut(newAction, QKeySequence::New);
+        attachShortcut(m_openAction, QKeySequence::Open);
+        attachShortcut(m_importAction, QKeySequence(Qt::CTRL | Qt::Key_I));
+        attachShortcut(m_saveAction, QKeySequence::Save);
+        attachShortcut(m_saveAsAction, QKeySequence::SaveAs);
+
+        connect(newAction, &QAction::triggered, this, [this]
+        {
+            if (m_editorSession)
+            {
+                m_editorSession->requestNewFile();
+            }
+        });
+        connect(m_openAction, &QAction::triggered, this, [this]
+        {
+            if (m_editorSession)
+            {
+                m_editorSession->requestOpenFile();
+            }
+        });
+        connect(m_saveAction, &QAction::triggered, this, [this]
+        {
+            if (m_editorSession)
+            {
+                m_editorSession->requestSaveFile();
+            }
+        });
+        connect(m_saveAsAction, &QAction::triggered, this, [this]
+        {
+            if (m_editorSession)
+            {
+                m_editorSession->requestSaveFileAs();
+            }
+        });
+        connect(m_importAction, &QAction::triggered, this, [this]
+        {
+            if (m_editorSession)
+            {
+                m_editorSession->requestImportFile();
+            }
+        });
+        if (m_editorSession)
+        {
+            connect(m_editorSession, &EditorSession::fileActionsEnabledChanged, this,
+                    &DrawingToolsBar::onFileActionsEnabledChanged);
         }
 
-        connect(action, &QAction::triggered, this,
-                [action, value]()
-                {
-                    for (auto a : action->actionGroup()->actions())
-                    {
-                        a->setIcon(QIcon());
-                    }
-                    action->setIcon(QIcon(":/Resource/Icons/PickOn.svg"));
-                    AppSettings::instance().setGridContrast(value);
-                });
+        m_pMainRoundMenu->addMenu(fileMenu);
+        m_pMainRoundMenu->addMenu(gridSetting);
+    }
 
-        return action;
-    };
-
-    auto* mainMenu = new XMenu(this);
-    mainMenu->setMinimumSize(180, 30);
-
-    gridSetting->setMinimumSize(150, 30);
-    auto* showGrid = new QWidgetAction(this);
-    auto* label    = new QLabel(this);
-    label->setObjectName("menuSection");
-    label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    label->setText(tr("浅色/深色背景"));
-    showGrid->setDefaultWidget(label);
-    gridSetting->addAction(showGrid);
-    gridSetting->addSeparator();
-    addContrastAction("网格-强", AppSettings::GridContrast::High);
-    addContrastAction("网格-中", AppSettings::GridContrast::Medium);
-    addContrastAction("网格-弱", AppSettings::GridContrast::Low);
-    addContrastAction("网格-关闭", AppSettings::GridContrast::Off);
-    auto* fileMenu = new XMenu("文件", this);
-    auto* newAction = fileMenu->addAction(tr("新建"));
-    fileMenu->addSeparator();
-    m_openAction = fileMenu->addAction(tr("打开项目"));
-    m_importAction = fileMenu->addAction(tr("导入"));
-    fileMenu->addSeparator();
-    m_saveAction = fileMenu->addAction(tr("保存"));
-    m_saveAsAction = fileMenu->addAction(tr("另存为"));
-
-    auto attachShortcut = [](QAction* action, const QKeySequence& sequence)
-    {
-        action->setShortcut(sequence);
-        action->setShortcutVisibleInContextMenu(true);
-    };
-    attachShortcut(newAction, QKeySequence::New);
-    attachShortcut(m_openAction, QKeySequence::Open);
-    attachShortcut(m_importAction, QKeySequence(Qt::CTRL | Qt::Key_I));
-    attachShortcut(m_saveAction, QKeySequence::Save);
-    attachShortcut(m_saveAsAction, QKeySequence::SaveAs);
-
-    connect(newAction, &QAction::triggered, this, [] { emit EventBus::instance().newFileRequested(); });
-    connect(m_openAction, &QAction::triggered, this, [] { emit EventBus::instance().openFileRequested(); });
-    connect(m_saveAction, &QAction::triggered, this, [] { emit EventBus::instance().saveFileRequested(); });
-    connect(m_saveAsAction, &QAction::triggered, this, [] { emit EventBus::instance().saveFileAsRequested(); });
-    connect(m_importAction, &QAction::triggered, this, [] { emit EventBus::instance().importFileRequested(); });
-    connect(&EventBus::instance(), &EventBus::fileActionsEnabledChanged, this, &DrawingToolsBar::onFileActionsEnabledChanged);
-
-    mainMenu->addMenu(fileMenu);
-    mainMenu->addMenu(gridSetting);
-    m_pMainMenu->setMenu(mainMenu);
+    m_pMainRoundMenu->execAt(pos, true);
+    return m_pMainRoundMenu;
 }

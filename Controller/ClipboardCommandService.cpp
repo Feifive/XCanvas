@@ -7,7 +7,7 @@
 #include "../Shape/Shape.h"
 #include "../Shape/ShapeImage.h"
 #include "../Shape/ShapeText.h"
-#include "../XMenu.h"
+#include <qtfluentwidgets.h>
 
 #include <QAction>
 #include <QClipboard>
@@ -597,100 +597,70 @@ void ClipboardCommandService::showCanvasContextMenu(const QPoint& viewPos, const
         }
     }
 
-    XMenu menu(m_view);
-
-    QAction* cutAction       = nullptr;
-    QAction* copyAction      = nullptr;
-    QAction* pasteAction     = nullptr;
-    QAction* deleteAction    = nullptr;
-    QAction* groupAction     = nullptr;
-    QAction* ungroupAction   = nullptr;
-    QAction* selectAllAction = nullptr;
-    QAction* zoomInAction    = nullptr;
-    QAction* zoomOutAction   = nullptr;
+    auto* menu = new qfw::RoundMenu(QString(), m_view);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
 
     if (canCut)
     {
-        cutAction = menu.addAction(QObject::tr("剪切"));
+        auto* cutAction = new QAction(QObject::tr("剪切"), menu);
+        menu->addAction(cutAction);
         cutAction->setShortcut(QKeySequence::Cut);
         cutAction->setShortcutVisibleInContextMenu(true);
+        QObject::connect(cutAction, &QAction::triggered, menu, [this]() { cutSelectedShapes(); });
     }
 
     if (canCopy)
     {
-        copyAction = menu.addAction(QObject::tr("复制"));
+        auto* copyAction = new QAction(QObject::tr("复制"), menu);
+        menu->addAction(copyAction);
         copyAction->setShortcut(QKeySequence::Copy);
         copyAction->setShortcutVisibleInContextMenu(true);
+        QObject::connect(copyAction, &QAction::triggered, menu, [this]() { copySelectedShapes(); });
     }
 
     if (canPaste)
     {
-        pasteAction = menu.addAction(QObject::tr("粘贴"));
+        auto* pasteAction = new QAction(QObject::tr("粘贴"), menu);
+        menu->addAction(pasteAction);
         pasteAction->setShortcut(QKeySequence::Paste);
         pasteAction->setShortcutVisibleInContextMenu(true);
+        QObject::connect(pasteAction, &QAction::triggered, menu, [this, viewPos]() { pasteCopiedShapesAt(m_view->mapToScene(viewPos)); });
     }
 
     if (canDelete)
     {
-        deleteAction = menu.addAction(QObject::tr("删除"));
+        auto* deleteAction = new QAction(QObject::tr("删除"), menu);
+        menu->addAction(deleteAction);
         deleteAction->setShortcut(QKeySequence::Delete);
         deleteAction->setShortcutVisibleInContextMenu(true);
+        QObject::connect(deleteAction, &QAction::triggered, menu, [this]() { deleteSelectedShapes(); });
     }
 
     if (canGroup)
     {
-        groupAction = menu.addAction(QObject::tr("成组"));
+        auto* groupAction = new QAction(QObject::tr("成组"), menu);
+        menu->addAction(groupAction);
         groupAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_G));
         groupAction->setShortcutVisibleInContextMenu(true);
+        QObject::connect(groupAction, &QAction::triggered, menu, [this]() { groupSelectedShapes(); });
     }
 
     if (canUngroup)
     {
-        ungroupAction = menu.addAction(QObject::tr("取消成组"));
+        auto* ungroupAction = new QAction(QObject::tr("取消成组"), menu);
+        menu->addAction(ungroupAction);
         ungroupAction->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_G));
         ungroupAction->setShortcutVisibleInContextMenu(true);
+        QObject::connect(ungroupAction, &QAction::triggered, menu, [this]() { ungroupSelectedShapes(); });
     }
 
-    menu.addSeparator();
+    menu->addSeparator();
 
-    selectAllAction = menu.addAction(QObject::tr("全选"));
+    auto* selectAllAction = new QAction(QObject::tr("全选"), menu);
+    menu->addAction(selectAllAction);
     selectAllAction->setShortcut(QKeySequence::SelectAll);
     selectAllAction->setShortcutVisibleInContextMenu(true);
-
-    zoomInAction = menu.addAction(QObject::tr("放大"));
-    zoomInAction->setShortcut(QKeySequence::ZoomIn);
-    zoomInAction->setShortcutVisibleInContextMenu(true);
-
-    zoomOutAction = menu.addAction(QObject::tr("缩小"));
-    zoomOutAction->setShortcut(QKeySequence::ZoomOut);
-    zoomOutAction->setShortcutVisibleInContextMenu(true);
-
-    QAction* result = menu.exec(m_view->mapToGlobal(viewPos));
-    if (result == cutAction)
-    {
-        cutSelectedShapes();
-    }
-    else if (result == copyAction)
-    {
-        copySelectedShapes();
-    }
-    else if (result == pasteAction)
-    {
-        pasteCopiedShapesAt(m_view->mapToScene(viewPos));
-    }
-    else if (result == deleteAction)
-    {
-        deleteSelectedShapes();
-    }
-    else if (result == groupAction)
-    {
-        groupSelectedShapes();
-    }
-    else if (result == ungroupAction)
-    {
-        ungroupSelectedShapes();
-    }
-    else if (result == selectAllAction)
+    QObject::connect(selectAllAction, &QAction::triggered, menu, [this]()
     {
         if (m_canvas && m_canvas->shapeManager())
         {
@@ -700,19 +670,31 @@ void ClipboardCommandService::showCanvasContextMenu(const QPoint& viewPos, const
                 m_requestFullUpdate();
             }
         }
-    }
-    else if (result == zoomInAction)
+    });
+
+    auto* zoomInAction = new QAction(QObject::tr("放大"), menu);
+    menu->addAction(zoomInAction);
+    zoomInAction->setShortcut(QKeySequence::ZoomIn);
+    zoomInAction->setShortcutVisibleInContextMenu(true);
+    QObject::connect(zoomInAction, &QAction::triggered, menu, [onZoomIn]()
     {
         if (onZoomIn)
         {
             onZoomIn();
         }
-    }
-    else if (result == zoomOutAction)
+    });
+
+    auto* zoomOutAction = new QAction(QObject::tr("缩小"), menu);
+    menu->addAction(zoomOutAction);
+    zoomOutAction->setShortcut(QKeySequence::ZoomOut);
+    zoomOutAction->setShortcutVisibleInContextMenu(true);
+    QObject::connect(zoomOutAction, &QAction::triggered, menu, [onZoomOut]()
     {
         if (onZoomOut)
         {
             onZoomOut();
         }
-    }
+    });
+
+    menu->execAt(m_view->mapToGlobal(viewPos), true, qfw::MenuAnimationType::None);
 }

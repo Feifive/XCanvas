@@ -7,7 +7,7 @@
 #include "ColorPaletteWidget.h"
 #include "Controller/DocumentIoController.h"
 #include "Controller/DocumentSessionController.h"
-#include "EventBus.h"
+#include "EditorSession.h"
 #include "MessageWidget.h"
 #include "Import/DXF/DXFImporter.h"
 #include "Import/Image/ImageImporter.h"
@@ -33,14 +33,16 @@
 #include <QTimer>
 #include <QTextCursor>
 #include <QUndoStack>
+#include <qtfluentwidgets.h>
 
-MyGraphicsView::MyGraphicsView(QWidget* parent)
+MyGraphicsView::MyGraphicsView(EditorSession* session, QWidget* parent)
     : QGraphicsView{parent},
       m_canvas(new xcanvas::Canvas(this)),
       m_bottomFloatingToolBar(nullptr),
       m_inlineTextEditor(nullptr),
       m_inlineEditingShape(nullptr),
-      m_isDestroying(false)
+      m_isDestroying(false),
+      m_editorSession(session)
 {
     initView();
     initCore();
@@ -48,6 +50,7 @@ MyGraphicsView::MyGraphicsView(QWidget* parent)
     initControllers();
     initConnections();
     initStartup();
+    applyStyle();
 }
 
 void MyGraphicsView::initView()
@@ -68,7 +71,13 @@ void MyGraphicsView::initCore()
 {
     m_fileTaskRunner = std::make_unique<AsyncFileTaskRunner>(
         this,
-        [](const bool enabled) { emit EventBus::instance().fileActionsEnabledChanged(enabled); });
+        [this](const bool enabled)
+        {
+            if (m_editorSession)
+            {
+                m_editorSession->setFileActionsEnabled(enabled);
+            }
+        });
 
     ImportManager::instance().registerImporter(std::make_unique<DXFImporter>());
     ImportManager::instance().registerImporter(std::make_unique<ImageImporter>());
@@ -82,7 +91,7 @@ void MyGraphicsView::initWidgets()
     m_colorPaletteWidget = new ColorPaletteWidget(this);
     m_colorPaletteWidget->adjustSize();
 
-    m_bottomFloatingToolBar = new BottomFloatingToolBar(this);
+    m_bottomFloatingToolBar = new BottomFloatingToolBar(m_editorSession, this);
     m_bottomFloatingToolBar->adjustSize();
 
     m_selectionHudBar = new SelectionHudBar(this);
@@ -198,8 +207,18 @@ void MyGraphicsView::initControllers()
 void MyGraphicsView::initConnections()
 {
     connect(&AppSettings::instance(), &AppSettings::gridContrastChanged, this, [this]() { requestFullUpdate(); });
+    connect(&qfw::QConfig::instance(), &qfw::QConfig::themeChanged, this,
+            [this](qfw::Theme) { requestFullUpdate(); });
     connect(m_canvas->layerManager(), &xcanvas::LayerManager::layerVisibilityChanged, this, [this]() { requestFullUpdate(); });
-    connect(&EventBus::instance(), &EventBus::switchTool, m_toolMgr.get(), &xcanvas::ToolManager::setTool);
+    if (m_editorSession)
+    {
+        connect(m_editorSession, &EditorSession::switchTool, m_toolMgr.get(), &xcanvas::ToolManager::setTool);
+    }
+    if (m_editorSession)
+    {
+        connect(m_toolMgr.get(), &xcanvas::ToolManager::drawingFinished, m_editorSession,
+                &EditorSession::notifyFinishDrawing);
+    }
     connect(m_canvas->shapeManager(), &xcanvas::ShapeManager::selectionChanged, this, [this]()
     {
         if (m_selectionUiCoordinator)
@@ -232,35 +251,31 @@ void MyGraphicsView::initConnections()
         requestFullUpdate();
     });
 
-    connect(&EventBus::instance(), &EventBus::newFileRequested, this, [this]()
+    if (m_editorSession)
     {
-        if (m_documentSessionController)
+        connect(m_editorSession, &EditorSession::newFileRequested, this, [this]()
         {
-            m_documentSessionController->onNewDocument();
-        }
-    });
-    connect(&EventBus::instance(), &EventBus::importFileRequested, this, &MyGraphicsView::importFile);
-    connect(&EventBus::instance(), &EventBus::openFileRequested, this, [this]()
-    {
-        if (m_documentSessionController)
+            if (m_documentSessionController)
+            {
+                m_documentSessionController->onNewDocument();
+            }
+        });
+        connect(m_editorSession, &EditorSession::importFileRequested, this, &MyGraphicsView::importFile);
+        connect(m_editorSession, &EditorSession::saveFileRequested, this, [this]()
         {
-            m_documentSessionController->onOpenDocument();
-        }
-    });
-    connect(&EventBus::instance(), &EventBus::saveFileRequested, this, [this]()
-    {
-        if (m_documentSessionController)
+            if (m_documentSessionController)
+            {
+                m_documentSessionController->onSaveDocument();
+            }
+        });
+        connect(m_editorSession, &EditorSession::saveFileAsRequested, this, [this]()
         {
-            m_documentSessionController->onSaveDocument();
-        }
-    });
-    connect(&EventBus::instance(), &EventBus::saveFileAsRequested, this, [this]()
-    {
-        if (m_documentSessionController)
-        {
-            m_documentSessionController->onSaveDocumentAs();
-        }
-    });
+            if (m_documentSessionController)
+            {
+                m_documentSessionController->onSaveDocumentAs();
+            }
+        });
+    }
 
     connect(m_selectionHudBar, &SelectionHudBar::booleanUnion, m_toolMgr.get(), &xcanvas::ToolManager::booleanUnion);
     connect(m_selectionHudBar, &SelectionHudBar::booleanIntersection, m_toolMgr.get(), &xcanvas::ToolManager::booleanIntersection);
@@ -327,6 +342,14 @@ void MyGraphicsView::initStartup()
     m_selectionHudBar->setVisible(false);
     m_rotateHandle.load(QStringLiteral(":/Resource/Icons/RotateHandle.svg"));
     updateWindowTitle();
+}
+
+void MyGraphicsView::applyStyle() {
+    setStyleSheet(QStringLiteral(R"(
+        QGraphicsView#MyGraphicsView {
+            border: none;
+        }
+    )"));
 }
 
 MyGraphicsView::~MyGraphicsView()
@@ -656,6 +679,25 @@ bool MyGraphicsView::maybeSaveBeforeClose() const {
     return m_documentSessionController ? m_documentSessionController->maybeSaveBeforeClose() : true;
 }
 
+QString MyGraphicsView::currentDocumentPath() const
+{
+    return m_documentSessionController ? m_documentSessionController->currentDocumentPath() : QString();
+}
+
+bool MyGraphicsView::openDocumentFile(const QString& path) const
+{
+    if (path.isEmpty() || !m_documentSessionController)
+    {
+        return false;
+    }
+    if (m_fileTaskRunner && m_fileTaskRunner->isTaskRunning())
+    {
+        MessageWidget::showWarning(window(), tr("正在处理文件，请稍候。"));
+        return false;
+    }
+    return m_documentSessionController->openDocumentFile(path);
+}
+
 bool MyGraphicsView::isProjectFilePath(const QString& path) const
 {
     return m_documentSessionController ? m_documentSessionController->isProjectFilePath(path) : false;
@@ -670,6 +712,7 @@ void MyGraphicsView::updateWindowTitle() const {
     if (m_documentSessionController)
     {
         m_documentSessionController->updateWindowTitle();
+        emit documentDisplayNameChanged(m_documentSessionController->projectDisplayName());
     }
 }
 
@@ -765,7 +808,11 @@ void MyGraphicsView::zoomIn(const QPointF& zoomCenterPoint) const {
     }
     if (m_viewportTransformController->zoomIn(zoomCenterPoint))
     {
-        emit EventBus::instance().zoomChanged(m_viewportTransformController->scaleFactor());
+        const qreal scaleFactor = m_viewportTransformController->scaleFactor();
+        if (m_editorSession)
+        {
+            m_editorSession->notifyZoomChanged(scaleFactor);
+        }
     }
 }
 
@@ -776,7 +823,11 @@ void MyGraphicsView::zoomOut(const QPointF& zoomCenterPoint) const {
     }
     if (m_viewportTransformController->zoomOut(zoomCenterPoint))
     {
-        emit EventBus::instance().zoomChanged(m_viewportTransformController->scaleFactor());
+        const qreal scaleFactor = m_viewportTransformController->scaleFactor();
+        if (m_editorSession)
+        {
+            m_editorSession->notifyZoomChanged(scaleFactor);
+        }
     }
 }
 
@@ -787,35 +838,55 @@ void MyGraphicsView::zoomTo(qreal zoomValue) const {
     }
     if (m_viewportTransformController->zoomTo(zoomValue))
     {
-        emit EventBus::instance().zoomChanged(m_viewportTransformController->scaleFactor());
+        const qreal scaleFactor = m_viewportTransformController->scaleFactor();
+        if (m_editorSession)
+        {
+            m_editorSession->notifyZoomChanged(scaleFactor);
+        }
     }
 }
 
 void MyGraphicsView::fitWidth() const {
     if (m_viewportTransformController && m_viewportTransformController->fitWidth())
     {
-        emit EventBus::instance().zoomChanged(m_viewportTransformController->scaleFactor());
+        const qreal scaleFactor = m_viewportTransformController->scaleFactor();
+        if (m_editorSession)
+        {
+            m_editorSession->notifyZoomChanged(scaleFactor);
+        }
     }
 }
 
 void MyGraphicsView::fitHeight() const {
     if (m_viewportTransformController && m_viewportTransformController->fitHeight())
     {
-        emit EventBus::instance().zoomChanged(m_viewportTransformController->scaleFactor());
+        const qreal scaleFactor = m_viewportTransformController->scaleFactor();
+        if (m_editorSession)
+        {
+            m_editorSession->notifyZoomChanged(scaleFactor);
+        }
     }
 }
 
 void MyGraphicsView::fitCanvas() const {
     if (m_viewportTransformController && m_viewportTransformController->fitCanvas())
     {
-        emit EventBus::instance().zoomChanged(m_viewportTransformController->scaleFactor());
+        const qreal scaleFactor = m_viewportTransformController->scaleFactor();
+        if (m_editorSession)
+        {
+            m_editorSession->notifyZoomChanged(scaleFactor);
+        }
     }
 }
 
 void MyGraphicsView::fitShapes() const {
     if (m_viewportTransformController && m_viewportTransformController->fitShapes())
     {
-        emit EventBus::instance().zoomChanged(m_viewportTransformController->scaleFactor());
+        const qreal scaleFactor = m_viewportTransformController->scaleFactor();
+        if (m_editorSession)
+        {
+            m_editorSession->notifyZoomChanged(scaleFactor);
+        }
     }
 }
 

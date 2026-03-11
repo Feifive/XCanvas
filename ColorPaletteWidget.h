@@ -20,6 +20,9 @@ signals:
     void colorSelected(const QColor& color);
 
 private:
+    void applyStyle();
+
+private:
     QVector<ColorSwatchButton*> m_buttons;
 };
 

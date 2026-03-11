@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="0" y="0" width="1024" height="1024" rx="200" ry="200" fill="#fff"/>
+  <g fill="none" stroke="#000" stroke-width="56" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">
+    <path d="
+      M 336 260
+      L 512 436
+      L 688 260
+      L 764 260
+      L 550 474
+      L 764 688
+      L 764 764
+      L 512 512
+      L 260 764
+      L 260 688
+      L 474 474
+      L 260 260
+      Z
+    "/>
+  </g>
+</svg>

@@ -1,12 +1,13 @@
 #include "LayerPanel.h"
-#include "CSwitchButton.h"
 #include <QHeaderView>
 #include <QLabel>
 #include <QVBoxLayout>
-#include <QListView>
-#include <QStyleFactory>
 
 #include "Global.h"
+
+namespace {
+constexpr int kLayerRowHeight = 38;
+}
 
 LayerPanel::LayerPanel(xcanvas::LayerManager* mgr, QWidget* parent) : QWidget(parent), m_mgr(mgr)
 {
@@ -15,25 +16,37 @@ LayerPanel::LayerPanel(xcanvas::LayerManager* mgr, QWidget* parent) : QWidget(pa
     setupUI();
     createConnections();
     refreshTable();
-    // setMinimumWidth(280);
-    setFixedWidth(230);
+    setMinimumWidth(340);
 }
 
 void LayerPanel::setupUI()
 {
     auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(1, 0, 1, 1);
+    layout->setContentsMargins(0, 0, 0, 0);
 
-    m_table = new QTableWidget(this);
+    m_table = new qfw::TableWidget(this);
     m_table->setColumnCount(Column::Count);
     m_table->setHorizontalHeaderLabels({"图层", "模式", "速度/功率", "输出", "可见"});
 
-    // 表头设置
-    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    m_table->horizontalHeader()->setSectionResizeMode(ColParams, QHeaderView::ResizeToContents);
+    // 表头设置（固定关键列宽，避免 Fluent 控件被裁切）
+    m_table->horizontalHeader()->setStretchLastSection(false);
+    m_table->horizontalHeader()->setMinimumSectionSize(48);
+    m_table->horizontalHeader()->setSectionResizeMode(ColColor, QHeaderView::Stretch);
+    m_table->horizontalHeader()->setSectionResizeMode(ColMode, QHeaderView::Fixed);
+    m_table->horizontalHeader()->setSectionResizeMode(ColParams, QHeaderView::Fixed);
+    m_table->horizontalHeader()->setSectionResizeMode(ColOutput, QHeaderView::Fixed);
+    m_table->horizontalHeader()->setSectionResizeMode(ColVisible, QHeaderView::Fixed);
+    m_table->setColumnWidth(ColMode, 78);
+    m_table->setColumnWidth(ColParams, 92);
+    m_table->setColumnWidth(ColOutput, 58);
+    m_table->setColumnWidth(ColVisible, 58);
     m_table->verticalHeader()->setVisible(false);
+    m_table->verticalHeader()->setStretchLastSection(false);
+    m_table->verticalHeader()->setDefaultSectionSize(38);
+    m_table->verticalHeader()->setMinimumSectionSize(34);
     m_table->setShowGrid(false);
     m_table->setFocusPolicy(Qt::NoFocus);
+    m_table->setWordWrap(false);
 
     // 开启拖拽排序
     m_table->verticalHeader()->setSectionsMovable(true);
@@ -65,12 +78,15 @@ void LayerPanel::refreshTable()
     {
         const int row = m_table->rowCount();
         m_table->insertRow(row);
+        m_table->setRowHeight(row, kLayerRowHeight);
         setRowWidgets(row, m_mgr->getLayer(id));
     }
-    if (order.size() > 0) {
-        m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-        m_table->horizontalHeader()->setSectionResizeMode(ColColor, QHeaderView::Stretch);
-    }
+
+    // Hidden sentinel row: keep data rows away from being the physical last row.
+    const int sentinelRow = m_table->rowCount();
+    m_table->insertRow(sentinelRow);
+    m_table->setRowHeight(sentinelRow, 1);
+    m_table->setRowHidden(sentinelRow, true);
 }
 
 void LayerPanel::setRowWidgets(int row, const xcanvas::LayerParameter& param)
@@ -115,14 +131,14 @@ void LayerPanel::setRowWidgets(int row, const xcanvas::LayerParameter& param)
     }
     else
     {
-        auto* modeCombo = new QComboBox();
-        modeCombo->setStyle(QStyleFactory::create("Fusion"));
-        modeCombo->setView(new QListView());
+        auto* modeCombo = new qfw::ComboBox();
         modeCombo->addItems({ "切割", "扫描" });
         modeCombo->setCurrentIndex(static_cast<int>(param.mode));
+        modeCombo->setMinimumWidth(72);
+        modeCombo->setFixedHeight(28);
         modeCombo->setProperty("layerId", id);
-        connect(modeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &LayerPanel::onModeChanged);
-        m_table->setCellWidget(row, ColMode, modeCombo);
+        connect(modeCombo, &qfw::ComboBox::currentIndexChanged, this, &LayerPanel::onModeChanged);
+        m_table->setCellWidget(row, ColMode, createCenteredCellWidget(modeCombo));
     }
 
     QTableWidgetItem* colParamsItem = new QTableWidgetItem(QString("%1/%2").arg(param.speed).arg(param.maxPower));
@@ -136,14 +152,25 @@ void LayerPanel::setRowWidgets(int row, const xcanvas::LayerParameter& param)
 
 QWidget* LayerPanel::createCheckBoxWidget(bool checked, int layerId, bool isVisibility)
 {
-    auto* container = new QWidget();
-    auto* layout    = new QHBoxLayout(container);
-    auto* cb        = new CSwitchButton();
-    cb->SetSwitchOn(checked);
-    layout->addWidget(cb);
-    layout->setContentsMargins(6, 6, 6, 6);
-    layout->setSpacing(0);
-    connect(cb, &CSwitchButton::SwitchChanged,
+    auto* cb        = new qfw::SwitchButton();
+    cb->setText(QString());
+    cb->setOnText(QString());
+    cb->setOffText(QString());
+    cb->setSpacing(0);
+
+    // Initialize checked state without playing the slide animation.
+    if (auto* indicator = cb->findChild<qfw::Indicator*>())
+    {
+        const QSignalBlocker blocker(indicator);
+        indicator->setChecked(checked);
+        indicator->setSliderX(checked ? 25 : 5);
+    }
+    else
+    {
+        cb->setChecked(checked);
+    }
+
+    connect(cb, &qfw::SwitchButton::checkedChanged, this,
             [this, layerId, isVisibility](const bool state)
             {
                 if (isVisibility)
@@ -151,6 +178,16 @@ QWidget* LayerPanel::createCheckBoxWidget(bool checked, int layerId, bool isVisi
                 else
                     m_mgr->getLayer(layerId).output = state;
             });
+    return createCenteredCellWidget(cb);
+}
+
+QWidget* LayerPanel::createCenteredCellWidget(QWidget* inner, const int hMargin, const int vMargin) const
+{
+    auto* container = new QWidget();
+    auto* layout = new QHBoxLayout(container);
+    layout->setContentsMargins(hMargin, vMargin, hMargin, vMargin);
+    layout->setSpacing(0);
+    layout->addWidget(inner, 0, Qt::AlignCenter);
     return container;
 }
 

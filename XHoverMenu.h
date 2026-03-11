@@ -1,12 +1,11 @@
 #ifndef XSHADOWMENU_H
 #define XSHADOWMENU_H
 
-#include "XMenu.h"
-#include <QMenu>
+#include <qtfluentwidgets.h>
 #include <QTimer>
 class QToolButton;
 
-class XHoverMenu final : public XMenu
+class XHoverMenu final : public qfw::RoundMenu
 {
 
     Q_OBJECT
@@ -35,7 +34,7 @@ class XHoverMenu final : public XMenu
   private:
     QToolButton*     m_button;
     QTimer           m_closeTimer;
-    int              m_gap;
+    int              m_gap = 0;
     PopupOrientation m_orientation;
 };
 

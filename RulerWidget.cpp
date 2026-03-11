@@ -1,6 +1,7 @@
 #include "RulerWidget.h"
 #include "Global.h"
 #include "MyGraphicsView.h"
+#include <qtfluentwidgets.h>
 #include <QGraphicsScene>
 #include <QPainter>
 #include <QtMath>
@@ -53,6 +54,10 @@ void RulerWidget::paintEvent(QPaintEvent* event)
     {
         return;
     }
+
+    const bool dark = qfw::isDarkTheme();
+    m_backgroundColor = dark ? QColor("#23262B") : QColor("#E7E9ED");
+    m_textAndLineColor = dark ? QColor("#B8BDC8") : QColor("#606060");
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, false);

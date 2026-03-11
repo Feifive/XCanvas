@@ -1,6 +1,7 @@
 #include "ColorPaletteWidget.h"
 #include "ColorSwatchButton.h"
 #include "AppSettings.h"
+#include <qtfluentwidgets.h>
 #include <QHBoxLayout>
 
 ColorPaletteWidget::ColorPaletteWidget(QWidget* parent)
@@ -8,6 +9,7 @@ ColorPaletteWidget::ColorPaletteWidget(QWidget* parent)
 {
     setAttribute(Qt::WA_StyledBackground, true);
     setObjectName("ColorPaletteWidget");
+    applyStyle();
     auto* layout = new QHBoxLayout(this);
     layout->setSpacing(3);
     layout->setContentsMargins(4, 4, 4, 4);
@@ -26,6 +28,19 @@ ColorPaletteWidget::ColorPaletteWidget(QWidget* parent)
 
     setColors(layerColors);
     setCurrentColor(layerColors[0]);
+
+    connect(&qfw::QConfig::instance(), &qfw::QConfig::themeChanged, this,
+            [this](qfw::Theme)
+            {
+                applyStyle();
+                for (auto* btn : m_buttons)
+                {
+                    if (btn)
+                    {
+                        btn->update();
+                    }
+                }
+            });
 }
 
 void ColorPaletteWidget::setColors(const QVector<QColor>& colors)
@@ -58,4 +73,18 @@ void ColorPaletteWidget::setCurrentColor(const QColor& color)
     {
         btn->setSelected(btn->color() == color);
     }
+}
+
+void ColorPaletteWidget::applyStyle() {
+    const bool dark = qfw::isDarkTheme();
+    setStyleSheet(QStringLiteral(R"(
+        QWidget#ColorPaletteWidget {
+            background-color: %1;
+            border-radius: 4px;
+            border: 1px solid %2;
+        }
+    )").arg(dark ? QStringLiteral("#232830")
+                 : QStringLiteral("#FFFFFF"),
+            dark ? QStringLiteral("#3A404B")
+                 : QStringLiteral("#E7E9ED")));
 }
