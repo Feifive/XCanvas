@@ -18,7 +18,7 @@ class DrawingToolsBar : public QToolBar
 
   private:
     void createToolBar();
-    void onFinishDrawing() const;
+    void syncCurrentTool(DrawingToolType type) const;
     void initMainMenu();
     qfw::RoundMenu* createMainMenu(const QPoint& pos);
     void onFileActionsEnabledChanged(bool enabled) const;
@@ -31,6 +31,7 @@ class DrawingToolsBar : public QToolBar
     qfw::TransparentToolButton* m_pMainMenu;
     qfw::TransparentToolButton* m_pImport;
     qfw::TransparentToggleToolButton* m_pSelectTool;
+    qfw::TransparentToggleToolButton* m_pDrawingToolLock;
     qfw::TransparentToggleToolButton* m_pText;
     qfw::TransparentToggleToolButton* m_pPolylineTool;
     qfw::TransparentToggleToolButton* m_pCurveTool;

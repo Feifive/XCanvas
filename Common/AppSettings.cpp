@@ -27,6 +27,21 @@ void AppSettings::setGridContrast(GridContrast contrast)
     }
 }
 
+bool AppSettings::drawingToolLocked() const
+{
+    return m_drawingToolLocked;
+}
+
+void AppSettings::setDrawingToolLocked(const bool locked)
+{
+    if (m_drawingToolLocked != locked)
+    {
+        m_drawingToolLocked = locked;
+        emit drawingToolLockedChanged(locked);
+        emit settingsChanged();
+    }
+}
+
 AppSettings::AppSettings(QObject* parent) : QObject(parent)
 {
     load();
@@ -63,8 +78,9 @@ void AppSettings::load()
     QJsonObject   json = doc.object();
 
 
-    m_gridContrast   = static_cast<GridContrast>(json["showGrid"].toInt(static_cast<int>(AppSettings::GridContrast::Medium)));
-    m_lastOpenedPath = json["lastOpenedPath"].toString();
+    m_gridContrast      = static_cast<GridContrast>(json["showGrid"].toInt(static_cast<int>(AppSettings::GridContrast::Medium)));
+    m_drawingToolLocked = json["drawingToolLocked"].toBool(false);
+    m_lastOpenedPath    = json["lastOpenedPath"].toString();
 }
 
 void AppSettings::save()
@@ -77,8 +93,9 @@ void AppSettings::save()
     }
 
     QJsonObject json;
-    json["showGrid"]       = static_cast<int>(m_gridContrast);
-    json["lastOpenedPath"] = m_lastOpenedPath;
+    json["showGrid"]          = static_cast<int>(m_gridContrast);
+    json["drawingToolLocked"] = m_drawingToolLocked;
+    json["lastOpenedPath"]    = m_lastOpenedPath;
 
     QJsonDocument doc(json);
     file.write(doc.toJson());

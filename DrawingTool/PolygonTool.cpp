@@ -110,7 +110,7 @@ void PolygonTool::mouseReleaseEvent(QMouseEvent* event)
             m_canvas->shapeManager()->selectShape(shape, true);
         }
 
-        cancelDrawing();
+        finishDrawing();
     }
 }
 

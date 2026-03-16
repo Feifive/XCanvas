@@ -9,6 +9,11 @@ void EditorSession::requestSwitchTool(const DrawingToolType type)
     emit switchTool(type);
 }
 
+void EditorSession::requestSetDrawingToolLock(const bool locked)
+{
+    emit drawingToolLockChanged(locked);
+}
+
 void EditorSession::requestNewFile()
 {
     emit newFileRequested();
@@ -42,6 +47,11 @@ void EditorSession::notifyZoomChanged(const qreal zoomValue)
 void EditorSession::notifyFinishDrawing()
 {
     emit finishDrawing();
+}
+
+void EditorSession::notifyCurrentToolChanged(const DrawingToolType type)
+{
+    emit currentToolChanged(type);
 }
 
 void EditorSession::setFileActionsEnabled(const bool enabled)

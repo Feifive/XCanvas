@@ -23,10 +23,11 @@ class TextTool : public DrawingTool
 
   protected:
     void cancelDrawing() override;
+    void finishDrawing() override;
 
   private:
+    bool finishEdit(bool commit);
     void startEdit();
-    void finishEdit();
 
   private:
     QGraphicsTextItem* m_pTextItem;

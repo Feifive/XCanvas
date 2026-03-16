@@ -18,6 +18,7 @@ public:
     explicit ToolManager(MyGraphicsView* view, Canvas* canvas);
     ~ToolManager() override = default;
     void setTool(DrawingToolType type);
+    void setDrawingToolLocked(bool locked);
     DrawingToolType currentTool() const { return m_currentType; }
     DrawingTool* currentToolInstance() const { return m_currentTool.get(); }
 
@@ -57,6 +58,7 @@ private:
     std::unique_ptr<DrawingTool> m_currentTool;
     std::unique_ptr<ShapeEditor> m_shapeEditor;
     DrawingToolType m_currentType { DrawingToolType::None };
+    bool m_isDrawingToolLocked { false };
 };
 
 } // xcanvas

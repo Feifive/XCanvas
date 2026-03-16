@@ -26,6 +26,10 @@ class PolylineTool : public DrawingTool
 
   protected:
     void cancelDrawing() override;
+    void finishDrawing() override;
+
+  private:
+    void finalizeDrawing(bool canceled);
 
   private:
     QVector<QPointF> m_points;

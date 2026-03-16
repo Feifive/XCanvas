@@ -87,7 +87,7 @@ void xcanvas::EllipseTool::mouseReleaseEvent(QMouseEvent* event)
         m_canvas->addShape(shape);
         m_canvas->shapeManager()->selectShape(shape, true);
 
-        cancelDrawing();
+        finishDrawing();
     }
 }
 

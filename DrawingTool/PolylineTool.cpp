@@ -70,7 +70,12 @@ void xcanvas::PolylineTool::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton)
     {
+        const bool shouldFinish = m_state == State::Drawing && m_isRightPressed && !m_isRightDragged;
         handleRightButtonRelease(event);
+        if (shouldFinish)
+        {
+            finishDrawing();
+        }
     }
 }
 
@@ -81,13 +86,22 @@ DrawingToolType xcanvas::PolylineTool::toolType()
 
 void xcanvas::PolylineTool::cancelDrawing()
 {
-    m_points.removeLast();
+    finalizeDrawing(true);
+}
 
-    if (m_points.size() < 2)
+void xcanvas::PolylineTool::finishDrawing()
+{
+    finalizeDrawing(false);
+}
+
+void xcanvas::PolylineTool::finalizeDrawing(const bool canceled)
+{
+    if (!m_points.isEmpty())
     {
-        m_previewPath = QPainterPath();
+        m_points.removeLast();
     }
-    else
+
+    if (!canceled && m_points.size() >= 2)
     {
         auto* shape = new ShapeVector();
         shape->setSemantic(VectorSemantic::Polyline);
@@ -97,5 +111,11 @@ void xcanvas::PolylineTool::cancelDrawing()
         m_canvas->shapeManager()->selectShape(shape, true);
     }
 
-    DrawingTool::cancelDrawing();
+    if (canceled)
+    {
+        DrawingTool::cancelDrawing();
+        return;
+    }
+
+    DrawingTool::finishDrawing();
 }

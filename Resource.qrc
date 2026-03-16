@@ -73,5 +73,7 @@
         <file>Resource/Icons/SubtractA_white.svg</file>
         <file>Resource/Icons/SubtractB_black.svg</file>
         <file>Resource/Icons/SubtractB_white.svg</file>
+        <file>Resource/Icons/DrawingToolLock_black.svg</file>
+        <file>Resource/Icons/DrawingToolLock_white.svg</file>
     </qresource>
 </RCC>

@@ -42,7 +42,7 @@ void xcanvas::TextTool::mousePressEvent(QMouseEvent* event)
 
         if (nPos < 0)
         {
-            cancelDrawing();
+            finishDrawing();
             return;
         }
 
@@ -72,8 +72,19 @@ DrawingToolType xcanvas::TextTool::toolType()
 
 void xcanvas::TextTool::cancelDrawing()
 {
-    finishEdit();
+    finishEdit(false);
     DrawingTool::cancelDrawing();
+}
+
+void xcanvas::TextTool::finishDrawing()
+{
+    if (!finishEdit(true))
+    {
+        DrawingTool::cancelDrawing();
+        return;
+    }
+
+    DrawingTool::finishDrawing();
 }
 
 void xcanvas::TextTool::startEdit()
@@ -95,17 +106,18 @@ void xcanvas::TextTool::startEdit()
     m_state = State::Drawing;
 }
 
-void xcanvas::TextTool::finishEdit()
+bool xcanvas::TextTool::finishEdit(const bool commit)
 {
     if (!m_pTextItem)
     {
-        return;
+        return false;
     }
 
     m_canvasView->scene()->removeItem(m_pTextItem);
 
+    bool committed = false;
     const QString plainText = m_pTextItem->toPlainText();
-    if (!plainText.isEmpty())
+    if (commit && !plainText.isEmpty())
     {
         auto* shape = new ShapeText();
         shape->setText(plainText);
@@ -116,8 +128,10 @@ void xcanvas::TextTool::finishEdit()
         m_canvas->shapeManager()->selectShape(shape, true);
 
         m_canvasView->requestFullUpdate();
+        committed = true;
     }
 
     delete m_pTextItem;
     m_pTextItem = nullptr;
+    return committed;
 }

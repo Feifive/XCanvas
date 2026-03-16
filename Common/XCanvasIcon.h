@@ -33,7 +33,9 @@ enum class XCanvasIconType
     Ellipse,
     Polygon,
     Text,
-    Select
+    Select,
+    KeepDrawingTool,
+    DrawingToolLock
 };
 
 class XCanvasIcon final : public qfw::FluentIconBase

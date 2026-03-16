@@ -32,12 +32,22 @@ void ToolManager::setTool(const DrawingToolType type)
     m_currentType = type;
 
     if (m_currentTool) {
-        connect(m_currentTool.get(), &DrawingTool::finished, this, [this]() {
-            setTool(DrawingToolType::Select);
+        connect(m_currentTool.get(), &DrawingTool::drawingCompleted, this, [this]() {
             emit drawingFinished();
+            if (!m_isDrawingToolLocked) {
+                setTool(DrawingToolType::Select);
+            }
+        });
+        connect(m_currentTool.get(), &DrawingTool::drawingCanceled, this, [this]() {
+            setTool(DrawingToolType::Select);
         });
     }
     emit toolChanged(type);
+}
+
+void ToolManager::setDrawingToolLocked(const bool locked)
+{
+    m_isDrawingToolLocked = locked;
 }
 
 std::unique_ptr<DrawingTool> ToolManager::createTool(const DrawingToolType type)

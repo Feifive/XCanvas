@@ -43,10 +43,21 @@ void xcanvas::DrawingTool::drawPreview(QPainter* painter)
 
 void xcanvas::DrawingTool::cancelDrawing()
 {
-    m_state       = State::Idle;
+    resetDrawingState();
+    emit drawingCanceled();
+}
+
+void xcanvas::DrawingTool::finishDrawing()
+{
+    resetDrawingState();
+    emit drawingCompleted();
+}
+
+void xcanvas::DrawingTool::resetDrawingState()
+{
+    m_state = State::Idle;
     m_previewPath = QPainterPath();
     m_canvasView->requestFullUpdate();
-    emit finished();
 }
 
 void xcanvas::DrawingTool::handleRightButtonPress(QMouseEvent* event)
@@ -79,13 +90,7 @@ void xcanvas::DrawingTool::handleRightButtonRelease(QMouseEvent* event)
     }
 
     // 拖动右键 → 拖动画布，不中断
-    if (m_isRightDragged)
-    {
-        m_isRightPressed = false;
-        return;
-    }
-
-    cancelDrawing();
-
+    // 单击右键 → 不再取消当前绘图工具，仅结束本次右键状态
+    Q_UNUSED(event);
     m_isRightPressed = false;
 }

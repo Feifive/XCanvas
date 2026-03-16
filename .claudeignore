@@ -1,0 +1,9 @@
+.git
+3rdparty
+build
+cmake-build-*
+Bin
+out
+dist
+.vscode
+.idea

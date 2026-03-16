@@ -13,6 +13,7 @@ public:
 
 public slots:
     void requestSwitchTool(DrawingToolType type);
+    void requestSetDrawingToolLock(bool locked);
     void requestNewFile();
     void requestImportFile();
     void requestOpenFile();
@@ -20,10 +21,13 @@ public slots:
     void requestSaveFileAs();
     void notifyZoomChanged(qreal zoomValue);
     void notifyFinishDrawing();
+    void notifyCurrentToolChanged(DrawingToolType type);
     void setFileActionsEnabled(bool enabled);
 
 signals:
     void switchTool(DrawingToolType type);
+    void drawingToolLockChanged(bool locked);
+    void currentToolChanged(DrawingToolType type);
     void newFileRequested();
     void importFileRequested();
     void openFileRequested();

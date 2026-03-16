@@ -5,6 +5,7 @@
 #include <QButtonGroup>
 #include <QFileDialog>
 #include <QKeySequence>
+#include <QSignalBlocker>
 
 DrawingToolsBar::DrawingToolsBar(EditorSession* session, QWidget* parent)
     : QToolBar{parent}, m_editorSession(session)
@@ -37,6 +38,11 @@ void DrawingToolsBar::createToolBar() {
     pSpring->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     addWidget(pSpring);
     m_pSelectTool = makeToggleButton(XCanvasIconType::Select);
+    m_pDrawingToolLock = new qfw::TransparentToggleToolButton(this);
+    m_pDrawingToolLock->setFixedSize(QSize(36, 36));
+    m_pDrawingToolLock->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    m_pDrawingToolLock->setIcon(XCanvasIcon(XCanvasIconType::DrawingToolLock));
+    addWidget(m_pDrawingToolLock);
 
     setupToolTip(m_pMainMenu, tr("主菜单"));
     setupToolTip(m_pImport, tr("导入"));
@@ -47,12 +53,20 @@ void DrawingToolsBar::createToolBar() {
     setupToolTip(m_pPolygonTool, tr("多边形"));
     setupToolTip(m_pText, tr("文字"));
     setupToolTip(m_pSelectTool, tr("选择"));
+    setupToolTip(m_pDrawingToolLock, tr("锁定绘图工具"));
 
     connect(m_pSelectTool, &QToolButton::clicked, this, [this]
     {
         if (m_editorSession)
         {
             m_editorSession->requestSwitchTool(DrawingToolType::Select);
+        }
+    });
+    connect(m_pDrawingToolLock, &QToolButton::clicked, this, [this](const bool checked)
+    {
+        if (m_editorSession)
+        {
+            m_editorSession->requestSetDrawingToolLock(checked);
         }
     });
     connect(m_pImport, &QToolButton::clicked, this, [this]
@@ -106,15 +120,70 @@ void DrawingToolsBar::createToolBar() {
     });
     if (m_editorSession)
     {
-        connect(m_editorSession, &EditorSession::finishDrawing, this, &DrawingToolsBar::onFinishDrawing);
+        connect(m_editorSession, &EditorSession::currentToolChanged, this, &DrawingToolsBar::syncCurrentTool);
+        connect(m_editorSession, &EditorSession::drawingToolLockChanged, m_pDrawingToolLock,
+                &qfw::TransparentToggleToolButton::setChecked);
     }
 
-    m_pSelectTool->setChecked(true);
+    syncCurrentTool(DrawingToolType::Select);
     initMainMenu();
 }
 
-void DrawingToolsBar::onFinishDrawing() const {
-    m_pSelectTool->setChecked(true);
+void DrawingToolsBar::syncCurrentTool(const DrawingToolType type) const {
+    if (!m_pGroup)
+    {
+        return;
+    }
+
+    const QSignalBlocker groupBlocker(m_pGroup);
+    const QSignalBlocker selectBlocker(m_pSelectTool);
+    const QSignalBlocker textBlocker(m_pText);
+    const QSignalBlocker polylineBlocker(m_pPolylineTool);
+    const QSignalBlocker curveBlocker(m_pCurveTool);
+    const QSignalBlocker rectBlocker(m_pRectTool);
+    const QSignalBlocker ellipseBlocker(m_pEllipseTool);
+    const QSignalBlocker polygonBlocker(m_pPolygonTool);
+
+    m_pSelectTool->setChecked(false);
+    m_pText->setChecked(false);
+    m_pPolylineTool->setChecked(false);
+    m_pCurveTool->setChecked(false);
+    m_pRectTool->setChecked(false);
+    m_pEllipseTool->setChecked(false);
+    m_pPolygonTool->setChecked(false);
+
+    qfw::TransparentToggleToolButton* button = nullptr;
+    switch (type)
+    {
+        case DrawingToolType::Select:
+            button = m_pSelectTool;
+            break;
+        case DrawingToolType::Text:
+            button = m_pText;
+            break;
+        case DrawingToolType::Rect:
+            button = m_pRectTool;
+            break;
+        case DrawingToolType::Polyline:
+            button = m_pPolylineTool;
+            break;
+        case DrawingToolType::Ellipse:
+            button = m_pEllipseTool;
+            break;
+        case DrawingToolType::Curve:
+            button = m_pCurveTool;
+            break;
+        case DrawingToolType::Polygon:
+            button = m_pPolygonTool;
+            break;
+        case DrawingToolType::None:
+            break;
+    }
+
+    if (button)
+    {
+        button->setChecked(true);
+    }
 }
 
 void DrawingToolsBar::onFileActionsEnabledChanged(const bool enabled) const

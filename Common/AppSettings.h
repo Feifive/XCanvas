@@ -28,6 +28,9 @@ class AppSettings : public QObject
     GridContrast gridContrast() const;
     void         setGridContrast(GridContrast contrast);
 
+    bool drawingToolLocked() const;
+    void setDrawingToolLocked(bool locked);
+
     QString lastOpenedPath() const;
     QString lastOpenedPathOrDocumentsPath() const;
     void    setLastOpenedPath(const QString& path);
@@ -38,6 +41,7 @@ class AppSettings : public QObject
   signals:
     void settingsChanged();
     void gridContrastChanged();
+    void drawingToolLockedChanged(bool locked);
     void activeColorChanged();
 
   private:
@@ -47,9 +51,10 @@ class AppSettings : public QObject
     void    save();
     QString getConfigFilePath();
 
-    GridContrast m_gridContrast   = GridContrast::Medium;
-    QString      m_lastOpenedPath = "";
-    QColor       m_activeColor = QColor("#000000");
+    GridContrast m_gridContrast      = GridContrast::Medium;
+    bool         m_drawingToolLocked = false;
+    QString      m_lastOpenedPath    = "";
+    QColor       m_activeColor       = QColor("#000000");
 };
 
 #endif// APPSETTINGS_H

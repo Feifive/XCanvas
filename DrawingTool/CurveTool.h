@@ -21,8 +21,10 @@ class CurveTool : public DrawingTool
 
   protected:
     void cancelDrawing() override;
+    void finishDrawing() override;
 
   private:
+    void             finalizeDrawing(bool canceled);
     QVector<QPointF> computeBezierPoints(const QVector<QPointF>& anchorPoints) const;
     QPainterPath     buildCurvePath(const QVector<QPointF>& bezierPoints) const;
     void             rebuildPreviewPath();

@@ -30,6 +30,7 @@ void CurveTool::mousePressEvent(QMouseEvent* event)
     if (m_state == State::Idle)
     {
         m_state = State::Drawing;
+        m_points.clear();
         m_points.push_back(m_mousePos);
     }
     else
@@ -56,16 +57,30 @@ void CurveTool::mouseMoveEvent(QMouseEvent* event)
 
 void CurveTool::mouseReleaseEvent(QMouseEvent* event)
 {
-    handleRightButtonRelease(event);
+    if (event->button() == Qt::RightButton)
+    {
+        const bool shouldFinish = m_state == State::Drawing && m_isRightPressed && !m_isRightDragged;
+        handleRightButtonRelease(event);
+        if (shouldFinish)
+        {
+            finishDrawing();
+        }
+    }
 }
 
 void CurveTool::cancelDrawing()
 {
-    if (m_points.size() <= 1)
-    {
-        m_previewPath = QPainterPath();
-    }
-    else
+    finalizeDrawing(true);
+}
+
+void CurveTool::finishDrawing()
+{
+    finalizeDrawing(false);
+}
+
+void CurveTool::finalizeDrawing(const bool canceled)
+{
+    if (!canceled && m_points.size() > 1)
     {
         ShapeVector* shape = nullptr;
         if (m_points.size() == 2)
@@ -88,7 +103,14 @@ void CurveTool::cancelDrawing()
         m_canvas->addShape(shape);
         m_canvas->shapeManager()->selectShape(shape, true);
     }
-    DrawingTool::cancelDrawing();
+
+    if (canceled)
+    {
+        DrawingTool::cancelDrawing();
+        return;
+    }
+
+    DrawingTool::finishDrawing();
 }
 
 QVector<QPointF> CurveTool::computeBezierPoints(const QVector<QPointF>& anchorPoints) const

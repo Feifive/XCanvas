@@ -81,6 +81,8 @@ QString XCanvasIcon::iconName(const XCanvasIconType type)
         case XCanvasIconType::Polygon: return QStringLiteral("Polygon");
         case XCanvasIconType::Text: return QStringLiteral("Text");
         case XCanvasIconType::Select: return QStringLiteral("Select");
+        case XCanvasIconType::KeepDrawingTool: return QStringLiteral("KeepAspectRatio");
+        case XCanvasIconType::DrawingToolLock: return QStringLiteral("DrawingToolLock");
     }
     return QStringLiteral("Select");
 }

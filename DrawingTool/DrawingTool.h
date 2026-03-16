@@ -44,13 +44,16 @@ class DrawingTool : public QObject
 
   protected:
     virtual void cancelDrawing();
+    virtual void finishDrawing();
+    void resetDrawingState();
 
     void handleRightButtonPress(QMouseEvent* event);
     void handleRightButtonMove(QMouseEvent* event);
     void handleRightButtonRelease(QMouseEvent* event);
 
   signals:
-    void finished();
+    void drawingCompleted();
+    void drawingCanceled();
 
   protected:
     MyGraphicsView* m_canvasView;

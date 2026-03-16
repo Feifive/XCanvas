@@ -213,9 +213,12 @@ void MyGraphicsView::initConnections()
     if (m_editorSession)
     {
         connect(m_editorSession, &EditorSession::switchTool, m_toolMgr.get(), &xcanvas::ToolManager::setTool);
-    }
-    if (m_editorSession)
-    {
+        connect(m_editorSession, &EditorSession::drawingToolLockChanged, m_toolMgr.get(),
+                &xcanvas::ToolManager::setDrawingToolLocked);
+        connect(m_editorSession, &EditorSession::drawingToolLockChanged, &AppSettings::instance(),
+                &AppSettings::setDrawingToolLocked);
+        connect(m_toolMgr.get(), &xcanvas::ToolManager::toolChanged, m_editorSession,
+                &EditorSession::notifyCurrentToolChanged);
         connect(m_toolMgr.get(), &xcanvas::ToolManager::drawingFinished, m_editorSession,
                 &EditorSession::notifyFinishDrawing);
     }
@@ -336,6 +339,11 @@ void MyGraphicsView::initConnections()
 
 void MyGraphicsView::initStartup()
 {
+    if (m_editorSession)
+    {
+        m_editorSession->requestSetDrawingToolLock(AppSettings::instance().drawingToolLocked());
+    }
+
     QTimer::singleShot(0, this, [this]() { fitCanvas(); });
     updateBottomFloatingToolBarPos();
     m_bottomFloatingToolBar->show();
@@ -393,7 +401,10 @@ void MyGraphicsView::mousePressEvent(QMouseEvent* event)
     {
         m_viewInteractionController->mousePressEvent(event);
     }
-    m_toolMgr->mousePressEvent(event);
+    if (event->button() != Qt::MiddleButton)
+    {
+        m_toolMgr->mousePressEvent(event);
+    }
 }
 
 void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
@@ -410,7 +421,10 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
         m_viewInteractionController->mouseMoveEvent(event);
     }
 
-    m_toolMgr->mouseMoveEvent(event);
+    if (!(event->buttons() & Qt::MiddleButton))
+    {
+        m_toolMgr->mouseMoveEvent(event);
+    }
     emit mouseMovePos(event->pos());
 }
 
@@ -423,7 +437,10 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
     }
 
     const bool shouldOpenContextMenu = m_viewInteractionController ? m_viewInteractionController->mouseReleaseEvent(event) : false;
-    m_toolMgr->mouseReleaseEvent(event);
+    if (event->button() != Qt::MiddleButton)
+    {
+        m_toolMgr->mouseReleaseEvent(event);
+    }
     if (shouldOpenContextMenu)
     {
         if (m_clipboardCommandService)
