@@ -18,7 +18,8 @@
 #include <QSaveFile>
 #include <QThread>
 #include <QUndoStack>
-#include <QDebug>
+
+#include "../Common/LogMacros.h"
 
 #include <limits>
 #include <zstd.h>
@@ -329,11 +330,12 @@ bool writeDocument(const LoadedDocument& doc, const QString& filePath, QString* 
         }
         zstdLevel = qBound(1, zstdLevel, 22);
 
-        const int  zstdWorkers = resolveZstdThreads(env);
-        qDebug().noquote() << QStringLiteral("[XCanvas] save zstd: level=%1 workers=%2 bytes=%3")
-                                  .arg(zstdLevel)
-                                  .arg(zstdWorkers)
-                                  .arg(jsonPayload.size());
+        const int zstdWorkers = resolveZstdThreads(env);
+        DOCUMENT_IO_LOG_DEBUG(
+            "save zstd: level={} workers={} bytes={}",
+            zstdLevel,
+            zstdWorkers,
+            jsonPayload.size());
         QString    compressErr;
         QByteArray compressed = compressWithZstd(jsonPayload, zstdLevel, zstdWorkers, &compressErr);
         if (compressed.isEmpty() && !jsonPayload.isEmpty())

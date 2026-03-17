@@ -35,6 +35,7 @@ find_package(Qt6 REQUIRED COMPONENTS Svg)
 add_subdirectory(3rdparty/pdfium)
 add_subdirectory(3rdparty/Clipper2Lib)
 add_subdirectory(3rdparty/Qt-Fluent-Widgets)
+add_subdirectory(3rdparty/spdlog)
 
 set(ZSTD_BUILD_STATIC ON CACHE INTERNAL "")
 set(ZSTD_BUILD_SHARED OFF CACHE INTERNAL "")
@@ -100,6 +101,8 @@ set(PROJECT_SOURCES
     ${IMPORT_UTILS}
     ${SERIALIZATION}
     ${CONTROLLER}
+        Common/LogMacros.h
+        Common/QtFmtSupport.h
 )
 
 # ============================================================
@@ -206,6 +209,7 @@ target_link_libraries(XCanvas PRIVATE
     clipper2lib
     libzstd_static
     qtfluentwidgets
+    spdlog::spdlog
 )
 target_link_libraries(XCanvas PRIVATE Qt6::Svg)
 

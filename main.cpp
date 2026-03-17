@@ -1,3 +1,4 @@
+#include "Common/AppLogging.h"
 #include "mainwindow.h"
 
 #include <QApplication>
@@ -6,10 +7,14 @@
 int main(int argc, char* argv[])
 {
     QApplication a(argc, argv);
+    AppLogging::initialize();
     Q_INIT_RESOURCE(resource);
     qfw::setTheme(qfw::Theme::Auto);
 
-    MainWindow   w;
+    MainWindow w;
     w.showMaximized();
-    return a.exec();
+
+    const int exitCode = a.exec();
+    AppLogging::shutdown();
+    return exitCode;
 }

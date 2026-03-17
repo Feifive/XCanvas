@@ -1,5 +1,6 @@
 #include "AppSettings.h"
-#include <QDebug>
+#include "LogMacros.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -55,7 +56,7 @@ AppSettings::~AppSettings()
 QString AppSettings::getConfigFilePath()
 {
     QString path = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-    qDebug() << path;
+    SETTINGS_LOG_INFO("Resolved app config directory: {}", path);
     QDir dir(path);
     if (!dir.exists())
     {
@@ -69,7 +70,7 @@ void AppSettings::load()
     QFile file(getConfigFilePath());
     if (!file.open(QIODevice::ReadOnly))
     {
-        qDebug() << "No config file found, using defaults.";
+        SETTINGS_LOG_INFO("No config file found, using defaults. path={}", file.fileName());
         return;
     }
 
@@ -88,7 +89,7 @@ void AppSettings::save()
     QFile file(getConfigFilePath());
     if (!file.open(QIODevice::WriteOnly))
     {
-        qWarning() << "Couldn't open config file for writing.";
+        SETTINGS_LOG_WARN("Couldn't open config file for writing. path={}", file.fileName());
         return;
     }
 

@@ -20,7 +20,6 @@ MessageWidget::MessageWidget(const MessageType type, const QString &text, QWidge
 }
 
 MessageWidget::~MessageWidget() {
-    qDebug()<<"~MessageWidget";
 }
 
 void MessageWidget::setupUi() {

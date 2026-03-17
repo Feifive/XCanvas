@@ -1,11 +1,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include <QDateTime>
 #include <QFontDatabase>
 #include <QPen>
-
-#define qDebugTime() qDebug().noquote() << QDateTime::currentDateTime().toString("hh:mm:ss.zzz")
 
 #define Z_VALUE_HIGHLIGHT 99999
 
