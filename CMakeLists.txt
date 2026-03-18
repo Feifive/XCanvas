@@ -17,12 +17,19 @@ set(CMAKE_AUTORCC ON)
 # Qt 配置
 # ============================================================
 
-if(WIN32)
-    set(QT_SDK_DIR D:/software/Qt6.8.3/6.8.3/msvc2022_64 CACHE PATH "Qt SDK directory" FORCE)
-elseif (APPLE)
-    set(QT_SDK_DIR /Users/ze/Qt/6.10.1/macos CACHE PATH "QT SDK DIR" FORCE)
-endif ()
-list(APPEND CMAKE_PREFIX_PATH ${QT_SDK_DIR})
+if(NOT DEFINED QT_SDK_DIR OR QT_SDK_DIR STREQUAL "")
+    if(DEFINED ENV{QT_ROOT_DIR} AND NOT "$ENV{QT_ROOT_DIR}" STREQUAL "")
+        set(QT_SDK_DIR "$ENV{QT_ROOT_DIR}" CACHE PATH "Qt SDK directory")
+    elseif(WIN32)
+        set(QT_SDK_DIR "D:/software/Qt6.8.3/6.8.3/msvc2022_64" CACHE PATH "Qt SDK directory")
+    elseif(APPLE)
+        set(QT_SDK_DIR "/Users/ze/Qt/6.10.1/macos" CACHE PATH "Qt SDK directory")
+    endif()
+endif()
+
+if(QT_SDK_DIR)
+    list(PREPEND CMAKE_PREFIX_PATH "${QT_SDK_DIR}")
+endif()
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core)

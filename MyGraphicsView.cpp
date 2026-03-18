@@ -16,22 +16,20 @@
 #include "SelectionHudBar.h"
 #include "Controller/SelectionHudController.h"
 #include "Controller/SelectionUiCoordinator.h"
+#include "Controller/ShapeInteractionController.h"
+#include "Controller/TextEditController.h"
 #include "Controller/ViewInteractionController.h"
 #include "Controller/ViewLayoutController.h"
 #include "Controller/ViewRenderController.h"
 #include "Controller/ViewportTransformController.h"
 #include "Global.h"
 #include "Shape/Shape.h"
-#include "Shape/ShapeText.h"
-#include "Shape/EditTextCommand.h"
 #include "ToolManager.h"
-#include <QGraphicsTextItem>
 #include <QEvent>
 #include <QFileDialog>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTimer>
-#include <QTextCursor>
 #include <QUndoStack>
 #include <qtfluentwidgets.h>
 
@@ -39,8 +37,6 @@ MyGraphicsView::MyGraphicsView(EditorSession* session, QWidget* parent)
     : QGraphicsView{parent},
       m_canvas(new xcanvas::Canvas(this)),
       m_bottomFloatingToolBar(nullptr),
-      m_inlineTextEditor(nullptr),
-      m_inlineEditingShape(nullptr),
       m_isDestroying(false),
       m_editorSession(session)
 {
@@ -163,6 +159,19 @@ void MyGraphicsView::initControllers()
         [this]() { requestFullUpdate(); },
         [this]() { updateWindowTitle(); },
         this);
+
+    m_textEditController = std::make_unique<TextEditController>(
+        this,
+        m_canvas,
+        m_viewRenderController.get(),
+        [this]() { updateSelectionHud(); },
+        [this]() { requestFullUpdate(); });
+
+    m_shapeInteractionController = std::make_unique<ShapeInteractionController>(
+        this,
+        m_canvas,
+        [this]() { return m_toolMgr && m_toolMgr->currentTool() == DrawingToolType::Select; },
+        m_textEditController.get());
 
     m_viewInteractionController = std::make_unique<ViewInteractionController>(
         this,
@@ -391,7 +400,7 @@ void MyGraphicsView::requestFullUpdate() const {
 
 void MyGraphicsView::mousePressEvent(QMouseEvent* event)
 {
-    if (m_inlineTextEditor)
+    if (m_textEditController && m_textEditController->isEditing())
     {
         QGraphicsView::mousePressEvent(event);
         return;
@@ -409,7 +418,7 @@ void MyGraphicsView::mousePressEvent(QMouseEvent* event)
 
 void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
 {
-    if (m_inlineTextEditor)
+    if (m_textEditController && m_textEditController->isEditing())
     {
         QGraphicsView::mouseMoveEvent(event);
         emit mouseMovePos(event->pos());
@@ -430,7 +439,7 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
 
 void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
 {
-    if (m_inlineTextEditor)
+    if (m_textEditController && m_textEditController->isEditing())
     {
         QGraphicsView::mouseReleaseEvent(event);
         return;
@@ -455,34 +464,23 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
 
 void MyGraphicsView::mouseDoubleClickEvent(QMouseEvent* event)
 {
-    if (m_inlineTextEditor)
+    if (m_textEditController && m_textEditController->isEditing())
     {
         QGraphicsView::mouseDoubleClickEvent(event);
         return;
     }
 
-    if (!event || event->button() != Qt::LeftButton || !m_toolMgr || m_toolMgr->currentTool() != DrawingToolType::Select)
+    if (m_shapeInteractionController && m_shapeInteractionController->mouseDoubleClickEvent(event))
     {
-        QGraphicsView::mouseDoubleClickEvent(event);
         return;
     }
 
-    xcanvas::Shape* shape = findTopShapeAtScenePos(mapToScene(event->pos()));
-    if (!shape || shape->type() != xcanvas::ShapeType::Text)
-    {
-        QGraphicsView::mouseDoubleClickEvent(event);
-        return;
-    }
-
-    auto* textShape = static_cast<xcanvas::ShapeText*>(shape);
-    m_canvas->shapeManager()->selectShape(textShape, true);
-    beginInlineTextEdit(textShape);
-    event->accept();
+    QGraphicsView::mouseDoubleClickEvent(event);
 }
 
 void MyGraphicsView::keyPressEvent(QKeyEvent* event)
 {
-    if (m_inlineTextEditor)
+    if (m_textEditController && m_textEditController->isEditing())
     {
         QGraphicsView::keyPressEvent(event);
         return;
@@ -499,123 +497,14 @@ void MyGraphicsView::keyPressEvent(QKeyEvent* event)
 
 bool MyGraphicsView::eventFilter(QObject* watched, QEvent* event)
 {
-    if (watched == m_inlineTextEditor && event)
+    if (m_textEditController && m_textEditController->eventFilter(watched, event))
     {
-        if (event->type() == QEvent::FocusOut)
-        {
-            QTimer::singleShot(0, this, [this]() { finishInlineTextEdit(true); });
-        }
-        else if (event->type() == QEvent::KeyPress)
-        {
-            const auto* keyEvent = static_cast<QKeyEvent*>(event);
-            if (keyEvent && keyEvent->key() == Qt::Key_Escape)
-            {
-                finishInlineTextEdit(false);
-                return true;
-            }
-        }
+        return true;
     }
 
     return QGraphicsView::eventFilter(watched, event);
 }
 
-xcanvas::Shape* MyGraphicsView::findTopShapeAtScenePos(const QPointF& scenePos) const
-{
-    if (!m_canvas || !m_canvas->shapeManager())
-    {
-        return nullptr;
-    }
-
-    const xcanvas::ShapeList shapeList = m_canvas->shapeManager()->shapes();
-    const double tolerance = 6.0 / zoomValue();
-    for (int i = shapeList.size() - 1; i >= 0; --i)
-    {
-        xcanvas::Shape* shape = shapeList.at(i);
-        if (!shape || !shape->isVisible())
-        {
-            continue;
-        }
-        if (shape->hitTest(scenePos, tolerance))
-        {
-            return shape;
-        }
-    }
-    return nullptr;
-}
-
-void MyGraphicsView::beginInlineTextEdit(xcanvas::ShapeText* shape)
-{
-    if (!shape || !scene() || m_inlineTextEditor)
-    {
-        return;
-    }
-
-    m_inlineEditingShape = shape;
-    m_inlineOriginalText = shape->text();
-
-    m_inlineTextEditor = new QGraphicsTextItem(shape->text());
-    m_inlineTextEditor->document()->setDocumentMargin(0);
-    m_inlineTextEditor->setTextInteractionFlags(Qt::TextEditorInteraction);
-    m_inlineTextEditor->setFont(shape->font());
-    m_inlineTextEditor->setDefaultTextColor(shape->color());
-    m_inlineTextEditor->setTransform(shape->transform());
-    m_inlineTextEditor->setZValue(Z_VALUE_HIGHLIGHT + 1);
-    m_inlineTextEditor->installEventFilter(this);
-
-    scene()->addItem(m_inlineTextEditor);
-    m_inlineTextEditor->setFocus(Qt::MouseFocusReason);
-
-    QTextCursor cursor = m_inlineTextEditor->textCursor();
-    cursor.movePosition(QTextCursor::End);
-    m_inlineTextEditor->setTextCursor(cursor);
-
-    if (m_viewRenderController)
-    {
-        m_viewRenderController->setSuppressedShape(shape);
-        m_viewRenderController->setSelectionHandlesVisible(false);
-    }
-
-    updateSelectionHud();
-    requestFullUpdate();
-}
-
-void MyGraphicsView::finishInlineTextEdit(const bool commit)
-{
-    if (!m_inlineTextEditor)
-    {
-        return;
-    }
-
-    const QString editedText = m_inlineTextEditor->toPlainText();
-    xcanvas::ShapeText* editingShape = m_inlineEditingShape;
-
-    m_inlineTextEditor->removeEventFilter(this);
-    if (scene())
-    {
-        scene()->removeItem(m_inlineTextEditor);
-    }
-    delete m_inlineTextEditor;
-    m_inlineTextEditor = nullptr;
-
-    if (editingShape)
-    {
-        if (commit && editedText != m_inlineOriginalText && m_canvas && m_canvas->undoStack() && m_canvas->shapeManager())
-        {
-            m_canvas->undoStack()->push(
-                new xcanvas::EditTextCommand(m_canvas->shapeManager(), editingShape, m_inlineOriginalText, editedText));
-        }
-    }
-
-    m_inlineEditingShape = nullptr;
-    m_inlineOriginalText.clear();
-    if (m_viewRenderController)
-    {
-        m_viewRenderController->setSuppressedShape(nullptr);
-        m_viewRenderController->setSelectionHandlesVisible(true);
-    }
-    updateSelectionHud();
-    requestFullUpdate();
-}
 
 void MyGraphicsView::wheelEvent(QWheelEvent* event)
 {

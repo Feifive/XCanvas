@@ -37,11 +37,42 @@
 # debug information files
 *.dwo
 
+# Archives / packages
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
 # Build directories
 build/
 cmake-build-*/
+Bin/
+CMakeFiles/
 
 # IDE directories
 .idea/
 .qtcreator/
 .vscode/
+
+# CMake / build files
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+
+# Qt generated files
+*.qmake.stash
+*.pro.user
+*.pro.user.*
+ui_*.h
+moc_*.cpp
+qrc_*.cpp
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+**/.DS_Store
+Thumbs.db

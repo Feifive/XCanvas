@@ -19,6 +19,8 @@ class DocumentSessionController;
 class AsyncFileTaskRunner;
 class DocumentIoController;
 class SelectionUiCoordinator;
+class TextEditController;
+class ShapeInteractionController;
 class EditorSession;
 
 namespace xcanvas
@@ -98,9 +100,6 @@ class MyGraphicsView : public QGraphicsView
     void   fitShapes() const;
     void   updateWindowTitle() const;
     QString projectDisplayName() const;
-    xcanvas::Shape* findTopShapeAtScenePos(const QPointF& scenePos) const;
-    void            beginInlineTextEdit(xcanvas::ShapeText* shape);
-    void            finishInlineTextEdit(bool commit);
 
   private:
     xcanvas::Canvas*       m_canvas;
@@ -120,9 +119,8 @@ class MyGraphicsView : public QGraphicsView
     std::unique_ptr<DocumentSessionController> m_documentSessionController;
     std::unique_ptr<ViewInteractionController> m_viewInteractionController;
     std::unique_ptr<DocumentIoController> m_documentIoController;
-    class QGraphicsTextItem*                 m_inlineTextEditor;
-    xcanvas::ShapeText*                      m_inlineEditingShape;
-    QString                                  m_inlineOriginalText;
+    std::unique_ptr<TextEditController> m_textEditController;
+    std::unique_ptr<ShapeInteractionController> m_shapeInteractionController;
     EditorSession*                           m_editorSession;
 };
 
