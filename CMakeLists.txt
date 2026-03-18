@@ -47,6 +47,9 @@ set(CLIPPER2_USINGZ OFF CACHE STRING "" FORCE)
 add_subdirectory(3rdparty/Clipper2/CPP)
 add_subdirectory(3rdparty/Qt-Fluent-Widgets)
 add_subdirectory(3rdparty/spdlog)
+set(LIBDXFRW_BUILD_DOC OFF CACHE BOOL "" FORCE)
+set(LIBDXFRW_BUILD_DWG2DXF OFF CACHE BOOL "" FORCE)
+add_subdirectory(3rdparty/libdxfrw)
 
 set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
 set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
@@ -195,28 +198,13 @@ target_include_directories(XCanvas PRIVATE
 )
 
 # ============================================================
-# dxfrw（Imported Library）
-# ============================================================
-
-if (WIN32)
-    set(LIBDXFRW_PATH "${PROJECT_SOURCE_DIR}/SDK/lib/x86_64/dxfrw.lib")
-elseif (APPLE)
-    set(LIBDXFRW_PATH "${PROJECT_SOURCE_DIR}/SDK/lib/macos/libdxfrw.a")
-endif()
-
-add_library(libdxfrw STATIC IMPORTED)
-set_target_properties(libdxfrw PROPERTIES
-    IMPORTED_LOCATION "${LIBDXFRW_PATH}"
-)
-
-# ============================================================
 # 链接
 # ============================================================
 
 target_link_libraries(XCanvas PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Core
-    libdxfrw
+    dxfrw
     thirdparty_pdfium
     Clipper2
     libzstd_static

@@ -87,8 +87,8 @@ git push origin v0.1.0
 ## 注意事项
 
 - 当前仓库没有项目级测试，所以这套 CI 目前主要覆盖“能否成功构建和打包”
-- `3rdparty/Qt-Fluent-Widgets` 和 `3rdparty/spdlog` 通过 git submodule 拉取，因此 checkout 必须启用 `submodules: recursive`
-- `pdfium` 和 `libdxfrw` 当前仍依赖仓库内已有的二进制文件
+- `3rdparty/Qt-Fluent-Widgets`、`3rdparty/spdlog`、`3rdparty/Clipper2`、`3rdparty/zstd` 和 `3rdparty/libdxfrw` 通过 git submodule 拉取，因此 checkout 必须启用 `submodules: recursive`
+- `pdfium` 当前仍依赖仓库内已有的二进制文件，`libdxfrw` 则由 `3rdparty/libdxfrw` 子模块源码参与构建
 
 ## 后续建议
 

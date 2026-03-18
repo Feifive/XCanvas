@@ -41,7 +41,7 @@ git submodule update --init --recursive
 - `3rdparty/pdfium`
 - `3rdparty/Clipper2`
 - `3rdparty/zstd`
-- `SDK/lib/...` 中的 `libdxfrw`
+- `3rdparty/libdxfrw`
 
 ## 本地构建
 

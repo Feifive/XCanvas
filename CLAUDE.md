@@ -40,8 +40,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Dependency and setup notes
 
-- Fresh checkouts should initialize submodules, especially `3rdparty/Qt-Fluent-Widgets`, `3rdparty/spdlog`, and `3rdparty/Clipper2` from `.gitmodules`.
-- Bundled third-party dependencies wired through CMake include `pdfium`, `Clipper2`, `zstd`, and imported static `libdxfrw` from `SDK/lib/...`.
+- Fresh checkouts should initialize submodules, especially `3rdparty/Qt-Fluent-Widgets`, `3rdparty/spdlog`, `3rdparty/Clipper2`, `3rdparty/zstd`, and `3rdparty/libdxfrw` from `.gitmodules`.
+- Bundled third-party dependencies wired through CMake include `pdfium`, `Clipper2`, `zstd`, and `libdxfrw` from `3rdparty/libdxfrw`.
 - The native project document format uses the `.xcanvas` extension.
 
 ## Architecture overview
