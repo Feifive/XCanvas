@@ -40,7 +40,11 @@ find_package(Qt6 REQUIRED COMPONENTS Svg)
 # ============================================================
 
 add_subdirectory(3rdparty/pdfium)
-add_subdirectory(3rdparty/Clipper2Lib)
+set(CLIPPER2_UTILS OFF CACHE BOOL "" FORCE)
+set(CLIPPER2_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(CLIPPER2_TESTS OFF CACHE BOOL "" FORCE)
+set(CLIPPER2_USINGZ OFF CACHE STRING "" FORCE)
+add_subdirectory(3rdparty/Clipper2/CPP)
 add_subdirectory(3rdparty/Qt-Fluent-Widgets)
 add_subdirectory(3rdparty/spdlog)
 
@@ -213,7 +217,7 @@ target_link_libraries(XCanvas PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     libdxfrw
     thirdparty_pdfium
-    clipper2lib
+    Clipper2
     libzstd_static
     qtfluentwidgets
     spdlog::spdlog

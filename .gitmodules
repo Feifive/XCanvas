@@ -4,3 +4,6 @@
 [submodule "3rdparty/spdlog"]
 	path = 3rdparty/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "3rdparty/Clipper2"]
+	path = 3rdparty/Clipper2
+	url = https://github.com/AngusJohnson/Clipper2.git

@@ -39,7 +39,7 @@ git submodule update --init --recursive
 - `3rdparty/Qt-Fluent-Widgets`
 - `3rdparty/spdlog`
 - `3rdparty/pdfium`
-- `3rdparty/Clipper2Lib`
+- `3rdparty/Clipper2`
 - `3rdparty/zstd`
 - `SDK/lib/...` 中的 `libdxfrw`
 
