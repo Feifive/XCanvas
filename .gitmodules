@@ -7,3 +7,6 @@
 [submodule "3rdparty/Clipper2"]
 	path = 3rdparty/Clipper2
 	url = https://github.com/AngusJohnson/Clipper2.git
+[submodule "3rdparty/zstd"]
+	path = 3rdparty/zstd
+	url = https://github.com/facebook/zstd.git

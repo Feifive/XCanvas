@@ -48,10 +48,11 @@ add_subdirectory(3rdparty/Clipper2/CPP)
 add_subdirectory(3rdparty/Qt-Fluent-Widgets)
 add_subdirectory(3rdparty/spdlog)
 
-set(ZSTD_BUILD_STATIC ON CACHE INTERNAL "")
-set(ZSTD_BUILD_SHARED OFF CACHE INTERNAL "")
-set(ZSTD_BUILD_PROGRAMS OFF CACHE INTERNAL "")
-set(ZSTD_BUILD_TESTS OFF CACHE INTERNAL "")
+set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
 add_subdirectory(3rdparty/zstd/build/cmake EXCLUDE_FROM_ALL)
 
 # ============================================================
