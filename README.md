@@ -150,4 +150,7 @@ CI/CD 中额外使用：
 
 ## 许可证
 
-如果后续需要对外开源或补充许可证信息，建议在根目录补充单独的 `LICENSE` 文件。
+- XCanvas 采用 `GPL-2.0-or-later`
+- 根许可证文件见 [`LICENSE`](/Users/ze/Desktop/QtProjects/XCanvas/LICENSE)
+- 第三方许可证说明见 [`THIRD_PARTY_NOTICES.md`](/Users/ze/Desktop/QtProjects/XCanvas/THIRD_PARTY_NOTICES.md)
+- 项目当前链接并分发 `libdxfrw`，其上游声明为 `GPL-2.0-or-later`，因此项目整体按 GPL 兼容方式发布
