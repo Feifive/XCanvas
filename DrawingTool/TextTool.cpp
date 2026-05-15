@@ -244,10 +244,7 @@ void xcanvas::TextTool::drawPreview(QPainter* painter)
 
     painter->save();
 
-    painter->setFont(m_font);
-
     const QColor color = AppSettings::instance().activeColor();
-    painter->setPen(color);
 
     const QFontMetricsF metrics(m_font);
     const qreal         lineSpacing = metrics.lineSpacing();
@@ -255,13 +252,27 @@ void xcanvas::TextTool::drawPreview(QPainter* painter)
 
     if (!m_editText.isEmpty())
     {
-        const QStringList lines = m_editText.split('\n');
+        const ProcessMode mode = activeProcessMode();
+        if (mode == ProcessMode::Scan)
+        {
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(color);
+        }
+        else
+        {
+            painter->setPen(QPen(color, 1.0, Qt::SolidLine, Qt::FlatCap));
+            painter->setBrush(Qt::NoBrush);
+        }
+        painter->setRenderHint(QPainter::Antialiasing);
 
+        QPainterPath textPath;
+        const QStringList lines = m_editText.split('\n');
         for (int i = 0; i < lines.size(); ++i)
         {
             const qreal y = m_textPos.y() + ascent + i * lineSpacing;
-            painter->drawText(QPointF(m_textPos.x(), y), lines[i]);
+            textPath.addText(m_textPos.x(), y, m_font, lines[i]);
         }
+        painter->drawPath(textPath);
     }
 
     drawPreeditText(painter);
@@ -386,6 +397,24 @@ int xcanvas::TextTool::cursorPosAtPoint(const QPointF& scenePos) const
     return qBound(0, cursorPos, m_editText.length());
 }
 
+xcanvas::ProcessMode xcanvas::TextTool::activeProcessMode() const
+{
+    const QColor color = AppSettings::instance().activeColor();
+    const xcanvas::LayerManager* lm = m_canvas->layerManager();
+    if (lm)
+    {
+        for (int id : lm->layerIds())
+        {
+            const xcanvas::LayerParameter* layer = lm->tryGetLayer(id);
+            if (layer && layer->color == color && layer->mode != xcanvas::ProcessMode::Image)
+            {
+                return layer->mode;
+            }
+        }
+    }
+    return xcanvas::ProcessMode::Cut;
+}
+
 void xcanvas::TextTool::drawTextCursor(QPainter* painter) const
 {
     const QFontMetricsF metrics(m_font);
@@ -414,6 +443,8 @@ void xcanvas::TextTool::drawPreeditText(QPainter* painter) const
 {
     if (m_preeditText.isEmpty())
         return;
+
+    painter->setPen(AppSettings::instance().activeColor());
 
     const QFontMetricsF metrics(m_font);
     const qreal         lineSpacing = metrics.lineSpacing();

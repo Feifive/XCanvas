@@ -2,6 +2,7 @@
 #define TEXTTOOL_H
 
 #include "DrawingTool.h"
+#include "../Layer/LayerManager.h"
 #include <QFont>
 
 namespace xcanvas
@@ -34,6 +35,7 @@ class TextTool : public DrawingTool
     void drawPreeditText(QPainter* painter) const;
     bool hitTest(const QPointF& scenePos) const;
     int  cursorPosAtPoint(const QPointF& scenePos) const;
+    xcanvas::ProcessMode activeProcessMode() const;
 
   private:
     QString m_editText;

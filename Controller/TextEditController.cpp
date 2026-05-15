@@ -2,6 +2,7 @@
 
 #include "ViewRenderController.h"
 #include "../Canvas/Canvas.h"
+#include "../Layer/LayerManager.h"
 #include "../Shape/EditTextCommand.h"
 #include "../Shape/ShapeManager.h"
 #include "../Shape/ShapeText.h"
@@ -334,21 +335,47 @@ void TextEditController::drawPreview(QPainter* painter)
     painter->save();
 
     painter->setTransform(m_inlineEditingShape->transform(), true);
-    painter->setFont(m_inlineEditingShape->font());
-    painter->setPen(m_inlineEditingShape->color());
 
-    const QFontMetricsF metrics(m_inlineEditingShape->font());
+    const QFont   font  = m_inlineEditingShape->font();
+    const QColor  color = m_inlineEditingShape->color();
+
+    const QFontMetricsF metrics(font);
     const qreal         lineSpacing = metrics.lineSpacing();
     const qreal         ascent      = metrics.ascent();
 
     if (!m_editText.isEmpty())
     {
+        xcanvas::ProcessMode mode = xcanvas::ProcessMode::Cut;
+        if (m_inlineEditingShape && m_canvas)
+        {
+            const xcanvas::LayerManager* lm = m_canvas->layerManager();
+            if (lm)
+            {
+                const xcanvas::LayerParameter* layer = lm->tryGetLayer(m_inlineEditingShape->layerId());
+                if (layer) mode = layer->mode;
+            }
+        }
+
+        if (mode == xcanvas::ProcessMode::Scan)
+        {
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(color);
+        }
+        else
+        {
+            painter->setPen(QPen(color, 1.0, Qt::SolidLine, Qt::FlatCap));
+            painter->setBrush(Qt::NoBrush);
+        }
+        painter->setRenderHint(QPainter::Antialiasing);
+
+        QPainterPath textPath;
         const QStringList lines = m_editText.split('\n');
         for (int i = 0; i < lines.size(); ++i)
         {
             const qreal y = ascent + i * lineSpacing;
-            painter->drawText(QPointF(0, y), lines[i]);
+            textPath.addText(0, y, font, lines[i]);
         }
+        painter->drawPath(textPath);
     }
 
     drawPreedit(painter);
@@ -384,6 +411,8 @@ void TextEditController::drawPreedit(QPainter* painter) const
     {
         return;
     }
+
+    painter->setPen(m_inlineEditingShape->color());
 
     const QFontMetricsF metrics(m_inlineEditingShape->font());
     const qreal         lineSpacing = metrics.lineSpacing();
