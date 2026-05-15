@@ -29,7 +29,8 @@ bool ShapeInteractionController::mouseDoubleClickEvent(QMouseEvent* event)
         return false;
     }
 
-    xcanvas::Shape* const shape = findTopShapeAtScenePos(m_view->mapToScene(event->pos()));
+    const QPointF scenePos = m_view->mapToScene(event->pos());
+    xcanvas::Shape* const shape = findTopShapeAtScenePos(scenePos);
     if (!shape || shape->type() != xcanvas::ShapeType::Text)
     {
         return false;
@@ -42,7 +43,7 @@ bool ShapeInteractionController::mouseDoubleClickEvent(QMouseEvent* event)
     }
 
     m_canvas->shapeManager()->selectShape(textShape, true);
-    if (!m_textEditController->beginInlineEdit(textShape))
+    if (!m_textEditController->beginInlineEdit(textShape, scenePos))
     {
         return false;
     }

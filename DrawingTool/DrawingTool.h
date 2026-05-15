@@ -2,6 +2,7 @@
 #define BASEDRAWINGTOOL_H
 
 #include "Global.h"
+#include <QInputMethodEvent>
 #include <QObject>
 #include <QPainterPath>
 #include <qevent.h>
@@ -39,6 +40,8 @@ class DrawingTool : public QObject
     virtual void            mouseMoveEvent(QMouseEvent* event) {};
     virtual void            mouseReleaseEvent(QMouseEvent* event) {};
     virtual void            keyPressEvent(QKeyEvent* event);
+    virtual void            inputMethodEvent(QInputMethodEvent* event);
+    virtual QVariant        inputMethodQuery(Qt::InputMethodQuery query) const;
     virtual void            drawPreview(QPainter* painter);
     virtual DrawingToolType toolType() = 0;
 

@@ -27,6 +27,7 @@
 #include "ToolManager.h"
 #include <QEvent>
 #include <QFileDialog>
+#include <QInputMethodEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTimer>
@@ -402,8 +403,15 @@ void MyGraphicsView::mousePressEvent(QMouseEvent* event)
 {
     if (m_textEditController && m_textEditController->isEditing())
     {
-        QGraphicsView::mousePressEvent(event);
-        return;
+        if (event->button() == Qt::LeftButton)
+        {
+            const QPointF scenePos = mapToScene(event->pos());
+            if (m_textEditController->moveCursorToScenePos(scenePos))
+            {
+                return;
+            }
+        }
+        m_textEditController->finishInlineEdit(true);
     }
 
     if (m_viewInteractionController)
@@ -482,7 +490,7 @@ void MyGraphicsView::keyPressEvent(QKeyEvent* event)
 {
     if (m_textEditController && m_textEditController->isEditing())
     {
-        QGraphicsView::keyPressEvent(event);
+        m_textEditController->keyPressEvent(event);
         return;
     }
 
@@ -495,14 +503,25 @@ void MyGraphicsView::keyPressEvent(QKeyEvent* event)
     QGraphicsView::keyPressEvent(event);
 }
 
-bool MyGraphicsView::eventFilter(QObject* watched, QEvent* event)
+void MyGraphicsView::inputMethodEvent(QInputMethodEvent* event)
 {
-    if (m_textEditController && m_textEditController->eventFilter(watched, event))
+    if (m_textEditController && m_textEditController->isEditing())
     {
-        return true;
+        m_textEditController->inputMethodEvent(event);
+        return;
     }
 
-    return QGraphicsView::eventFilter(watched, event);
+    m_toolMgr->inputMethodEvent(event);
+}
+
+QVariant MyGraphicsView::inputMethodQuery(Qt::InputMethodQuery query) const
+{
+    if (m_textEditController && m_textEditController->isEditing())
+    {
+        return m_textEditController->inputMethodQuery(query);
+    }
+
+    return m_toolMgr->inputMethodQuery(query);
 }
 
 
@@ -546,7 +565,11 @@ void MyGraphicsView::drawForeground(QPainter* painter, const QRectF& rect)
     {
         m_viewRenderController->drawForeground(painter, rect);
     }
-    if (m_toolMgr)
+    if (m_textEditController && m_textEditController->isEditing())
+    {
+        m_textEditController->drawPreview(painter);
+    }
+    else if (m_toolMgr)
     {
         m_toolMgr->drawPreview(painter);
     }

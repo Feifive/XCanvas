@@ -26,6 +26,17 @@ void xcanvas::DrawingTool::keyPressEvent(QKeyEvent* event)
     }
 }
 
+void xcanvas::DrawingTool::inputMethodEvent(QInputMethodEvent* event)
+{
+    Q_UNUSED(event);
+}
+
+QVariant xcanvas::DrawingTool::inputMethodQuery(Qt::InputMethodQuery query) const
+{
+    Q_UNUSED(query);
+    return {};
+}
+
 void xcanvas::DrawingTool::drawPreview(QPainter* painter)
 {
     if (m_state == State::Drawing && !m_previewPath.isEmpty())

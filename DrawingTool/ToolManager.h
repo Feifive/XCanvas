@@ -41,6 +41,8 @@ public:
     void mouseMoveEvent(QMouseEvent* e);
     void mouseReleaseEvent(QMouseEvent* e);
     void keyPressEvent(QKeyEvent* e);
+    void inputMethodEvent(QInputMethodEvent* e);
+    QVariant inputMethodQuery(Qt::InputMethodQuery query) const;
 
     // 绘制预览
     void drawPreview(QPainter* painter);

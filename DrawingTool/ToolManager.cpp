@@ -150,6 +150,19 @@ void ToolManager::keyPressEvent(QKeyEvent* e)
         m_currentTool->keyPressEvent(e);
 }
 
+void ToolManager::inputMethodEvent(QInputMethodEvent* e)
+{
+    if (m_currentTool)
+        m_currentTool->inputMethodEvent(e);
+}
+
+QVariant ToolManager::inputMethodQuery(Qt::InputMethodQuery query) const
+{
+    if (m_currentTool)
+        return m_currentTool->inputMethodQuery(query);
+    return {};
+}
+
 void ToolManager::drawPreview(QPainter* painter)
 {
     if (m_currentTool)

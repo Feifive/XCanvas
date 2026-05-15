@@ -2,13 +2,12 @@
 #define TEXTEDITCONTROLLER_H
 
 #include <functional>
-
+#include <QPointF>
 #include <QString>
 
-class QObject;
-class QEvent;
-class QGraphicsScene;
-class QGraphicsTextItem;
+class QInputMethodEvent;
+class QKeyEvent;
+class QPainter;
 class QGraphicsView;
 class ViewRenderController;
 
@@ -30,10 +29,20 @@ class TextEditController final
         UpdateUiAction         updateSelectionHud,
         UpdateUiAction         requestFullUpdate);
 
-    bool isEditing() const;
-    bool eventFilter(QObject* watched, QEvent* event);
-    bool beginInlineEdit(xcanvas::ShapeText* shape);
-    void finishInlineEdit(bool commit);
+    bool      isEditing() const;
+    bool      beginInlineEdit(xcanvas::ShapeText* shape, const QPointF& scenePos);
+    void      finishInlineEdit(bool commit);
+    bool      moveCursorToScenePos(const QPointF& scenePos);
+
+    void      keyPressEvent(QKeyEvent* event);
+    void      inputMethodEvent(QInputMethodEvent* event);
+    QVariant  inputMethodQuery(Qt::InputMethodQuery query) const;
+    void      drawPreview(QPainter* painter);
+
+  private:
+    void drawCursor(QPainter* painter) const;
+    void drawPreedit(QPainter* painter) const;
+    int  cursorPosAtLocalPos(const QPointF& localPos) const;
 
   private:
     QGraphicsView*        m_view;
@@ -41,9 +50,12 @@ class TextEditController final
     ViewRenderController* m_viewRenderController;
     UpdateUiAction        m_updateSelectionHud;
     UpdateUiAction        m_requestFullUpdate;
-    QGraphicsTextItem*    m_inlineTextEditor = nullptr;
-    xcanvas::ShapeText*   m_inlineEditingShape = nullptr;
-    QString               m_inlineOriginalText;
+
+    xcanvas::ShapeText* m_inlineEditingShape = nullptr;
+    QString             m_inlineOriginalText;
+    QString             m_editText;
+    int                 m_cursorPos = 0;
+    QString             m_preeditText;
 };
 
 #endif// TEXTEDITCONTROLLER_H
