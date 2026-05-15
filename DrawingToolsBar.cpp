@@ -1,6 +1,7 @@
 #include "DrawingToolsBar.h"
 #include "AppSettings.h"
 #include "EditorSession.h"
+#include "ToolGroupButton.h"
 #include <QActionGroup>
 #include <QButtonGroup>
 #include <QFileDialog>
@@ -24,14 +25,15 @@ void DrawingToolsBar::createToolBar() {
     m_pGroup = new QButtonGroup(this);
     m_pGroup->setExclusive(true);
 
-    m_pMainMenu     = makeActionButton(XCanvasIconType::MainMenu);
-    m_pImport       = makeActionButton(XCanvasIconType::Import);
-    m_pPolylineTool = makeToggleButton(XCanvasIconType::Polyline);
-    m_pCurveTool    = makeToggleButton(XCanvasIconType::Curve);
-    m_pRectTool     = makeToggleButton(XCanvasIconType::Rect);
-    m_pEllipseTool  = makeToggleButton(XCanvasIconType::Ellipse);
-    m_pPolygonTool  = makeToggleButton(XCanvasIconType::Polygon);
-    m_pText         = makeToggleButton(XCanvasIconType::Text);
+    m_pMainMenu       = makeActionButton(XCanvasIconType::MainMenu);
+    m_pImport         = makeActionButton(XCanvasIconType::Import);
+    m_pShapeToolGroup = createToolGroupButton();
+    m_pText           = makeToggleButton(XCanvasIconType::Text);
+
+    addWidget(m_pMainMenu);
+    addWidget(m_pImport);
+    addWidget(m_pShapeToolGroup);
+    addWidget(m_pText);
 
     // 垂直弹簧
     auto* pSpring = new QWidget(this);
@@ -42,15 +44,11 @@ void DrawingToolsBar::createToolBar() {
     m_pDrawingToolLock->setFixedSize(QSize(36, 36));
     m_pDrawingToolLock->setToolButtonStyle(Qt::ToolButtonIconOnly);
     m_pDrawingToolLock->setIcon(XCanvasIcon(XCanvasIconType::DrawingToolLock));
+    addWidget(m_pSelectTool);
     addWidget(m_pDrawingToolLock);
 
     setupToolTip(m_pMainMenu, tr("主菜单"));
     setupToolTip(m_pImport, tr("导入"));
-    setupToolTip(m_pPolylineTool, tr("折线"));
-    setupToolTip(m_pCurveTool, tr("曲线"));
-    setupToolTip(m_pRectTool, tr("矩形"));
-    setupToolTip(m_pEllipseTool, tr("椭圆"));
-    setupToolTip(m_pPolygonTool, tr("多边形"));
     setupToolTip(m_pText, tr("文字"));
     setupToolTip(m_pSelectTool, tr("选择"));
     setupToolTip(m_pDrawingToolLock, tr("锁定绘图工具"));
@@ -83,40 +81,9 @@ void DrawingToolsBar::createToolBar() {
             m_editorSession->requestSwitchTool(DrawingToolType::Text);
         }
     });
-    connect(m_pRectTool, &QToolButton::clicked, this, [this]
-    {
+    connect(m_pShapeToolGroup, &ToolGroupButton::toolSelected, this, [this](const DrawingToolType type) {
         if (m_editorSession)
-        {
-            m_editorSession->requestSwitchTool(DrawingToolType::Rect);
-        }
-    });
-    connect(m_pPolylineTool, &QToolButton::clicked, this, [this]
-    {
-        if (m_editorSession)
-        {
-            m_editorSession->requestSwitchTool(DrawingToolType::Polyline);
-        }
-    });
-    connect(m_pEllipseTool, &QToolButton::clicked, this, [this]
-    {
-        if (m_editorSession)
-        {
-            m_editorSession->requestSwitchTool(DrawingToolType::Ellipse);
-        }
-    });
-    connect(m_pCurveTool, &QToolButton::clicked, this, [this]
-    {
-        if (m_editorSession)
-        {
-            m_editorSession->requestSwitchTool(DrawingToolType::Curve);
-        }
-    });
-    connect(m_pPolygonTool, &QToolButton::clicked, this, [this]
-    {
-        if (m_editorSession)
-        {
-            m_editorSession->requestSwitchTool(DrawingToolType::Polygon);
-        }
+            m_editorSession->requestSwitchTool(type);
     });
     if (m_editorSession)
     {
@@ -131,58 +98,27 @@ void DrawingToolsBar::createToolBar() {
 
 void DrawingToolsBar::syncCurrentTool(const DrawingToolType type) const {
     if (!m_pGroup)
-    {
         return;
-    }
 
     const QSignalBlocker groupBlocker(m_pGroup);
     const QSignalBlocker selectBlocker(m_pSelectTool);
     const QSignalBlocker textBlocker(m_pText);
-    const QSignalBlocker polylineBlocker(m_pPolylineTool);
-    const QSignalBlocker curveBlocker(m_pCurveTool);
-    const QSignalBlocker rectBlocker(m_pRectTool);
-    const QSignalBlocker ellipseBlocker(m_pEllipseTool);
-    const QSignalBlocker polygonBlocker(m_pPolygonTool);
 
     m_pSelectTool->setChecked(false);
     m_pText->setChecked(false);
-    m_pPolylineTool->setChecked(false);
-    m_pCurveTool->setChecked(false);
-    m_pRectTool->setChecked(false);
-    m_pEllipseTool->setChecked(false);
-    m_pPolygonTool->setChecked(false);
 
-    qfw::TransparentToggleToolButton* button = nullptr;
+    m_pShapeToolGroup->setCurrentTool(type);
+
     switch (type)
     {
-        case DrawingToolType::Select:
-            button = m_pSelectTool;
-            break;
-        case DrawingToolType::Text:
-            button = m_pText;
-            break;
-        case DrawingToolType::Rect:
-            button = m_pRectTool;
-            break;
-        case DrawingToolType::Polyline:
-            button = m_pPolylineTool;
-            break;
-        case DrawingToolType::Ellipse:
-            button = m_pEllipseTool;
-            break;
-        case DrawingToolType::Curve:
-            button = m_pCurveTool;
-            break;
-        case DrawingToolType::Polygon:
-            button = m_pPolygonTool;
-            break;
-        case DrawingToolType::None:
-            break;
-    }
-
-    if (button)
-    {
-        button->setChecked(true);
+    case DrawingToolType::Select:
+        m_pSelectTool->setChecked(true);
+        break;
+    case DrawingToolType::Text:
+        m_pText->setChecked(true);
+        break;
+    default:
+        break;
     }
 }
 
@@ -240,7 +176,6 @@ makeToggleButton(const XCanvasIconType iconType) {
     if (m_pGroup) {
         m_pGroup->addButton(pToolButton);
     }
-    addWidget(pToolButton);
     return pToolButton;
 }
 
@@ -249,7 +184,6 @@ qfw::TransparentToolButton * DrawingToolsBar::makeActionButton(const XCanvasIcon
     pToolButton->setFixedSize(QSize(36, 36));
     pToolButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
     pToolButton->setIcon(XCanvasIcon(iconType));
-    addWidget(pToolButton);
     return pToolButton;
 }
 
@@ -373,4 +307,18 @@ qfw::RoundMenu* DrawingToolsBar::createMainMenu(const QPoint& pos)
 
     m_pMainRoundMenu->execAt(pos, true);
     return m_pMainRoundMenu;
+}
+
+ToolGroupButton* DrawingToolsBar::createToolGroupButton()
+{
+    const QVector<ToolGroupButton::ToolEntry> shapeTools =
+    {
+        { DrawingToolType::Polyline, XCanvasIconType::Polyline, tr("折线")   },
+        { DrawingToolType::Curve,    XCanvasIconType::Curve,    tr("曲线")   },
+        { DrawingToolType::Rect,     XCanvasIconType::Rect,     tr("矩形")   },
+        { DrawingToolType::Ellipse,  XCanvasIconType::Ellipse,  tr("椭圆")   },
+        { DrawingToolType::Polygon,  XCanvasIconType::Polygon,  tr("多边形") },
+    };
+    ToolGroupButton* shapeToolGroup = new ToolGroupButton(shapeTools, this);
+    return shapeToolGroup;
 }

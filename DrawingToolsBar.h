@@ -8,6 +8,7 @@
 
 class QButtonGroup;
 class EditorSession;
+class ToolGroupButton;
 
 class DrawingToolsBar : public QToolBar
 {
@@ -20,7 +21,8 @@ class DrawingToolsBar : public QToolBar
     void createToolBar();
     void syncCurrentTool(DrawingToolType type) const;
     void initMainMenu();
-    qfw::RoundMenu* createMainMenu(const QPoint& pos);
+    qfw::RoundMenu*  createMainMenu(const QPoint& pos);
+    ToolGroupButton* createToolGroupButton();
     void onFileActionsEnabledChanged(bool enabled) const;
     void applyStyle();
     static void setupToolTip(QWidget* button, const QString& text);
@@ -28,24 +30,20 @@ class DrawingToolsBar : public QToolBar
     qfw::TransparentToolButton* makeActionButton(XCanvasIconType iconType);
 
   private:
-    qfw::TransparentToolButton* m_pMainMenu;
-    qfw::TransparentToolButton* m_pImport;
-    qfw::TransparentToggleToolButton* m_pSelectTool;
-    qfw::TransparentToggleToolButton* m_pDrawingToolLock;
-    qfw::TransparentToggleToolButton* m_pText;
-    qfw::TransparentToggleToolButton* m_pPolylineTool;
-    qfw::TransparentToggleToolButton* m_pCurveTool;
-    qfw::TransparentToggleToolButton* m_pRectTool;
-    qfw::TransparentToggleToolButton* m_pEllipseTool;
-    qfw::TransparentToggleToolButton* m_pPolygonTool;
+    qfw::TransparentToolButton*         m_pMainMenu;
+    qfw::TransparentToolButton*         m_pImport;
+    qfw::TransparentToggleToolButton*   m_pSelectTool;
+    qfw::TransparentToggleToolButton*   m_pDrawingToolLock;
+    qfw::TransparentToggleToolButton*   m_pText;
+    ToolGroupButton*                    m_pShapeToolGroup;
 
-    QButtonGroup* m_pGroup;
-    qfw::RoundMenu* m_pMainRoundMenu = nullptr;
-    qfw::Action*  m_openAction   = nullptr;
-    qfw::Action*  m_importAction = nullptr;
-    qfw::Action*  m_saveAction   = nullptr;
-    qfw::Action*  m_saveAsAction = nullptr;
-    EditorSession* m_editorSession = nullptr;
+    QButtonGroup*    m_pGroup;
+    qfw::RoundMenu*  m_pMainRoundMenu = nullptr;
+    qfw::Action*     m_openAction     = nullptr;
+    qfw::Action*     m_importAction   = nullptr;
+    qfw::Action*     m_saveAction     = nullptr;
+    qfw::Action*     m_saveAsAction   = nullptr;
+    EditorSession*   m_editorSession  = nullptr;
 };
 
 #endif// DRAWINGTOOLSBAR_H
