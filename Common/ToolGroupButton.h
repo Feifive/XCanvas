@@ -39,6 +39,11 @@ private:
     void createFlyout();
     void showFlyout();
     void hideFlyout();
+    void installFlyoutEventFilter();
+    void removeFlyoutEventFilter();
+    bool handleMainButtonClickWhileFlyoutVisible(QEvent* event);
+    bool shouldSuppressHoverFlyout() const;
+    void resetHoverSuppression();
     void updateMainButton();
     bool isMouseOverAny() const;
 
@@ -52,6 +57,8 @@ private:
     QTimer          m_showTimer;
     QTimer          m_hideTimer;
     bool            m_flyoutVisible = false;
+    bool            m_appEventFilterInstalled = false;
+    bool            m_hoverFlyoutSuppressed = false;
 };
 
 #endif // TOOLGROUPBUTTON_H

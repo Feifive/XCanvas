@@ -2,6 +2,7 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QEnterEvent>
+#include <QMouseEvent>
 
 static constexpr int kShowDelayMs = 100;
 static constexpr int kHideDelayMs = 200;
@@ -44,6 +45,7 @@ ToolGroupButton::ToolGroupButton(const QVector<ToolEntry>& tools, QWidget* paren
 
 ToolGroupButton::~ToolGroupButton()
 {
+    removeFlyoutEventFilter();
     delete m_flyout;
 }
 
@@ -87,13 +89,14 @@ void ToolGroupButton::enterEvent(QEnterEvent* event)
 {
     QWidget::enterEvent(event);
     m_hideTimer.stop();
-    if (!m_flyoutVisible)
+    if (!m_flyoutVisible && !shouldSuppressHoverFlyout())
         m_showTimer.start(kShowDelayMs);
 }
 
 void ToolGroupButton::leaveEvent(QEvent* event)
 {
     QWidget::leaveEvent(event);
+    resetHoverSuppression();
     m_showTimer.stop();
     if (m_flyoutVisible)
         m_hideTimer.start(kHideDelayMs);
@@ -101,16 +104,20 @@ void ToolGroupButton::leaveEvent(QEvent* event)
 
 bool ToolGroupButton::eventFilter(QObject* obj, QEvent* event)
 {
+    if (handleMainButtonClickWhileFlyoutVisible(event))
+        return true;
+
     if (obj == m_mainButton)
     {
         if (event->type() == QEvent::Enter)
         {
             m_hideTimer.stop();
-            if (!m_flyoutVisible)
+            if (!m_flyoutVisible && !shouldSuppressHoverFlyout())
                 m_showTimer.start(kShowDelayMs);
         }
         else if (event->type() == QEvent::Leave)
         {
+            resetHoverSuppression();
             m_showTimer.stop();
             if (m_flyoutVisible)
                 m_hideTimer.start(kHideDelayMs);
@@ -159,6 +166,7 @@ void ToolGroupButton::createFlyout()
 
     connect(m_flyout, &QMenu::aboutToHide, this, [this]() {
         m_flyoutVisible = false;
+        removeFlyoutEventFilter();
     });
 
     m_flyoutActionGroup = new QActionGroup(m_flyout);
@@ -195,10 +203,12 @@ void ToolGroupButton::showFlyout()
     if (!m_flyout)
         return;
 
+    m_flyoutVisible = true;
+    installFlyoutEventFilter();
+
     const QPoint globalPos =
         mapToGlobal(QPoint(width() + kFlyoutGap, 0));
     m_flyout->execAt(globalPos, true, qfw::MenuAnimationType::FadeInDropDown);
-    m_flyoutVisible = true;
 }
 
 void ToolGroupButton::hideFlyout()
@@ -206,4 +216,55 @@ void ToolGroupButton::hideFlyout()
     if (m_flyout)
         m_flyout->hide();
     m_flyoutVisible = false;
+    removeFlyoutEventFilter();
+}
+
+void ToolGroupButton::installFlyoutEventFilter()
+{
+    if (m_appEventFilterInstalled)
+        return;
+
+    qApp->installEventFilter(this);
+    m_appEventFilterInstalled = true;
+}
+
+void ToolGroupButton::removeFlyoutEventFilter()
+{
+    if (!m_appEventFilterInstalled)
+        return;
+
+    qApp->removeEventFilter(this);
+    m_appEventFilterInstalled = false;
+}
+
+bool ToolGroupButton::handleMainButtonClickWhileFlyoutVisible(QEvent* event)
+{
+    if (!m_flyoutVisible || event->type() != QEvent::MouseButtonPress)
+        return false;
+
+    auto* mouseEvent = static_cast<QMouseEvent*>(event);
+    if (mouseEvent->button() != Qt::LeftButton)
+        return false;
+
+    const QRect mainButtonRect(m_mainButton->mapToGlobal(QPoint(0, 0)), m_mainButton->size());
+    if (!mainButtonRect.contains(mouseEvent->globalPosition().toPoint()))
+        return false;
+
+    m_showTimer.stop();
+    m_hoverFlyoutSuppressed = true;
+    hideFlyout();
+    if (m_lastUsedTool != DrawingToolType::None)
+        emit toolSelected(m_lastUsedTool);
+
+    return true;
+}
+
+bool ToolGroupButton::shouldSuppressHoverFlyout() const
+{
+    return m_hoverFlyoutSuppressed;
+}
+
+void ToolGroupButton::resetHoverSuppression()
+{
+    m_hoverFlyoutSuppressed = false;
 }
