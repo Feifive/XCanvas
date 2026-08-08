@@ -11,11 +11,10 @@ namespace xcanvas
 {
 class Canvas;
 }
-class MyGraphicsView;
+class ICanvasViewport;
 
 class QMouseEvent;
 class QRectF;
-class QGraphicsPathItem;
 class QPainter;
 
 namespace xcanvas
@@ -33,7 +32,7 @@ class DrawingTool : public QObject
     };
 
   public:
-    DrawingTool(MyGraphicsView* canvasView, Canvas* canvas);
+    DrawingTool(ICanvasViewport* canvasView, Canvas* canvas);
     virtual ~DrawingTool();
 
     virtual void            mousePressEvent(QMouseEvent* event) {};
@@ -59,7 +58,7 @@ class DrawingTool : public QObject
     void drawingCanceled();
 
   protected:
-    MyGraphicsView* m_canvasView;
+    ICanvasViewport* m_canvasView;
     Canvas*         m_canvas;
     QPointF         m_mousePos;
     QPainterPath    m_previewPath;

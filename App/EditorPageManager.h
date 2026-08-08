@@ -8,7 +8,7 @@
 
 class QWidget;
 class QStackedWidget;
-class CanvasWidget;
+class MyCanvasView;
 class DrawingToolsBar;
 class EditorSession;
 
@@ -37,7 +37,7 @@ private:
     {
         QWidget*        page = nullptr;
         DrawingToolsBar* drawingToolsBar = nullptr;
-        CanvasWidget*    canvasWidget = nullptr;
+        MyCanvasView*    canvasView = nullptr;
         EditorSession*   session = nullptr;
     };
 
@@ -46,7 +46,7 @@ private:
     void              removeEditorPageAt(int index);
     void              refreshTabToolTips();
     void              updateTabTitleForPage(int index);
-    void              updateTabTitleForCanvas(CanvasWidget* canvasWidget);
+    void              updateTabTitleForView(MyCanvasView* canvasView);
     bool              isValidPageIndex(int index) const;
 
 private:

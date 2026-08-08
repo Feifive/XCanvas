@@ -1,14 +1,13 @@
 #include "RectTool.h"
-#include "../MyGraphicsView.h"
+#include "../Canvas/ICanvasViewport.h"
 #include "Canvas.h"
 #include "Global.h"
 #include "MyMath.h"
 #include "ShapeVector.h"
 #include "AppSettings.h"
-#include <QGraphicsView>
 #include <QMouseEvent>
 
-xcanvas::RectTool::RectTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
+xcanvas::RectTool::RectTool(ICanvasViewport* view, Canvas* canvas) : DrawingTool(view, canvas)
 {
 }
 
@@ -27,7 +26,7 @@ void xcanvas::RectTool::mousePressEvent(QMouseEvent* event)
     if (m_state == State::Idle)
     {
         m_state    = State::Drawing;
-        m_mousePos = m_canvasView->mapToScene(event->pos());
+        m_mousePos = m_canvasView->mapToWorld(event->pos());
     }
 }
 
@@ -35,7 +34,7 @@ void xcanvas::RectTool::mouseMoveEvent(QMouseEvent* event)
 {
     if (m_state == State::Drawing)
     {
-        QPointF currentPos = m_canvasView->mapToScene(event->pos());
+        QPointF currentPos = m_canvasView->mapToWorld(event->pos());
 
         if (event->modifiers().testFlag(Qt::ShiftModifier))
         {
@@ -60,7 +59,7 @@ void xcanvas::RectTool::mouseMoveEvent(QMouseEvent* event)
         m_previewPath.lineTo(p4);
         m_previewPath.closeSubpath();
 
-        m_canvasView->requestFullUpdate();
+        m_canvasView->requestUpdate();
     }
 
     handleRightButtonMove(event);

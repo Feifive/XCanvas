@@ -1,5 +1,5 @@
 #include "TextTool.h"
-#include "../MyGraphicsView.h"
+#include "../Canvas/ICanvasViewport.h"
 #include "Canvas.h"
 #include "ShapeText.h"
 #include <QGuiApplication>
@@ -14,7 +14,7 @@
 
 #include "AppSettings.h"
 
-xcanvas::TextTool::TextTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
+xcanvas::TextTool::TextTool(ICanvasViewport* view, Canvas* canvas) : DrawingTool(view, canvas)
 {
     m_font.setFamily("MiSans");
     m_font.setPixelSize(24);
@@ -35,14 +35,14 @@ void xcanvas::TextTool::mousePressEvent(QMouseEvent* event)
     if (event->button() != Qt::LeftButton)
         return;
 
-    m_mousePos = m_canvasView->mapToScene(event->pos());
+    m_mousePos = m_canvasView->mapToWorld(event->pos());
 
     if (m_state == State::Drawing)
     {
         if (hitTest(m_mousePos))
         {
             m_cursorPos = cursorPosAtPoint(m_mousePos);
-            m_canvasView->requestFullUpdate();
+            m_canvasView->requestUpdate();
             return;
         }
         finishDrawing();
@@ -90,7 +90,7 @@ void xcanvas::TextTool::keyPressEvent(QKeyEvent* event)
         {
             m_editText.insert(m_cursorPos, '\n');
             ++m_cursorPos;
-            m_canvasView->requestFullUpdate();
+            m_canvasView->requestUpdate();
         }
         else
         {
@@ -103,7 +103,7 @@ void xcanvas::TextTool::keyPressEvent(QKeyEvent* event)
         {
             m_editText.remove(m_cursorPos - 1, 1);
             --m_cursorPos;
-            m_canvasView->requestFullUpdate();
+            m_canvasView->requestUpdate();
         }
         break;
 
@@ -111,7 +111,7 @@ void xcanvas::TextTool::keyPressEvent(QKeyEvent* event)
         if (m_cursorPos < m_editText.length())
         {
             m_editText.remove(m_cursorPos, 1);
-            m_canvasView->requestFullUpdate();
+            m_canvasView->requestUpdate();
         }
         break;
 
@@ -119,7 +119,7 @@ void xcanvas::TextTool::keyPressEvent(QKeyEvent* event)
         if (m_cursorPos > 0)
         {
             --m_cursorPos;
-            m_canvasView->requestFullUpdate();
+            m_canvasView->requestUpdate();
         }
         break;
 
@@ -127,18 +127,18 @@ void xcanvas::TextTool::keyPressEvent(QKeyEvent* event)
         if (m_cursorPos < m_editText.length())
         {
             ++m_cursorPos;
-            m_canvasView->requestFullUpdate();
+            m_canvasView->requestUpdate();
         }
         break;
 
     case Qt::Key_Home:
         m_cursorPos = 0;
-        m_canvasView->requestFullUpdate();
+        m_canvasView->requestUpdate();
         break;
 
     case Qt::Key_End:
         m_cursorPos = m_editText.length();
-        m_canvasView->requestFullUpdate();
+        m_canvasView->requestUpdate();
         break;
 
     default:
@@ -163,7 +163,7 @@ void xcanvas::TextTool::keyPressEvent(QKeyEvent* event)
                 ++m_cursorPos;
             }
         }
-        m_canvasView->requestFullUpdate();
+        m_canvasView->requestUpdate();
         event->accept();
     }
 }
@@ -186,7 +186,7 @@ void xcanvas::TextTool::inputMethodEvent(QInputMethodEvent* event)
     }
 
     m_preeditText = event->preeditString();
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
 
     if (QInputMethod* im = QGuiApplication::inputMethod())
     {
@@ -221,7 +221,7 @@ QVariant xcanvas::TextTool::inputMethodQuery(Qt::InputMethodQuery query) const
         const qreal cursorY = m_textPos.y() + cursorLine * lineHeight;
 
         const QRectF sceneRect(cursorX, cursorY, 2.0, lineHeight);
-        const QPoint viewPos = m_canvasView->mapFromScene(sceneRect.topLeft());
+        const QPoint viewPos = m_canvasView->mapFromWorld(sceneRect.topLeft()).toPoint();
         return QRect(viewPos.x(), viewPos.y(), 2, qMax(1, static_cast<int>(lineHeight)));
     }
     case Qt::ImCursorPosition:
@@ -310,17 +310,17 @@ void xcanvas::TextTool::startEdit(const QPointF& pos)
     m_preeditText.clear();
     m_cursorPos    = 0;
     m_state        = State::Drawing;
-    m_canvasView->setAttribute(Qt::WA_InputMethodEnabled, true);
-    m_canvasView->setCursor(Qt::IBeamCursor);
-    m_canvasView->setFocus();
-    m_canvasView->requestFullUpdate();
+    m_canvasView->setInputMethodEnabled(true);
+    m_canvasView->setViewCursor(Qt::IBeamCursor);
+    m_canvasView->focusViewport();
+    m_canvasView->requestUpdate();
 }
 
 bool xcanvas::TextTool::finishEdit(bool commit)
 {
     m_state = State::Idle;
-    m_canvasView->setAttribute(Qt::WA_InputMethodEnabled, false);
-    m_canvasView->setCursor(Qt::ArrowCursor);
+    m_canvasView->setInputMethodEnabled(false);
+    m_canvasView->setViewCursor(Qt::ArrowCursor);
 
     const QString plainText = m_editText;
     m_editText.clear();
@@ -337,11 +337,11 @@ bool xcanvas::TextTool::finishEdit(bool commit)
         m_canvas->addShape(shape);
         m_canvas->shapeManager()->selectShape(shape, true);
 
-        m_canvasView->requestFullUpdate();
+        m_canvasView->requestUpdate();
         return true;
     }
 
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return false;
 }
 

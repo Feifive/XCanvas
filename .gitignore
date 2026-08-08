@@ -1,0 +1,4 @@
+CMakeUserPresets.json
+build/*
+.qtcreator/*
+Bin/*

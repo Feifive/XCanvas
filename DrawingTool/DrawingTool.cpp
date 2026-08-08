@@ -1,15 +1,15 @@
 #include "DrawingTool.h"
-#include "../MyGraphicsView.h"
+#include "../Canvas/ICanvasViewport.h"
 #include "Global.h"
 #include <QDebug>
-#include <QGraphicsPathItem>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QRectF>
 #include "AppSettings.h"
 
 const double RIGHT_DRAG_THRESHOLD = 3.0;
 
-xcanvas::DrawingTool::DrawingTool(MyGraphicsView* canvasView, Canvas* canvas) : m_canvasView(canvasView), m_canvas(canvas), m_state(State::Idle), m_isRightPressed(false), m_isRightDragged(false)
+xcanvas::DrawingTool::DrawingTool(ICanvasViewport* canvasView, Canvas* canvas) : m_canvasView(canvasView), m_canvas(canvas), m_state(State::Idle), m_isRightPressed(false), m_isRightDragged(false)
 
 {
 }
@@ -68,7 +68,7 @@ void xcanvas::DrawingTool::resetDrawingState()
 {
     m_state = State::Idle;
     m_previewPath = QPainterPath();
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
 }
 
 void xcanvas::DrawingTool::handleRightButtonPress(QMouseEvent* event)

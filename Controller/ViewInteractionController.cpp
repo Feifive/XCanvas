@@ -1,22 +1,22 @@
 #include "ViewInteractionController.h"
 
 #include "../Import/ImportManager.h"
+#include "../Canvas/ICanvasViewport.h"
 
 #include <QCursor>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
-#include <QGraphicsView>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QMimeData>
-#include <QScrollBar>
 #include <QUrl>
 #include <QWheelEvent>
 #include <QtMath>
 
 ViewInteractionController::ViewInteractionController(
-    QGraphicsView* const  view,
+    ICanvasViewport* const view,
+    ICanvasNavigation* const navigation,
     BoolAction            isSelectTool,
     ShowMenuAction        showCanvasContextMenu,
     BoolAction            groupSelectedShapes,
@@ -32,6 +32,7 @@ ViewInteractionController::ViewInteractionController(
     OpenDocumentFile      openDocumentFile,
     ImportFilesAt         importFilesAt)
     : m_view(view),
+      m_navigation(navigation),
       m_startPos(-1, -1),
       m_dragging(false),
       m_rightPressPos(-1, -1),
@@ -64,7 +65,7 @@ void ViewInteractionController::mousePressEvent(QMouseEvent* event)
     {
         m_startPos = event->pos();
         m_dragging = true;
-        m_view->setCursor(Qt::ClosedHandCursor);
+        m_view->setViewCursor(Qt::ClosedHandCursor);
         event->accept();
     }
     else if (event->button() == Qt::RightButton)
@@ -90,14 +91,7 @@ void ViewInteractionController::mouseMoveEvent(QMouseEvent* event)
             m_rightDragged = true;
         }
 
-        if (QScrollBar* hbar = m_view->horizontalScrollBar())
-        {
-            hbar->setValue(hbar->value() - delta.x());
-        }
-        if (QScrollBar* vbar = m_view->verticalScrollBar())
-        {
-            vbar->setValue(vbar->value() - delta.y());
-        }
+        if (m_navigation) m_navigation->scrollByViewDelta(delta);
 
         m_startPos = event->pos();
         event->accept();
@@ -124,7 +118,7 @@ bool ViewInteractionController::mouseReleaseEvent(QMouseEvent* event)
     if (event->button() == Qt::MiddleButton && m_dragging)
     {
         m_dragging = false;
-        m_view->setCursor(Qt::ArrowCursor);
+        m_view->setViewCursor(Qt::ArrowCursor);
         event->accept();
     }
     else if (event->button() == Qt::RightButton)
@@ -218,7 +212,7 @@ bool ViewInteractionController::wheelEvent(QWheelEvent* event)
 
     if (modifiers & Qt::ControlModifier)
     {
-        const QPointF cursorViewPos = m_view->mapFromGlobal(QCursor::pos());
+        const QPointF cursorViewPos = m_view->mapFromGlobalToView(QCursor::pos());
         const int     dy            = angleDelta.y() != 0 ? angleDelta.y() : pixelDelta.y();
         if (dy > 0)
         {
@@ -240,8 +234,7 @@ bool ViewInteractionController::wheelEvent(QWheelEvent* event)
 
     auto scrollStep = [&](const bool horizontal)
     {
-        QScrollBar* bar = horizontal ? m_view->horizontalScrollBar() : m_view->verticalScrollBar();
-        if (!bar)
+        if (!m_navigation)
         {
             return;
         }
@@ -261,7 +254,7 @@ bool ViewInteractionController::wheelEvent(QWheelEvent* event)
 
         if (delta != 0)
         {
-            bar->setValue(bar->value() - delta);
+            m_navigation->scrollAxisBy(horizontal, delta);
         }
     };
 
@@ -384,7 +377,7 @@ void ViewInteractionController::dropEvent(QDropEvent* event)
 
     if (m_importFilesAt)
     {
-        const QPointF mouseScenePos = m_view->mapToScene(event->position().toPoint());
+        const QPointF mouseScenePos = m_view->mapToWorld(event->position());
         m_importFilesAt(filePaths, mouseScenePos);
     }
 }

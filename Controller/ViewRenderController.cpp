@@ -1,12 +1,13 @@
 #include "ViewRenderController.h"
 
 #include "AppSettings.h"
+#include "Canvas/SelectionOutlineStyle.h"
 #include "../Canvas/Canvas.h"
+#include "../Canvas/ICanvasViewport.h"
 #include "MyMath.h"
 #include "../Shape/Shape.h"
 #include <qtfluentwidgets.h>
 
-#include <QGraphicsView>
 #include <QPainter>
 #include <QPainterPath>
 #include <QSvgRenderer>
@@ -14,7 +15,7 @@
 #include <cmath>
 
 ViewRenderController::ViewRenderController(
-    QGraphicsView* const    view,
+    ICanvasViewport* const  view,
     xcanvas::Canvas* const  canvas,
     QSvgRenderer* const     rotateHandle)
     : m_view(view),
@@ -36,6 +37,11 @@ void ViewRenderController::setSuppressedShape(const xcanvas::Shape* shape)
 void ViewRenderController::setSelectionHandlesVisible(const bool visible)
 {
     m_selectionHandlesVisible = visible;
+}
+
+void ViewRenderController::setSelectionDashPhase(const qreal phase)
+{
+    m_selectionDashPhase = phase;
 }
 
 void ViewRenderController::drawBackground(QPainter* painter, const QRectF& rect)
@@ -149,11 +155,6 @@ void ViewRenderController::drawSelectedShapes(QPainter* painter, const QRectF& v
 
     painter->save();
 
-    QPen pen(QColor(244, 155, 33));
-    pen.setWidth(1);
-    pen.setCosmetic(true);
-    pen.setStyle(Qt::SolidLine);
-    painter->setPen(pen);
     painter->setBrush(Qt::NoBrush);
 
     for (xcanvas::Shape* shape : selected)
@@ -169,6 +170,7 @@ void ViewRenderController::drawSelectedShapes(QPainter* painter, const QRectF& v
         }
         if (visibleRect.intersects(shape->boundingRect()))
         {
+            painter->setPen(xcanvas::SelectionOutlineStyle::pen(shape->color(), m_selectionDashPhase));
             painter->drawPath(shape->path());
         }
     }
@@ -183,13 +185,13 @@ void ViewRenderController::drawSelectedShapes(QPainter* painter, const QRectF& v
 
 void ViewRenderController::drawGrid(QPainter* const p)
 {
-    if (!m_view || !m_canvas || !m_view->scene() || AppSettings::instance().gridContrast() == AppSettings::GridContrast::Off)
+    if (!m_view || !m_canvas || AppSettings::instance().gridContrast() == AppSettings::GridContrast::Off)
     {
         return;
     }
 
     const QRectF canvasSceneRect  = m_canvas->canvasRect();
-    const QRectF viewSceneRect    = m_view->mapToScene(m_view->viewport()->rect()).boundingRect();
+    const QRectF viewSceneRect    = m_view->mapToWorld(m_view->viewportRect());
     const QRectF visibleSceneRect = canvasSceneRect.intersected(viewSceneRect);
 
     if (!visibleSceneRect.isValid() || visibleSceneRect.isEmpty())
@@ -197,7 +199,7 @@ void ViewRenderController::drawGrid(QPainter* const p)
         return;
     }
 
-    const double scale      = m_view->transform().m11();
+    const double scale      = m_view->zoomScale();
     const double step       = gridStep(scale);
     const int    majorCount = 10;
 
@@ -229,7 +231,7 @@ void ViewRenderController::drawGrid(QPainter* const p)
     const QTransform oldWorldTransform = p->worldTransform();
     p->setWorldTransform(QTransform());
 
-    const QRect canvasViewRect = m_view->mapFromScene(visibleSceneRect).boundingRect();
+    const QRectF canvasViewRect = m_view->mapFromWorld(visibleSceneRect);
     p->setClipRect(canvasViewRect);
 
     const double s0x = visibleSceneRect.left();
@@ -243,7 +245,7 @@ void ViewRenderController::drawGrid(QPainter* const p)
 
     for (double x = x0; x <= s1x + step; x += step, ++firstIndexX)
     {
-        QPointF v  = m_view->mapFromScene(QPointF(x, visibleSceneRect.top()));
+        QPointF v  = m_view->mapFromWorld(QPointF(x, visibleSceneRect.top()));
         double  vx = std::round(v.x()) - 0.5;
 
         if ((firstIndexX % majorCount) == 0)
@@ -264,7 +266,7 @@ void ViewRenderController::drawGrid(QPainter* const p)
 
     for (double y = y0; y <= s1y + step; y += step, ++firstIndexY)
     {
-        QPointF v  = m_view->mapFromScene(QPointF(visibleSceneRect.left(), y));
+        QPointF v  = m_view->mapFromWorld(QPointF(visibleSceneRect.left(), y));
         double  vy = std::round(v.y()) - 0.5;
 
         if ((firstIndexY % majorCount) == 0)
@@ -320,7 +322,7 @@ void ViewRenderController::drawTrace(QPainter* painter)
     painter->setPen(Qt::NoPen);
     painter->setBrush(QColor("#90909B"));
 
-    const auto [resizeRects, rotateRect] = xcanvas::geometryMath::traceRects(rect, m_view->transform().m11());
+    const auto [resizeRects, rotateRect] = xcanvas::geometryMath::traceRects(rect, m_view->zoomScale());
     for (const QRectF& r : resizeRects)
     {
         painter->drawRect(r);
@@ -330,7 +332,7 @@ void ViewRenderController::drawTrace(QPainter* painter)
     {
         const QTransform old = painter->worldTransform();
         painter->setWorldTransform(QTransform());
-        const QRectF viewRotateRect = m_view->mapFromScene(rotateRect).boundingRect();
+        const QRectF viewRotateRect = m_view->mapFromWorld(rotateRect);
         m_rotateHandle->render(painter, viewRotateRect);
         painter->setWorldTransform(old);
     }
@@ -350,7 +352,7 @@ void ViewRenderController::drawCanvas(QPainter* painter)
     const QTransform oldWorldTransform = painter->worldTransform();
     painter->setWorldTransform(QTransform());
     const bool dark = qfw::isDarkTheme();
-    painter->fillRect(m_view->rect(), dark ? QColor("#1D2025") : QColor("#E7E9ED"));
+    painter->fillRect(m_view->hostRect(), workspaceBackgroundColor());
     painter->setWorldTransform(oldWorldTransform);
 
     painter->setPen(Qt::NoPen);
@@ -358,4 +360,9 @@ void ViewRenderController::drawCanvas(QPainter* painter)
     painter->drawRect(m_canvas->canvasRect());
 
     painter->restore();
+}
+
+QColor ViewRenderController::workspaceBackgroundColor()
+{
+    return qfw::isDarkTheme() ? QColor("#1D2025") : QColor("#E7E9ED");
 }

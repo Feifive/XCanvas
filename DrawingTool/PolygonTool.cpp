@@ -1,5 +1,5 @@
 #include "PolygonTool.h"
-#include "../MyGraphicsView.h"
+#include "../Canvas/ICanvasViewport.h"
 #include "Canvas.h"
 #include "Global.h"
 #include "MyMath.h"
@@ -13,7 +13,7 @@
 namespace xcanvas
 {
 
-PolygonTool::PolygonTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
+PolygonTool::PolygonTool(ICanvasViewport* view, Canvas* canvas) : DrawingTool(view, canvas)
 {
 }
 
@@ -32,7 +32,7 @@ void PolygonTool::mousePressEvent(QMouseEvent* event)
     if (m_state == State::Idle)
     {
         m_state    = State::Drawing;
-        m_mousePos = m_canvasView->mapToScene(event->pos());
+        m_mousePos = m_canvasView->mapToWorld(event->pos());
     }
 }
 
@@ -46,7 +46,7 @@ void PolygonTool::mouseMoveEvent(QMouseEvent* event)
 
     if (m_state == State::Drawing)
     {
-        QPointF currentPos = m_canvasView->mapToScene(event->pos());
+        QPointF currentPos = m_canvasView->mapToWorld(event->pos());
 
         if (event->modifiers().testFlag(Qt::ShiftModifier))
         {
@@ -73,7 +73,7 @@ void PolygonTool::mouseMoveEvent(QMouseEvent* event)
 
         m_previewPath.closeSubpath();
 
-        m_canvasView->requestFullUpdate();
+        m_canvasView->requestUpdate();
     }
 
     handleRightButtonMove(event);

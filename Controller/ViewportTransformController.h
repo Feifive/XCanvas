@@ -4,7 +4,8 @@
 #include <QPointF>
 
 class BottomFloatingToolBar;
-class QGraphicsView;
+class ICanvasViewport;
+class ICanvasNavigation;
 
 namespace xcanvas
 {
@@ -15,7 +16,8 @@ class ViewportTransformController final
 {
   public:
     ViewportTransformController(
-        QGraphicsView*         view,
+        ICanvasViewport*       view,
+        ICanvasNavigation*     navigation,
         xcanvas::Canvas*       canvas);
 
     qreal scaleFactor() const;
@@ -29,7 +31,8 @@ class ViewportTransformController final
     bool fitShapes();
 
   private:
-    QGraphicsView*         m_view;
+    ICanvasViewport*       m_view;
+    ICanvasNavigation*     m_navigation;
     xcanvas::Canvas*       m_canvas;
     qreal                  m_scaleFactor;
 };

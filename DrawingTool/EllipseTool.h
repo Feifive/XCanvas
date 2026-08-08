@@ -4,15 +4,13 @@
 #include "DrawingTool.h"
 #include "ShapeVector.h"
 
-class QGraphicsEllipseItem;
-
 namespace xcanvas
 {
 class EllipseTool : public DrawingTool
 {
     Q_OBJECT
   public:
-    explicit EllipseTool(MyGraphicsView* view, Canvas* canvas);
+    explicit EllipseTool(ICanvasViewport* view, Canvas* canvas);
     virtual ~EllipseTool() override;
 
     void            mousePressEvent(QMouseEvent* event) override;

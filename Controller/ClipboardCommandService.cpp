@@ -1,4 +1,5 @@
 #include "ClipboardCommandService.h"
+#include "../Canvas/ICanvasViewport.h"
 
 #include "AppSettings.h"
 #include "../Canvas/Canvas.h"
@@ -13,7 +14,6 @@
 #include <QClipboard>
 #include <QFileInfo>
 #include <QFont>
-#include <QGraphicsView>
 #include <QGuiApplication>
 #include <QKeySequence>
 #include <QMimeData>
@@ -23,7 +23,7 @@
 #include <map>
 
 ClipboardCommandService::ClipboardCommandService(
-    QGraphicsView* const view,
+    ICanvasViewport* const view,
     xcanvas::Canvas* const canvas,
     RequestFullUpdate      requestFullUpdate,
     ImportFilesAt          importFilesAt)
@@ -105,7 +105,7 @@ bool ClipboardCommandService::pasteCopiedShapes()
         return false;
     }
 
-    const QPointF centerPos = m_view->mapToScene(m_view->viewport()->rect().center());
+    const QPointF centerPos = m_view->mapToWorld(m_view->viewportRect().center());
     if (pasteFromClipboard(centerPos))
     {
         return true;
@@ -597,7 +597,7 @@ void ClipboardCommandService::showCanvasContextMenu(const QPoint& viewPos, const
         }
     }
 
-    auto* menu = new qfw::RoundMenu(QString(), m_view);
+    auto* menu = new qfw::RoundMenu(QString(), m_view->hostWidget());
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
     if (canCut)
@@ -624,7 +624,7 @@ void ClipboardCommandService::showCanvasContextMenu(const QPoint& viewPos, const
         menu->addAction(pasteAction);
         pasteAction->setShortcut(QKeySequence::Paste);
         pasteAction->setShortcutVisibleInContextMenu(true);
-        QObject::connect(pasteAction, &QAction::triggered, menu, [this, viewPos]() { pasteCopiedShapesAt(m_view->mapToScene(viewPos)); });
+        QObject::connect(pasteAction, &QAction::triggered, menu, [this, viewPos]() { pasteCopiedShapesAt(m_view->mapToWorld(viewPos)); });
     }
 
     if (canDelete)
@@ -696,5 +696,5 @@ void ClipboardCommandService::showCanvasContextMenu(const QPoint& viewPos, const
         }
     });
 
-    menu->execAt(m_view->mapToGlobal(viewPos), true, qfw::MenuAnimationType::None);
+    menu->execAt(m_view->mapFromViewToGlobal(viewPos), true, qfw::MenuAnimationType::None);
 }

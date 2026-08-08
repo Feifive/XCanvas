@@ -9,7 +9,7 @@ class RectTool : public DrawingTool
 {
     Q_OBJECT
   public:
-    explicit RectTool(MyGraphicsView* view, Canvas* canvas);
+    explicit RectTool(ICanvasViewport* view, Canvas* canvas);
     ~RectTool() override;
 
     virtual void            mousePressEvent(QMouseEvent* event) override;

@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "MainWindow.h"
 
 #include "EditorPageManager.h"
 #include "Common/XTitleBar.h"

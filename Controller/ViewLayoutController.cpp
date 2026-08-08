@@ -1,13 +1,12 @@
 #include "ViewLayoutController.h"
 
-#include "../BottomFloatingToolBar.h"
-#include "../ColorPaletteWidget.h"
-#include "../SelectionHudBar.h"
-
-#include <QGraphicsView>
+#include "BottomFloatingToolBar.h"
+#include "ColorPaletteWidget.h"
+#include "SelectionHudBar.h"
+#include "../Canvas/ICanvasViewport.h"
 
 ViewLayoutController::ViewLayoutController(
-    QGraphicsView* const         view,
+    ICanvasViewport* const       view,
     BottomFloatingToolBar* const bottomFloatingToolBar,
     ColorPaletteWidget* const    colorPaletteWidget,
     SelectionHudBar* const       selectionHudBar)
@@ -36,8 +35,8 @@ void ViewLayoutController::updateBottomFloatingToolBarPos()
     if (m_bottomFloatingToolBar)
     {
         barSize = m_bottomFloatingToolBar->sizeHint();
-        x       = m_view->width() - barSize.width() - margin;
-        y       = m_view->height() - barSize.height() - margin;
+        x       = m_view->hostRect().width() - barSize.width() - margin;
+        y       = m_view->hostRect().height() - barSize.height() - margin;
         m_bottomFloatingToolBar->move(x, y);
     }
 
@@ -45,7 +44,7 @@ void ViewLayoutController::updateBottomFloatingToolBarPos()
     {
         barSize = m_colorPaletteWidget->sizeHint();
         int x   = 0;
-        int y   = m_view->height() - barSize.height() - margin;
+        int y   = m_view->hostRect().height() - barSize.height() - margin;
         m_colorPaletteWidget->move(x, y);
     }
 }
@@ -59,7 +58,7 @@ void ViewLayoutController::updateSelectionHudBarPos(const bool isDestroying) con
 
     constexpr int marginTop = 12;
     const QSize   barSize   = m_selectionHudBar->sizeHint();
-    const int     x         = (m_view->width() - barSize.width()) / 2;
+    const int     x         = (m_view->hostRect().width() - barSize.width()) / 2;
     constexpr int y         = marginTop;
 
     m_selectionHudBar->move(x, y);

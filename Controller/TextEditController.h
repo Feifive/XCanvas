@@ -8,7 +8,7 @@
 class QInputMethodEvent;
 class QKeyEvent;
 class QPainter;
-class QGraphicsView;
+class ICanvasViewport;
 class ViewRenderController;
 
 namespace xcanvas
@@ -23,7 +23,7 @@ class TextEditController final
     using UpdateUiAction = std::function<void()>;
 
     TextEditController(
-        QGraphicsView*         view,
+        ICanvasViewport*       view,
         xcanvas::Canvas*       canvas,
         ViewRenderController*  viewRenderController,
         UpdateUiAction         updateSelectionHud,
@@ -45,7 +45,7 @@ class TextEditController final
     int  cursorPosAtLocalPos(const QPointF& localPos) const;
 
   private:
-    QGraphicsView*        m_view;
+    ICanvasViewport*      m_view;
     xcanvas::Canvas*      m_canvas;
     ViewRenderController* m_viewRenderController;
     UpdateUiAction        m_updateSelectionHud;

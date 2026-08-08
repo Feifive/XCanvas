@@ -1,7 +1,6 @@
 #include "ShapeManager.h"
 #include "Shape.h"
 #include <QDebug>
-#include <QGraphicsItem>
 #include <QPainterPath>
 
 namespace xcanvas {

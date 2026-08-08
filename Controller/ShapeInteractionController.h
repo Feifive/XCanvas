@@ -5,7 +5,7 @@
 
 #include <QPointF>
 
-class QGraphicsView;
+class ICanvasViewport;
 class QMouseEvent;
 class TextEditController;
 
@@ -21,7 +21,7 @@ class ShapeInteractionController final
     using IsSelectTool = std::function<bool()>;
 
     ShapeInteractionController(
-        QGraphicsView*       view,
+        ICanvasViewport*     view,
         xcanvas::Canvas*     canvas,
         IsSelectTool         isSelectTool,
         TextEditController*  textEditController);
@@ -32,7 +32,7 @@ class ShapeInteractionController final
     xcanvas::Shape* findTopShapeAtScenePos(const QPointF& scenePos) const;
 
   private:
-    QGraphicsView*      m_view;
+    ICanvasViewport*    m_view;
     xcanvas::Canvas*    m_canvas;
     IsSelectTool        m_isSelectTool;
     TextEditController* m_textEditController;

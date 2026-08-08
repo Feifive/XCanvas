@@ -4,8 +4,9 @@
 #include "DrawingTool.h"
 #include "ShapeEditor.h"
 #include  <QObject>
+#include <functional>
 
-class MyGraphicsView;
+class ICanvasViewport;
 namespace xcanvas {
     class Canvas;
 }
@@ -15,7 +16,7 @@ class ToolManager final : public QObject
 {
     Q_OBJECT
 public:
-    explicit ToolManager(MyGraphicsView* view, Canvas* canvas);
+    explicit ToolManager(ICanvasViewport* view, Canvas* canvas, std::function<void()> updateSelectionUi = {});
     ~ToolManager() override = default;
     void setTool(DrawingToolType type);
     void setDrawingToolLocked(bool locked);
@@ -55,12 +56,13 @@ private:
     std::unique_ptr<DrawingTool> createTool(DrawingToolType type);
 
 private:
-    MyGraphicsView* m_view;
+    ICanvasViewport* m_view;
     Canvas* m_canvas;
     std::unique_ptr<DrawingTool> m_currentTool;
     std::unique_ptr<ShapeEditor> m_shapeEditor;
     DrawingToolType m_currentType { DrawingToolType::None };
     bool m_isDrawingToolLocked { false };
+    std::function<void()> m_updateSelectionUi;
 };
 
 } // xcanvas

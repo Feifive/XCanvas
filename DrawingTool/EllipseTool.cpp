@@ -1,14 +1,13 @@
 #include "EllipseTool.h"
-#include "../MyGraphicsView.h"
+#include "../Canvas/ICanvasViewport.h"
 #include "Canvas.h"
 #include "Global.h"
 #include "MyMath.h"
-#include <QGraphicsEllipseItem>
 #include <QMouseEvent>
 
 #include "AppSettings.h"
 
-xcanvas::EllipseTool::EllipseTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
+xcanvas::EllipseTool::EllipseTool(ICanvasViewport* view, Canvas* canvas) : DrawingTool(view, canvas)
 {
 }
 
@@ -26,7 +25,7 @@ void xcanvas::EllipseTool::mousePressEvent(QMouseEvent* event)
 
     if (m_state == State::Idle)
     {
-        m_mousePos    = m_canvasView->mapToScene(event->pos());
+        m_mousePos    = m_canvasView->mapToWorld(event->pos());
         m_previewPath = QPainterPath();
         m_state       = State::Drawing;
     }
@@ -36,7 +35,7 @@ void xcanvas::EllipseTool::mouseMoveEvent(QMouseEvent* event)
 {
     if (m_state == State::Drawing)
     {
-        QPointF currentPos = m_canvasView->mapToScene(event->pos());
+        QPointF currentPos = m_canvasView->mapToWorld(event->pos());
 
         if (event->modifiers().testFlag(Qt::ShiftModifier))
         {
@@ -55,7 +54,7 @@ void xcanvas::EllipseTool::mouseMoveEvent(QMouseEvent* event)
         m_previewPath = QPainterPath();
         m_previewPath.addEllipse(rect);
 
-        m_canvasView->requestFullUpdate();
+        m_canvasView->requestUpdate();
     }
 
     handleRightButtonMove(event);

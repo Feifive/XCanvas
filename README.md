@@ -51,53 +51,45 @@ git submodule update --init --recursive
 
 1. CMake 变量 `QT_SDK_DIR`
 2. 环境变量 `QT_ROOT_DIR`
-3. `CMakeLists.txt` 中的平台默认路径
 
-如果你的 Qt 安装目录和仓库默认值不同，推荐显式传入：
+仓库不保存个人 Qt 安装路径。可以在环境变量中设置 `QT_ROOT_DIR` 后使用仓库 preset；也可以在已由 Git 忽略的 `CMakeUserPresets.json` 中创建继承仓库 preset 的本机配置，并通过 `QT_SDK_DIR` 记录本机 Qt SDK。
 
-```bash
-cmake -S . -B build -DQT_SDK_DIR=/path/to/Qt/6.x.x/clang_64
+### Windows
+
+Windows 只支持 MSVC，推荐使用 MSVC 2022 x64。仓库 preset 使用 Ninja 生成器；请从 Visual Studio Developer PowerShell/Command Prompt 运行，或在 Qt Creator 中选择 MSVC Kit。日常构建只编译 XCanvas，测试单独构建和运行：
+
+```powershell
+cmake --preset windows-msvc
+cmake --build --preset windows-msvc-debug
+cmake --build --preset windows-msvc-tests-debug
+ctest --preset windows-msvc-tests-debug
+
+# Release
+cmake --preset windows-msvc-release
+cmake --build --preset windows-msvc-release
+```
+
+如果使用仓库提供的本机 user preset，则命令为：
+
+```powershell
+cmake --preset local-windows-msvc
+cmake --build --preset local-windows-msvc-debug
+cmake --build --preset local-windows-msvc-tests-debug
+ctest --preset local-windows-msvc-tests-debug
+
+# Release
+cmake --preset local-windows-msvc-release
+cmake --build --preset local-windows-msvc-release
 ```
 
 ### macOS
 
-配置 Debug：
+设置 `QT_ROOT_DIR` 后，可使用通用 macOS preset：
 
 ```bash
-cmake -S . -B cmake-build-debug
-```
-
-构建 Debug：
-
-```bash
-cmake --build cmake-build-debug --target XCanvas -j 24
-```
-
-配置 Release：
-
-```bash
-cmake -S . -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
-```
-
-构建 Release：
-
-```bash
-cmake --build cmake-build-release --target XCanvas --config Release -j 24
-```
-
-运行 Release 版本：
-
-```bash
-open Bin/mac/Release/XCanvas.app
-```
-
-### Windows
-
-推荐使用 Qt 6 + MSVC 2022 工具链，通过 CMake 配置并构建 Release：
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DQT_SDK_DIR=D:/Qt/6.x.x/msvc2022_64
-cmake --build build --config Release --target XCanvas
+cmake --preset macos
+cmake --build --preset macos-debug
+ctest --preset macos-debug
 ```
 
 构建输出目录默认位于：
@@ -127,7 +119,7 @@ CI/CD 中额外使用：
 
 详细说明见：
 
-[docs/CI-CD.md](/Users/ze/Desktop/QtProjects/XCanvas/docs/CI-CD.md)
+[docs/CI-CD.md](docs/CI-CD.md)
 
 ## 日志系统
 
@@ -144,13 +136,13 @@ CI/CD 中额外使用：
 
 ## 当前状态
 
-- 当前仓库没有项目级自动化测试
-- 当前 CI 主要覆盖“可配置、可编译、可打包”
+- 当前仓库包含 `CanvasCamera`、`CanvasViewportContract`、`CanvasView` 和 `TextEditCommit` 四项项目级 CTest
+- 当前 CI 仍主要覆盖“可配置、可编译、可打包”；上述 CTest 可通过仓库 test preset 运行
 - 仓库中部分平台依赖仍以二进制形式随项目保存
 
 ## 许可证
 
 - XCanvas 采用 `GPL-2.0-or-later`
-- 根许可证文件见 [`LICENSE`](/Users/ze/Desktop/QtProjects/XCanvas/LICENSE)
-- 第三方许可证说明见 [`THIRD_PARTY_NOTICES.md`](/Users/ze/Desktop/QtProjects/XCanvas/THIRD_PARTY_NOTICES.md)
+- 根许可证文件见 [`LICENSE`](LICENSE)
+- 第三方许可证说明见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
 - 项目当前链接并分发 `libdxfrw`，其上游声明为 `GPL-2.0-or-later`，因此项目整体按 GPL 兼容方式发布

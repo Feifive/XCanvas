@@ -3,7 +3,7 @@
 #include "../Canvas/Canvas.h"
 #include "Global.h"
 #include "MyMath.h"
-#include "../SelectionHudBar.h"
+#include "SelectionHudBar.h"
 #include "../Shape/Shape.h"
 #include "../Shape/TransformCommand.h"
 #include <QDoubleSpinBox>

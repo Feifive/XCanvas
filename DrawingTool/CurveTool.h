@@ -3,7 +3,7 @@
 
 #include "DrawingTool.h"
 
-class MyGraphicsView;
+class ICanvasViewport;
 
 namespace xcanvas
 {
@@ -11,7 +11,7 @@ class CurveTool : public DrawingTool
 {
     Q_OBJECT
   public:
-    explicit CurveTool(MyGraphicsView* view, Canvas* canvas);
+    explicit CurveTool(ICanvasViewport* view, Canvas* canvas);
     ~CurveTool() override;
 
     void            mousePressEvent(QMouseEvent* event) override;

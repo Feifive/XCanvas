@@ -6,7 +6,7 @@
 #include "DocumentSessionController.h"
 #include "../Import/ImportManager.h"
 #include "MessageWidget.h"
-#include "../SelectionHudBar.h"
+#include "SelectionHudBar.h"
 #include "../Serialization/DocumentIO.h"
 
 #include <QEventLoop>

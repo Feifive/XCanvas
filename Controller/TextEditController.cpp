@@ -1,4 +1,6 @@
 #include "TextEditController.h"
+#include "TextEditCommit.h"
+#include "../Canvas/ICanvasViewport.h"
 
 #include "ViewRenderController.h"
 #include "../Canvas/Canvas.h"
@@ -12,13 +14,12 @@
 #include <QInputMethodEvent>
 #include <QKeyEvent>
 #include <QPainter>
-#include <QGraphicsView>
 
 #include <cmath>
 #include <limits>
 
 TextEditController::TextEditController(
-    QGraphicsView* const        view,
+    ICanvasViewport* const      view,
     xcanvas::Canvas* const      canvas,
     ViewRenderController* const viewRenderController,
     UpdateUiAction              updateSelectionHud,
@@ -51,7 +52,7 @@ bool TextEditController::beginInlineEdit(xcanvas::ShapeText* shape, const QPoint
     const QPointF localPos = shape->transform().inverted().map(scenePos);
     m_cursorPos = cursorPosAtLocalPos(localPos);
 
-    m_view->setAttribute(Qt::WA_InputMethodEnabled, true);
+    m_view->setInputMethodEnabled(true);
 
     if (m_viewRenderController)
     {
@@ -73,7 +74,7 @@ void TextEditController::finishInlineEdit(const bool commit)
     }
 
     xcanvas::ShapeText* const editingShape = m_inlineEditingShape;
-    const QString             editedText   = m_editText;
+    const TextEditCommit      edit{m_inlineOriginalText, m_editText};
 
     m_inlineEditingShape = nullptr;
     m_inlineOriginalText.clear();
@@ -81,12 +82,13 @@ void TextEditController::finishInlineEdit(const bool commit)
     m_preeditText.clear();
     m_cursorPos = 0;
 
-    m_view->setAttribute(Qt::WA_InputMethodEnabled, false);
+    m_view->setInputMethodEnabled(false);
 
-    if (editingShape && commit && editedText != m_inlineOriginalText && m_canvas && m_canvas->undoStack() && m_canvas->shapeManager())
+    if (editingShape && edit.shouldPush(commit) && m_canvas && m_canvas->undoStack() && m_canvas->shapeManager())
     {
         m_canvas->undoStack()->push(
-            new xcanvas::EditTextCommand(m_canvas->shapeManager(), editingShape, m_inlineOriginalText, editedText));
+            new xcanvas::EditTextCommand(
+                m_canvas->shapeManager(), editingShape, edit.originalText, edit.editedText));
     }
 
     if (m_viewRenderController)
@@ -308,7 +310,7 @@ QVariant TextEditController::inputMethodQuery(Qt::InputMethodQuery query) const
 
         const QPointF localPos(cursorX, cursorY);
         const QPointF scenePos = m_inlineEditingShape->transform().map(localPos);
-        const QPoint  viewPos  = m_view->mapFromScene(scenePos);
+        const QPoint  viewPos  = m_view->mapFromWorld(scenePos).toPoint();
 
         return QRect(viewPos.x(), viewPos.y(), 2, qMax(1, static_cast<int>(lineHeight)));
     }

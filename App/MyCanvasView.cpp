@@ -1,8 +1,9 @@
-#include "MyGraphicsView.h"
+#include "MyCanvasView.h"
 #include "AppSettings.h"
 #include "Controller/AsyncFileTaskRunner.h"
 #include "BottomFloatingToolBar.h"
 #include "Canvas/Canvas.h"
+#include "Canvas/SelectionOutlineStyle.h"
 #include "Controller/ClipboardCommandService.h"
 #include "ColorPaletteWidget.h"
 #include "Controller/DocumentIoController.h"
@@ -27,18 +28,18 @@
 #include "ToolManager.h"
 #include <QEvent>
 #include <QFileDialog>
+#include <QHideEvent>
 #include <QInputMethodEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTimer>
 #include <QUndoStack>
+#include <QScrollBar>
 #include <qtfluentwidgets.h>
 
-MyGraphicsView::MyGraphicsView(EditorSession* session, QWidget* parent)
-    : QGraphicsView{parent},
+MyCanvasView::MyCanvasView(EditorSession* session, QWidget* parent)
+    : xcanvas::CanvasView{parent},
       m_canvas(new xcanvas::Canvas(this)),
-      m_bottomFloatingToolBar(nullptr),
-      m_isDestroying(false),
       m_editorSession(session)
 {
     initView();
@@ -50,21 +51,15 @@ MyGraphicsView::MyGraphicsView(EditorSession* session, QWidget* parent)
     applyStyle();
 }
 
-void MyGraphicsView::initView()
+void MyCanvasView::initView()
 {
-    setObjectName("MyGraphicsView");
-    setTransformationAnchor(QGraphicsView::NoAnchor);
-    setResizeAnchor(QGraphicsView::NoAnchor);
-    setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
-    setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
-    setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
-    setRenderHint(QPainter::SmoothPixmapTransform, false);
+    setObjectName("MyCanvasView");
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setAcceptDrops(true);
 }
 
-void MyGraphicsView::initCore()
+void MyCanvasView::initCore()
 {
     m_fileTaskRunner = std::make_unique<AsyncFileTaskRunner>(
         this,
@@ -80,10 +75,10 @@ void MyGraphicsView::initCore()
     ImportManager::instance().registerImporter(std::make_unique<ImageImporter>());
     ImportManager::instance().registerImporter(std::make_unique<PDFImporter>());
 
-    m_toolMgr = std::make_unique<xcanvas::ToolManager>(this, m_canvas);
+    m_toolMgr = std::make_unique<xcanvas::ToolManager>(this, m_canvas, [this]() { updateSelectionHud(); });
 }
 
-void MyGraphicsView::initWidgets()
+void MyCanvasView::initWidgets()
 {
     m_colorPaletteWidget = new ColorPaletteWidget(this);
     m_colorPaletteWidget->adjustSize();
@@ -95,9 +90,9 @@ void MyGraphicsView::initWidgets()
     m_selectionHudBar->adjustSize();
 }
 
-void MyGraphicsView::initControllers()
+void MyCanvasView::initControllers()
 {
-    m_viewportTransformController = std::make_unique<ViewportTransformController>(this, m_canvas);
+    m_viewportTransformController = std::make_unique<ViewportTransformController>(this, this, m_canvas);
     m_viewRenderController = std::make_unique<ViewRenderController>(this, m_canvas, &m_rotateHandle);
     m_viewLayoutController = std::make_unique<ViewLayoutController>(this, m_bottomFloatingToolBar, m_colorPaletteWidget, m_selectionHudBar);
     m_selectionHudController = std::make_unique<SelectionHudController>(m_canvas, m_selectionHudBar, [this]() { requestFullUpdate(); });
@@ -176,6 +171,7 @@ void MyGraphicsView::initControllers()
 
     m_viewInteractionController = std::make_unique<ViewInteractionController>(
         this,
+        this,
         [this]() { return m_toolMgr && m_toolMgr->currentTool() == DrawingToolType::Select; },
         [this](const QPoint& pos)
         {
@@ -214,11 +210,30 @@ void MyGraphicsView::initControllers()
         });
 }
 
-void MyGraphicsView::initConnections()
+void MyCanvasView::initConnections()
 {
+    m_selectionOutlineTimer = new QTimer(this);
+    m_selectionOutlineTimer->setInterval(75);
+    connect(m_selectionOutlineTimer, &QTimer::timeout, this, [this]()
+    {
+        m_selectionDashPhase = xcanvas::SelectionOutlineStyle::advancePhase(m_selectionDashPhase);
+        if (m_viewRenderController)
+        {
+            m_viewRenderController->setSelectionDashPhase(m_selectionDashPhase);
+        }
+        requestFullUpdate();
+    });
+
     connect(&AppSettings::instance(), &AppSettings::gridContrastChanged, this, [this]() { requestFullUpdate(); });
     connect(&qfw::QConfig::instance(), &qfw::QConfig::themeChanged, this,
             [this](qfw::Theme) { requestFullUpdate(); });
+    connect(this, &xcanvas::CanvasView::cameraChanged, this, [this]()
+    {
+        if (m_viewLayoutController)
+        {
+            m_viewLayoutController->onViewportChanged(m_isDestroying);
+        }
+    });
     connect(m_canvas->layerManager(), &xcanvas::LayerManager::layerVisibilityChanged, this, [this]() { requestFullUpdate(); });
     if (m_editorSession)
     {
@@ -238,16 +253,18 @@ void MyGraphicsView::initConnections()
         {
             m_selectionUiCoordinator->onSelectionChanged();
         }
+        syncSelectionOutlineAnimation();
+        requestFullUpdate();
     });
-    connect(m_colorPaletteWidget, &ColorPaletteWidget::colorSelected, this, &MyGraphicsView::onColorSelected);
+    connect(m_colorPaletteWidget, &ColorPaletteWidget::colorSelected, this, &MyCanvasView::onColorSelected);
 
     connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::zoomIn, this, [this]() { zoomIn(rect().center()); });
     connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::zoomOut, this, [this]() { zoomOut(rect().center()); });
-    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::zoomTo, this, &MyGraphicsView::zoomTo);
-    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitWidth, this, &MyGraphicsView::fitWidth);
-    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitHeight, this, &MyGraphicsView::fitHeight);
-    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitCanvas, this, &MyGraphicsView::fitCanvas);
-    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitShapes, this, &MyGraphicsView::fitShapes);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::zoomTo, this, &MyCanvasView::zoomTo);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitWidth, this, &MyCanvasView::fitWidth);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitHeight, this, &MyCanvasView::fitHeight);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitCanvas, this, &MyCanvasView::fitCanvas);
+    connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::fitShapes, this, &MyCanvasView::fitShapes);
     connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::undo, this, [this]() { m_canvas->undoStack()->undo(); requestFullUpdate(); });
     connect(m_bottomFloatingToolBar, &BottomFloatingToolBar::redo, this, [this]() { m_canvas->undoStack()->redo(); requestFullUpdate(); });
     connect(m_canvas->undoStack(), &QUndoStack::canUndoChanged, m_bottomFloatingToolBar, &BottomFloatingToolBar::setCanUndo);
@@ -273,7 +290,7 @@ void MyGraphicsView::initConnections()
                 m_documentSessionController->onNewDocument();
             }
         });
-        connect(m_editorSession, &EditorSession::importFileRequested, this, &MyGraphicsView::importFile);
+        connect(m_editorSession, &EditorSession::importFileRequested, this, &MyCanvasView::importFile);
         connect(m_editorSession, &EditorSession::saveFileRequested, this, [this]()
         {
             if (m_documentSessionController)
@@ -347,14 +364,26 @@ void MyGraphicsView::initConnections()
     });
 }
 
-void MyGraphicsView::initStartup()
+void MyCanvasView::initStartup()
 {
     if (m_editorSession)
     {
         m_editorSession->requestSetDrawingToolLock(AppSettings::instance().drawingToolLocked());
     }
 
-    QTimer::singleShot(0, this, [this]() { fitCanvas(); });
+    m_initialFitTimer = new QTimer(this);
+    m_initialFitTimer->setSingleShot(true);
+    m_initialFitTimer->setInterval(50);
+    connect(m_initialFitTimer, &QTimer::timeout, this, [this]()
+    {
+        if (!m_initialFitPending || !isVisible() || viewportRect().isEmpty())
+        {
+            return;
+        }
+        fitCanvas();
+        m_initialFitPending = false;
+    });
+
     updateBottomFloatingToolBarPos();
     m_bottomFloatingToolBar->show();
     m_selectionHudBar->setVisible(false);
@@ -362,15 +391,15 @@ void MyGraphicsView::initStartup()
     updateWindowTitle();
 }
 
-void MyGraphicsView::applyStyle() {
+void MyCanvasView::applyStyle() {
     setStyleSheet(QStringLiteral(R"(
-        QGraphicsView#MyGraphicsView {
+        MyCanvasView#MyCanvasView {
             border: none;
         }
     )"));
 }
 
-MyGraphicsView::~MyGraphicsView()
+MyCanvasView::~MyCanvasView()
 {
     m_isDestroying = true;
     if (m_canvas && m_canvas->undoStack())
@@ -383,11 +412,11 @@ MyGraphicsView::~MyGraphicsView()
     }
 }
 
-double MyGraphicsView::zoomValue() const {
-    return transform().m11();
+double MyCanvasView::zoomValue() const {
+    return zoomScale();
 }
 
-void MyGraphicsView::requestFullUpdate() const {
+void MyCanvasView::requestFullUpdate() const {
     if (m_isDestroying)
     {
         return;
@@ -399,13 +428,18 @@ void MyGraphicsView::requestFullUpdate() const {
     }
 }
 
-void MyGraphicsView::mousePressEvent(QMouseEvent* event)
+void MyCanvasView::mousePressEvent(QMouseEvent* event)
 {
+    focusForPointerPress();
+    if (filterRulerMousePress(event))
+    {
+        return;
+    }
     if (m_textEditController && m_textEditController->isEditing())
     {
         if (event->button() == Qt::LeftButton)
         {
-            const QPointF scenePos = mapToScene(event->pos());
+            const QPointF scenePos = mapToWorld(event->pos());
             if (m_textEditController->moveCursorToScenePos(scenePos))
             {
                 return;
@@ -424,11 +458,15 @@ void MyGraphicsView::mousePressEvent(QMouseEvent* event)
     }
 }
 
-void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
+void MyCanvasView::mouseMoveEvent(QMouseEvent* event)
 {
+    if (filterRulerMouseMove(event))
+    {
+        return;
+    }
     if (m_textEditController && m_textEditController->isEditing())
     {
-        QGraphicsView::mouseMoveEvent(event);
+        xcanvas::CanvasView::mouseMoveEvent(event);
         emit mouseMovePos(event->pos());
         return;
     }
@@ -445,11 +483,15 @@ void MyGraphicsView::mouseMoveEvent(QMouseEvent* event)
     emit mouseMovePos(event->pos());
 }
 
-void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
+void MyCanvasView::mouseReleaseEvent(QMouseEvent* event)
 {
+    if (filterRulerMouseRelease(event))
+    {
+        return;
+    }
     if (m_textEditController && m_textEditController->isEditing())
     {
-        QGraphicsView::mouseReleaseEvent(event);
+        xcanvas::CanvasView::mouseReleaseEvent(event);
         return;
     }
 
@@ -470,11 +512,16 @@ void MyGraphicsView::mouseReleaseEvent(QMouseEvent* event)
     }
 }
 
-void MyGraphicsView::mouseDoubleClickEvent(QMouseEvent* event)
+void MyCanvasView::mouseDoubleClickEvent(QMouseEvent* event)
 {
+    if (event && isInRuler(event->position().toPoint()))
+    {
+        event->accept();
+        return;
+    }
     if (m_textEditController && m_textEditController->isEditing())
     {
-        QGraphicsView::mouseDoubleClickEvent(event);
+        xcanvas::CanvasView::mouseDoubleClickEvent(event);
         return;
     }
 
@@ -483,10 +530,10 @@ void MyGraphicsView::mouseDoubleClickEvent(QMouseEvent* event)
         return;
     }
 
-    QGraphicsView::mouseDoubleClickEvent(event);
+    xcanvas::CanvasView::mouseDoubleClickEvent(event);
 }
 
-void MyGraphicsView::keyPressEvent(QKeyEvent* event)
+void MyCanvasView::keyPressEvent(QKeyEvent* event)
 {
     if (m_textEditController && m_textEditController->isEditing())
     {
@@ -500,10 +547,10 @@ void MyGraphicsView::keyPressEvent(QKeyEvent* event)
     }
 
     m_toolMgr->keyPressEvent(event);
-    QGraphicsView::keyPressEvent(event);
+    xcanvas::CanvasView::keyPressEvent(event);
 }
 
-void MyGraphicsView::inputMethodEvent(QInputMethodEvent* event)
+void MyCanvasView::inputMethodEvent(QInputMethodEvent* event)
 {
     if (m_textEditController && m_textEditController->isEditing())
     {
@@ -514,7 +561,7 @@ void MyGraphicsView::inputMethodEvent(QInputMethodEvent* event)
     m_toolMgr->inputMethodEvent(event);
 }
 
-QVariant MyGraphicsView::inputMethodQuery(Qt::InputMethodQuery query) const
+QVariant MyCanvasView::inputMethodQuery(Qt::InputMethodQuery query) const
 {
     if (m_textEditController && m_textEditController->isEditing())
     {
@@ -525,95 +572,143 @@ QVariant MyGraphicsView::inputMethodQuery(Qt::InputMethodQuery query) const
 }
 
 
-void MyGraphicsView::wheelEvent(QWheelEvent* event)
+void MyCanvasView::wheelEvent(QWheelEvent* event)
 {
     if (m_viewInteractionController && m_viewInteractionController->wheelEvent(event))
     {
         return;
     }
-    QGraphicsView::wheelEvent(event);
+    xcanvas::CanvasView::wheelEvent(event);
 }
 
-void MyGraphicsView::resizeEvent(QResizeEvent* event)
+void MyCanvasView::showEvent(QShowEvent* event)
 {
-    QGraphicsView::resizeEvent(event);
+    xcanvas::CanvasView::showEvent(event);
+    scheduleInitialFit();
+    syncSelectionOutlineAnimation();
+}
+
+void MyCanvasView::hideEvent(QHideEvent* event)
+{
+    xcanvas::CanvasView::hideEvent(event);
+    syncSelectionOutlineAnimation();
+}
+
+void MyCanvasView::resizeEvent(QResizeEvent* event)
+{
+    xcanvas::CanvasView::resizeEvent(event);
+    scheduleInitialFit();
     if (m_viewLayoutController)
     {
         m_viewLayoutController->onViewportChanged(m_isDestroying);
     }
 }
-void MyGraphicsView::scrollContentsBy(int dx, int dy)
+void MyCanvasView::scrollContentsBy(int dx, int dy)
 {
-    QGraphicsView::scrollContentsBy(dx, dy);
+    xcanvas::CanvasView::scrollContentsBy(dx, dy);
     if (m_viewLayoutController)
     {
         m_viewLayoutController->onViewportChanged(m_isDestroying);
     }
 }
 
-void MyGraphicsView::drawBackground(QPainter* painter, const QRectF& rect)
+void MyCanvasView::drawWorld(QPainter& painter, const QRectF& rect)
 {
     if (m_viewRenderController)
     {
-        m_viewRenderController->drawBackground(painter, rect);
+        m_viewRenderController->drawBackground(&painter, rect);
     }
-}
-
-void MyGraphicsView::drawForeground(QPainter* painter, const QRectF& rect)
-{
     if (m_viewRenderController)
     {
-        m_viewRenderController->drawForeground(painter, rect);
+        m_viewRenderController->drawForeground(&painter, rect);
     }
     if (m_textEditController && m_textEditController->isEditing())
     {
-        m_textEditController->drawPreview(painter);
+        m_textEditController->drawPreview(&painter);
     }
     else if (m_toolMgr)
     {
-        m_toolMgr->drawPreview(painter);
+        m_toolMgr->drawPreview(&painter);
     }
 }
 
-void MyGraphicsView::openDocumentFileAsync(const QString& path) const {
+void MyCanvasView::scheduleInitialFit()
+{
+    if (m_initialFitPending && m_initialFitTimer)
+    {
+        m_initialFitTimer->start();
+    }
+}
+
+void MyCanvasView::syncSelectionOutlineAnimation()
+{
+    if (!m_selectionOutlineTimer || !m_canvas || !m_canvas->shapeManager())
+    {
+        return;
+    }
+
+    const bool shouldAnimate = isVisible() && m_canvas->shapeManager()->hasSelection();
+    if (shouldAnimate)
+    {
+        if (!m_selectionOutlineTimer->isActive())
+        {
+            m_selectionOutlineTimer->start();
+        }
+        return;
+    }
+
+    m_selectionOutlineTimer->stop();
+    m_selectionDashPhase = 0.0;
+    if (m_viewRenderController)
+    {
+        m_viewRenderController->setSelectionDashPhase(m_selectionDashPhase);
+    }
+}
+
+QColor MyCanvasView::rulerBaseColor() const
+{
+    return ViewRenderController::workspaceBackgroundColor();
+}
+
+void MyCanvasView::openDocumentFileAsync(const QString& path) const {
     if (m_documentIoController)
     {
         m_documentIoController->openDocumentFileAsync(path);
     }
 }
 
-void MyGraphicsView::saveDocumentFileAsync(const QString& path, const bool updateCurrentPath) const {
+void MyCanvasView::saveDocumentFileAsync(const QString& path, const bool updateCurrentPath) const {
     if (m_documentIoController)
     {
         m_documentIoController->saveDocumentFileAsync(path, updateCurrentPath);
     }
 }
 
-bool MyGraphicsView::saveDocumentFileBlocking(const QString& path) const {
+bool MyCanvasView::saveDocumentFileBlocking(const QString& path) const {
     return m_documentIoController ? m_documentIoController->saveDocumentFileBlocking(path) : false;
 }
 
-void MyGraphicsView::resetToNewDocument() const {
+void MyCanvasView::resetToNewDocument() const {
     if (m_documentSessionController)
     {
         m_documentSessionController->resetToNewDocument();
     }
 }
 
-bool MyGraphicsView::maybeSaveBeforeProceed() const {
+bool MyCanvasView::maybeSaveBeforeProceed() const {
     return m_documentSessionController ? m_documentSessionController->maybeSaveBeforeProceed() : true;
 }
 
-bool MyGraphicsView::maybeSaveBeforeClose() const {
+bool MyCanvasView::maybeSaveBeforeClose() const {
     return m_documentSessionController ? m_documentSessionController->maybeSaveBeforeClose() : true;
 }
 
-QString MyGraphicsView::currentDocumentPath() const
+QString MyCanvasView::currentDocumentPath() const
 {
     return m_documentSessionController ? m_documentSessionController->currentDocumentPath() : QString();
 }
 
-bool MyGraphicsView::openDocumentFile(const QString& path) const
+bool MyCanvasView::openDocumentFile(const QString& path) const
 {
     if (path.isEmpty() || !m_documentSessionController)
     {
@@ -627,17 +722,17 @@ bool MyGraphicsView::openDocumentFile(const QString& path) const
     return m_documentSessionController->openDocumentFile(path);
 }
 
-bool MyGraphicsView::isProjectFilePath(const QString& path) const
+bool MyCanvasView::isProjectFilePath(const QString& path) const
 {
     return m_documentSessionController ? m_documentSessionController->isProjectFilePath(path) : false;
 }
 
-QString MyGraphicsView::projectDisplayName() const
+QString MyCanvasView::projectDisplayName() const
 {
     return m_documentSessionController ? m_documentSessionController->projectDisplayName() : QStringLiteral("untitled");
 }
 
-void MyGraphicsView::updateWindowTitle() const {
+void MyCanvasView::updateWindowTitle() const {
     if (m_documentSessionController)
     {
         m_documentSessionController->updateWindowTitle();
@@ -645,7 +740,7 @@ void MyGraphicsView::updateWindowTitle() const {
     }
 }
 
-void MyGraphicsView::onColorSelected(const QColor& color) const {
+void MyCanvasView::onColorSelected(const QColor& color) const {
     if (!m_canvas || !m_canvas->shapeManager() || !m_canvas->layerManager())
     {
         return;
@@ -670,14 +765,14 @@ void MyGraphicsView::onColorSelected(const QColor& color) const {
     requestFullUpdate();
 }
 
-void MyGraphicsView::updateSelectionHud() const {
+void MyCanvasView::updateSelectionHud() const {
     if (m_selectionUiCoordinator)
     {
         m_selectionUiCoordinator->updateSelectionHud(m_isDestroying);
     }
 }
 
-xcanvas::LayerManager* MyGraphicsView::layerManager() const {
+xcanvas::LayerManager* MyCanvasView::layerManager() const {
     if (m_canvas)
     {
         return m_canvas->layerManager();
@@ -685,7 +780,7 @@ xcanvas::LayerManager* MyGraphicsView::layerManager() const {
     return nullptr;
 }
 
-void MyGraphicsView::importFile()
+void MyCanvasView::importFile()
 {
     if (m_fileTaskRunner && m_fileTaskRunner->isTaskRunning())
     {
@@ -705,32 +800,32 @@ void MyGraphicsView::importFile()
     importFiles(filePaths);
 }
 
-void MyGraphicsView::importFiles(const QStringList& filePaths, const QPointF& targetCenter) const {
+void MyCanvasView::importFiles(const QStringList& filePaths, const QPointF& targetCenter) const {
     if (m_documentIoController)
     {
         m_documentIoController->importFiles(filePaths, targetCenter);
     }
 }
 
-void MyGraphicsView::importFiles(const QStringList& filePaths) const {
-    importFiles(filePaths, mapToScene(viewport()->rect().center()));
+void MyCanvasView::importFiles(const QStringList& filePaths) const {
+    importFiles(filePaths, mapToWorld(viewportRect().center()));
 }
 
-void MyGraphicsView::updateBottomFloatingToolBarPos() const {
+void MyCanvasView::updateBottomFloatingToolBarPos() const {
     if (m_viewLayoutController)
     {
         m_viewLayoutController->updateBottomFloatingToolBarPos();
     }
 }
 
-void MyGraphicsView::updateSelectionHudBarPos() const {
+void MyCanvasView::updateSelectionHudBarPos() const {
     if (m_viewLayoutController)
     {
         m_viewLayoutController->updateSelectionHudBarPos(m_isDestroying);
     }
 }
 
-void MyGraphicsView::zoomIn(const QPointF& zoomCenterPoint) const {
+void MyCanvasView::zoomIn(const QPointF& zoomCenterPoint) const {
     if (!m_viewportTransformController)
     {
         return;
@@ -745,7 +840,7 @@ void MyGraphicsView::zoomIn(const QPointF& zoomCenterPoint) const {
     }
 }
 
-void MyGraphicsView::zoomOut(const QPointF& zoomCenterPoint) const {
+void MyCanvasView::zoomOut(const QPointF& zoomCenterPoint) const {
     if (!m_viewportTransformController)
     {
         return;
@@ -760,7 +855,7 @@ void MyGraphicsView::zoomOut(const QPointF& zoomCenterPoint) const {
     }
 }
 
-void MyGraphicsView::zoomTo(qreal zoomValue) const {
+void MyCanvasView::zoomTo(qreal zoomValue) const {
     if (!m_viewportTransformController)
     {
         return;
@@ -775,7 +870,7 @@ void MyGraphicsView::zoomTo(qreal zoomValue) const {
     }
 }
 
-void MyGraphicsView::fitWidth() const {
+void MyCanvasView::fitWidth() const {
     if (m_viewportTransformController && m_viewportTransformController->fitWidth())
     {
         const qreal scaleFactor = m_viewportTransformController->scaleFactor();
@@ -786,7 +881,7 @@ void MyGraphicsView::fitWidth() const {
     }
 }
 
-void MyGraphicsView::fitHeight() const {
+void MyCanvasView::fitHeight() const {
     if (m_viewportTransformController && m_viewportTransformController->fitHeight())
     {
         const qreal scaleFactor = m_viewportTransformController->scaleFactor();
@@ -797,7 +892,7 @@ void MyGraphicsView::fitHeight() const {
     }
 }
 
-void MyGraphicsView::fitCanvas() const {
+void MyCanvasView::fitCanvas() const {
     if (m_viewportTransformController && m_viewportTransformController->fitCanvas())
     {
         const qreal scaleFactor = m_viewportTransformController->scaleFactor();
@@ -808,7 +903,7 @@ void MyGraphicsView::fitCanvas() const {
     }
 }
 
-void MyGraphicsView::fitShapes() const {
+void MyCanvasView::fitShapes() const {
     if (m_viewportTransformController && m_viewportTransformController->fitShapes())
     {
         const qreal scaleFactor = m_viewportTransformController->scaleFactor();
@@ -819,7 +914,7 @@ void MyGraphicsView::fitShapes() const {
     }
 }
 
-void MyGraphicsView::dragEnterEvent(QDragEnterEvent* event)
+void MyCanvasView::dragEnterEvent(QDragEnterEvent* event)
 {
     if (m_viewInteractionController)
     {
@@ -827,7 +922,7 @@ void MyGraphicsView::dragEnterEvent(QDragEnterEvent* event)
     }
 }
 
-void MyGraphicsView::dragMoveEvent(QDragMoveEvent* event)
+void MyCanvasView::dragMoveEvent(QDragMoveEvent* event)
 {
     if (m_viewInteractionController)
     {
@@ -835,7 +930,7 @@ void MyGraphicsView::dragMoveEvent(QDragMoveEvent* event)
     }
 }
 
-void MyGraphicsView::dropEvent(QDropEvent* event)
+void MyCanvasView::dropEvent(QDropEvent* event)
 {
     if (m_viewInteractionController)
     {

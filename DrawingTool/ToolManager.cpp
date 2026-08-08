@@ -1,5 +1,6 @@
 #include "ToolManager.h"
-#include "../MyGraphicsView.h"
+#include "../Canvas/ICanvasViewport.h"
+#include <QWidget>
 
 #include "SelectTool.h"
 #include "RectTool.h"
@@ -11,10 +12,11 @@
 
 namespace xcanvas {
 
-ToolManager::ToolManager(MyGraphicsView* view, xcanvas::Canvas* canvas)
-    : QObject(view)
+ToolManager::ToolManager(ICanvasViewport* view, xcanvas::Canvas* canvas, std::function<void()> updateSelectionUi)
+    : QObject(view ? view->hostWidget() : nullptr)
     , m_view(view)
     , m_canvas(canvas)
+    , m_updateSelectionUi(std::move(updateSelectionUi))
 {
     setTool(DrawingToolType::Select);
     m_shapeEditor.reset();
@@ -55,7 +57,7 @@ std::unique_ptr<DrawingTool> ToolManager::createTool(const DrawingToolType type)
     switch (type)
     {
         case DrawingToolType::Select:
-            return std::make_unique<SelectTool>(m_view, m_canvas);
+            return std::make_unique<SelectTool>(m_view, m_canvas, m_updateSelectionUi);
         case DrawingToolType::Rect:
             return std::make_unique<RectTool>(m_view, m_canvas);
         case DrawingToolType::Ellipse:

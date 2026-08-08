@@ -1,7 +1,7 @@
 #include "CurveTool.h"
 
 #include "AppSettings.h"
-#include "../MyGraphicsView.h"
+#include "../Canvas/ICanvasViewport.h"
 #include "Canvas.h"
 #include "MyMath.h"
 #include "ShapeVector.h"
@@ -9,7 +9,7 @@
 namespace xcanvas
 {
 
-CurveTool::CurveTool(MyGraphicsView* view, Canvas* canvas) : DrawingTool(view, canvas)
+CurveTool::CurveTool(ICanvasViewport* view, Canvas* canvas) : DrawingTool(view, canvas)
 {
 }
 
@@ -25,7 +25,7 @@ void CurveTool::mousePressEvent(QMouseEvent* event)
         return;
     }
 
-    m_mousePos = m_canvasView->mapToScene(event->pos());
+    m_mousePos = m_canvasView->mapToWorld(event->pos());
 
     if (m_state == State::Idle)
     {
@@ -46,11 +46,11 @@ void CurveTool::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
-    m_mousePos = m_canvasView->mapToScene(event->pos());
+    m_mousePos = m_canvasView->mapToWorld(event->pos());
 
     rebuildPreviewPath();
 
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
 
     handleRightButtonMove(event);
 }

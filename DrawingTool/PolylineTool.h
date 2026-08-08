@@ -16,7 +16,7 @@ class PolylineTool : public DrawingTool
 {
     Q_OBJECT
   public:
-    explicit PolylineTool(MyGraphicsView* view, Canvas* canvas);
+    explicit PolylineTool(ICanvasViewport* view, Canvas* canvas);
     virtual ~PolylineTool() override;
 
     virtual void            mousePressEvent(QMouseEvent* event) override;

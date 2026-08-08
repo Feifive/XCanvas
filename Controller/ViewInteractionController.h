@@ -9,7 +9,8 @@
 class QDragEnterEvent;
 class QDragMoveEvent;
 class QDropEvent;
-class QGraphicsView;
+class ICanvasViewport;
+class ICanvasNavigation;
 class QKeyEvent;
 class QMouseEvent;
 class QWheelEvent;
@@ -26,7 +27,8 @@ class ViewInteractionController final
     using ImportFilesAt     = std::function<void(const QStringList&, const QPointF&)>;
 
     ViewInteractionController(
-        QGraphicsView*  view,
+        ICanvasViewport* view,
+        ICanvasNavigation* navigation,
         BoolAction      isSelectTool,
         ShowMenuAction  showCanvasContextMenu,
         BoolAction      groupSelectedShapes,
@@ -52,7 +54,8 @@ class ViewInteractionController final
     void dropEvent(QDropEvent* event);
 
   private:
-    QGraphicsView* m_view;
+    ICanvasViewport* m_view;
+    ICanvasNavigation* m_navigation;
 
     QPointF m_startPos;
     bool    m_dragging;

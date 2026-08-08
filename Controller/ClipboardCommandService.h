@@ -8,7 +8,7 @@
 #include <QStringList>
 #include <QVector>
 
-class QGraphicsView;
+class ICanvasViewport;
 
 namespace xcanvas
 {
@@ -23,7 +23,7 @@ class ClipboardCommandService final
     using ImportFilesAt     = std::function<void(const QStringList&, const QPointF&)>;
     using ZoomAction        = std::function<void()>;
 
-    ClipboardCommandService(QGraphicsView* view, xcanvas::Canvas* canvas, RequestFullUpdate requestFullUpdate, ImportFilesAt importFilesAt);
+    ClipboardCommandService(ICanvasViewport* view, xcanvas::Canvas* canvas, RequestFullUpdate requestFullUpdate, ImportFilesAt importFilesAt);
     ~ClipboardCommandService();
 
     void clearCopiedShapes();
@@ -42,7 +42,7 @@ class ClipboardCommandService final
     void showCanvasContextMenu(const QPoint& viewPos, const ZoomAction& onZoomIn, const ZoomAction& onZoomOut);
 
   private:
-    QGraphicsView*           m_view;
+    ICanvasViewport*         m_view;
     xcanvas::Canvas*         m_canvas;
     RequestFullUpdate        m_requestFullUpdate;
     ImportFilesAt            m_importFilesAt;

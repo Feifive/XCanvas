@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.16)
 
 project(XCanvas VERSION 0.1 LANGUAGES CXX)
 
+if(WIN32 AND NOT MSVC)
+    message(FATAL_ERROR
+        "XCanvas on Windows supports only the MSVC compiler; "
+        "MinGW and other Windows compilers are not supported."
+    )
+endif()
+
 # ============================================================
 # 基础配置
 # ============================================================
@@ -20,10 +27,11 @@ set(CMAKE_AUTORCC ON)
 if(NOT DEFINED QT_SDK_DIR OR QT_SDK_DIR STREQUAL "")
     if(DEFINED ENV{QT_ROOT_DIR} AND NOT "$ENV{QT_ROOT_DIR}" STREQUAL "")
         set(QT_SDK_DIR "$ENV{QT_ROOT_DIR}" CACHE PATH "Qt SDK directory")
-    elseif(WIN32)
-        set(QT_SDK_DIR "D:/software/Qt6.8.3/6.8.3/msvc2022_64" CACHE PATH "Qt SDK directory")
-    elseif(APPLE)
-        set(QT_SDK_DIR "/Users/ze/Qt/6.10.1/macos" CACHE PATH "Qt SDK directory")
+    else()
+        message(FATAL_ERROR
+            "Qt SDK is not configured. Use a local CMake user preset, pass "
+            "-DQT_SDK_DIR=<qt-sdk>, or set the QT_ROOT_DIR environment variable."
+        )
     endif()
 endif()
 
@@ -34,6 +42,11 @@ endif()
 find_package(QT NAMES Qt6 Qt5 REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core)
 find_package(Qt6 REQUIRED COMPONENTS Svg)
+
+include(CTest)
+if(BUILD_TESTING)
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test)
+endif()
 
 # ============================================================
 # 第三方库
@@ -62,6 +75,8 @@ add_subdirectory(3rdparty/zstd/build/cmake EXCLUDE_FROM_ALL)
 # 源文件
 # ============================================================
 
+file(GLOB APP         App/*.h App/*.cpp App/*.ui)
+file(GLOB WIDGETS     Widgets/*.h Widgets/*.cpp)
 file(GLOB DRAWINGTOOL DrawingTool/*.h DrawingTool/*.cpp)
 file(GLOB SHAPE       Shape/*.h Shape/*.cpp)
 file(GLOB COMMON      Common/*.h Common/*.cpp)
@@ -75,6 +90,8 @@ file(GLOB IMPORT_PDF  Import/PDF/*.h Import/PDF/*.cpp)
 file(GLOB SERIALIZATION  Serialization/*.h Serialization/*.cpp)
 file(GLOB CONTROLLER  Controller/*.h Controller/*.cpp)
 
+source_group("App"           FILES ${APP})
+source_group("Widgets"       FILES ${WIDGETS})
 source_group("DrawingTool"   FILES ${DRAWINGTOOL})
 source_group("Shape"         FILES ${SHAPE})
 source_group("Common"        FILES ${COMMON})
@@ -89,21 +106,8 @@ source_group("Serialization" FILES ${SERIALIZATION})
 source_group("Controller"    FILES ${CONTROLLER})
 
 set(PROJECT_SOURCES
-    main.cpp
-    mainwindow.cpp mainwindow.h
-    EditorPageManager.cpp EditorPageManager.h
-    BottomFloatingToolBar.cpp BottomFloatingToolBar.h
-    SelectionHudBar.cpp SelectionHudBar.h
-    MyGraphicsView.cpp MyGraphicsView.h
-    DrawingToolsBar.cpp DrawingToolsBar.h
-    RulerWidget.cpp RulerWidget.h
-    CanvasWidget.cpp CanvasWidget.h
-    SafeDropShadowEffect.h SafeDropShadowEffect.cpp
-    XMenu.h XMenu.cpp
-    XHoverMenu.cpp XHoverMenu.h
-    ColorSwatchButton.cpp ColorSwatchButton.h
-    ColorPaletteWidget.cpp ColorPaletteWidget.h
-
+    ${APP}
+    ${WIDGETS}
     ${DRAWINGTOOL}
     ${SHAPE}
     ${COMMON}
@@ -188,6 +192,9 @@ set_target_properties(XCanvas PROPERTIES
 # ============================================================
 
 target_include_directories(XCanvas PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/App
+    ${PROJECT_SOURCE_DIR}/Widgets
     ${PROJECT_SOURCE_DIR}/Shape
     ${PROJECT_SOURCE_DIR}/Canvas
     ${PROJECT_SOURCE_DIR}/Import
@@ -251,4 +258,8 @@ install(TARGETS XCanvas
 
 if (QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(XCanvas)
+endif()
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
 endif()

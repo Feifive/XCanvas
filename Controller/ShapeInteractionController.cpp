@@ -2,16 +2,16 @@
 
 #include "TextEditController.h"
 #include "../Canvas/Canvas.h"
+#include "../Canvas/ICanvasViewport.h"
 #include "DrawingTool.h"
 #include "../Shape/Shape.h"
 #include "../Shape/ShapeManager.h"
 #include "../Shape/ShapeText.h"
 
-#include <QGraphicsView>
 #include <QMouseEvent>
 
 ShapeInteractionController::ShapeInteractionController(
-    QGraphicsView* const      view,
+    ICanvasViewport* const    view,
     xcanvas::Canvas* const    canvas,
     IsSelectTool              isSelectTool,
     TextEditController* const textEditController)
@@ -29,7 +29,7 @@ bool ShapeInteractionController::mouseDoubleClickEvent(QMouseEvent* event)
         return false;
     }
 
-    const QPointF scenePos = m_view->mapToScene(event->pos());
+    const QPointF scenePos = m_view->mapToWorld(event->pos());
     xcanvas::Shape* const shape = findTopShapeAtScenePos(scenePos);
     if (!shape || shape->type() != xcanvas::ShapeType::Text)
     {
@@ -60,7 +60,7 @@ xcanvas::Shape* ShapeInteractionController::findTopShapeAtScenePos(const QPointF
     }
 
     const xcanvas::ShapeList shapeList = m_canvas->shapeManager()->shapes();
-    const double tolerance = 6.0 / m_view->transform().m11();
+    const double tolerance = 6.0 / m_view->zoomScale();
     for (int i = shapeList.size() - 1; i >= 0; --i)
     {
         xcanvas::Shape* const shape = shapeList.at(i);

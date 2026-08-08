@@ -110,7 +110,7 @@ QWidget#widget_toolbar {
     background-color: white;
 }
 
-QGraphicsView#MyGraphicsView {
+MyCanvasView#MyCanvasView {
     border: none;
 }
 

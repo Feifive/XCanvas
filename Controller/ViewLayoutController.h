@@ -3,14 +3,14 @@
 
 class BottomFloatingToolBar;
 class ColorPaletteWidget;
-class QGraphicsView;
+class ICanvasViewport;
 class SelectionHudBar;
 
 class ViewLayoutController final
 {
   public:
     ViewLayoutController(
-        QGraphicsView*         view,
+        ICanvasViewport*       view,
         BottomFloatingToolBar* bottomFloatingToolBar,
         ColorPaletteWidget*    colorPaletteWidget,
         SelectionHudBar*       selectionHudBar);
@@ -22,7 +22,7 @@ class ViewLayoutController final
     void onViewportChanged(bool isDestroying);
 
   private:
-    QGraphicsView*         m_view;
+    ICanvasViewport*       m_view;
     BottomFloatingToolBar* m_bottomFloatingToolBar;
     ColorPaletteWidget*    m_colorPaletteWidget;
     SelectionHudBar*       m_selectionHudBar;

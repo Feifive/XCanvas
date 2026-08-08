@@ -10,7 +10,7 @@ class PolygonTool : public DrawingTool
 {
     Q_OBJECT
   public:
-    explicit PolygonTool(MyGraphicsView* view, Canvas* canvas);
+    explicit PolygonTool(ICanvasViewport* view, Canvas* canvas);
     ~PolygonTool() override;
 
     virtual void            mousePressEvent(QMouseEvent* event) override;

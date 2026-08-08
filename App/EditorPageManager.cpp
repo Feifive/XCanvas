@@ -1,6 +1,6 @@
 #include "EditorPageManager.h"
 
-#include "CanvasWidget.h"
+#include "MyCanvasView.h"
 #include "Common/AppSettings.h"
 #include "Common/EditorSession.h"
 #include "DrawingToolsBar.h"
@@ -62,10 +62,10 @@ void EditorPageManager::openProjectInNewPage()
         return;
     }
 
-    CanvasWidget* const canvasWidget = m_editorPages[newIndex].canvasWidget;
-    if (canvasWidget)
+    MyCanvasView* const canvasView = m_editorPages[newIndex].canvasView;
+    if (canvasView)
     {
-        canvasWidget->openDocumentFile(path);
+        canvasView->openDocumentFile(path);
     }
 }
 
@@ -80,7 +80,7 @@ bool EditorPageManager::maybeSaveAllBeforeClose()
         }
 
         const EditorPageContext& context = m_editorPages[index];
-        if (context.canvasWidget && !context.canvasWidget->maybeSaveBeforeClose())
+        if (context.canvasView && !context.canvasView->maybeSaveBeforeClose())
         {
             return false;
         }
@@ -105,7 +105,7 @@ void EditorPageManager::onTabCloseRequested(const int index)
         return;
     }
 
-    CanvasWidget* const canvas = m_editorPages[index].canvasWidget;
+    MyCanvasView* const canvas = m_editorPages[index].canvasView;
     if (canvas && !canvas->maybeSaveBeforeClose())
     {
         return;
@@ -165,17 +165,18 @@ EditorPageManager::EditorPageContext EditorPageManager::createEditorPage()
     contentSplitter->setHandleWidth(1);
     pageLayout->addWidget(contentSplitter);
 
-    auto* toolbarPanel = new QWidget(contentSplitter);
+    // Construct every pane completely before exposing it to QSplitter.  In
+    // particular, MyCanvasView installs timers and event handlers during its
+    // constructor; parenting it to a visible splitter too early can make the
+    // splitter deliver polish/resize events to a half-constructed view.
+    auto* toolbarPanel = new QWidget();
     auto* toolbarLayout = new QVBoxLayout(toolbarPanel);
     toolbarLayout->setContentsMargins(4, 0, 2, 2);
     toolbarLayout->setSpacing(0);
 
-    auto* canvasPanel = new QWidget(contentSplitter);
-    auto* canvasLayout = new QVBoxLayout(canvasPanel);
-    canvasLayout->setContentsMargins(0, 0, 0, 0);
-    canvasLayout->setSpacing(0);
+    context.canvasView = new MyCanvasView(context.session);
 
-    auto* rightPanel = new QWidget(contentSplitter);
+    auto* rightPanel = new QWidget();
     auto* rightPanelLayout = new QVBoxLayout(rightPanel);
     rightPanelLayout->setContentsMargins(0, 0, 0, 0);
     rightPanelLayout->setSpacing(0);
@@ -189,19 +190,20 @@ EditorPageManager::EditorPageContext EditorPageManager::createEditorPage()
                                   + toolbarLayout->contentsMargins().right();
     toolbarPanel->setMinimumWidth(toolbarPanelWidth);
 
-    context.canvasWidget = new CanvasWidget(context.session, canvasPanel);
-    canvasLayout->addWidget(context.canvasWidget);
-
     connect(context.session, &EditorSession::openFileRequested, this, &EditorPageManager::openProjectInNewPage);
-    connect(context.canvasWidget, &CanvasWidget::documentDisplayNameChanged, this,
-            [this, canvas = context.canvasWidget](const QString&)
+    connect(context.canvasView, &MyCanvasView::documentDisplayNameChanged, this,
+            [this, canvas = context.canvasView](const QString&)
             {
-                updateTabTitleForCanvas(canvas);
+                updateTabTitleForView(canvas);
                 refreshTabToolTips();
             });
 
-    auto* layerPanel = new LayerPanel(context.canvasWidget->layerManager(), rightPanel);
+    auto* layerPanel = new LayerPanel(context.canvasView->layerManager(), rightPanel);
     rightPanelLayout->addWidget(layerPanel);
+
+    contentSplitter->addWidget(toolbarPanel);
+    contentSplitter->addWidget(context.canvasView);
+    contentSplitter->addWidget(rightPanel);
 
     contentSplitter->setStretchFactor(0, 0);
     contentSplitter->setStretchFactor(1, 1);
@@ -287,10 +289,10 @@ void EditorPageManager::refreshTabToolTips()
         QString pathText;
         if (isValidPageIndex(index))
         {
-            CanvasWidget* const canvasWidget = m_editorPages[index].canvasWidget;
-            if (canvasWidget)
+            MyCanvasView* const canvasView = m_editorPages[index].canvasView;
+            if (canvasView)
             {
-                const QString path = canvasWidget->currentDocumentPath();
+                const QString path = canvasView->currentDocumentPath();
                 if (!path.isEmpty())
                 {
                     pathText = QDir::toNativeSeparators(path);
@@ -308,8 +310,8 @@ void EditorPageManager::updateTabTitleForPage(const int index)
         return;
     }
 
-    const CanvasWidget* const canvasWidget = m_editorPages[index].canvasWidget;
-    const QString path = canvasWidget ? canvasWidget->currentDocumentPath() : QString();
+    const MyCanvasView* const canvasView = m_editorPages[index].canvasView;
+    const QString path = canvasView ? canvasView->currentDocumentPath() : QString();
     if (path.isEmpty())
     {
         return;
@@ -321,16 +323,16 @@ void EditorPageManager::updateTabTitleForPage(const int index)
     m_tabBar->setTabText(index, title);
 }
 
-void EditorPageManager::updateTabTitleForCanvas(CanvasWidget* const canvasWidget)
+void EditorPageManager::updateTabTitleForView(MyCanvasView* const canvasView)
 {
-    if (!canvasWidget)
+    if (!canvasView)
     {
         return;
     }
 
     for (int index = 0; index < m_editorPages.size(); ++index)
     {
-        if (m_editorPages[index].canvasWidget == canvasWidget)
+        if (m_editorPages[index].canvasView == canvasView)
         {
             updateTabTitleForPage(index);
             return;

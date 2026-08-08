@@ -3,7 +3,8 @@
 
 #include <QRectF>
 
-class QGraphicsView;
+class ICanvasViewport;
+class QColor;
 class QPainter;
 class QSvgRenderer;
 
@@ -16,11 +17,12 @@ class Shape;
 class ViewRenderController final
 {
   public:
-    ViewRenderController(QGraphicsView* view, xcanvas::Canvas* canvas, QSvgRenderer* rotateHandle);
+    ViewRenderController(ICanvasViewport* view, xcanvas::Canvas* canvas, QSvgRenderer* rotateHandle);
 
     void setRotateHandle(QSvgRenderer* rotateHandle);
     void setSuppressedShape(const xcanvas::Shape* shape);
     void setSelectionHandlesVisible(bool visible);
+    void setSelectionDashPhase(qreal phase);
 
     void drawBackground(QPainter* painter, const QRectF& rect);
     void drawForeground(QPainter* painter, const QRectF& rect);
@@ -31,13 +33,15 @@ class ViewRenderController final
     void drawTrace(QPainter* painter);
     void drawCanvas(QPainter* painter);
     double gridStep(double scale) const;
+    static QColor workspaceBackgroundColor();
 
   private:
-    QGraphicsView*       m_view;
+    ICanvasViewport*     m_view;
     xcanvas::Canvas*     m_canvas;
     QSvgRenderer*        m_rotateHandle;
     const xcanvas::Shape* m_suppressedShape = nullptr;
     bool m_selectionHandlesVisible = true;
+    qreal m_selectionDashPhase = 0.0;
 };
 
 #endif// VIEWRENDERCONTROLLER_H

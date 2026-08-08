@@ -1,7 +1,7 @@
 #include "SelectionUiCoordinator.h"
 
 #include "../Canvas/Canvas.h"
-#include "../SelectionHudBar.h"
+#include "SelectionHudBar.h"
 #include "SelectionHudController.h"
 
 SelectionUiCoordinator::SelectionUiCoordinator(

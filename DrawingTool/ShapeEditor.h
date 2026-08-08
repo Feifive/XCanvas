@@ -2,7 +2,7 @@
 #define SHAPEEDITOR_H
 #include "Canvas.h"
 
-class MyGraphicsView;
+class ICanvasViewport;
 namespace xcanvas {
     class Canvas;
 }
@@ -10,7 +10,7 @@ namespace xcanvas {
 namespace xcanvas {
 class ShapeEditor {
 public:
-    explicit ShapeEditor(MyGraphicsView* view, Canvas* canvas);
+    explicit ShapeEditor(ICanvasViewport* view, Canvas* canvas);
     ~ShapeEditor() = default;
 
     bool booleanUnion() const;
@@ -28,7 +28,7 @@ public:
     bool alignCenter() const;
 
 private:
-    MyGraphicsView* m_canvasView;
+    ICanvasViewport* m_canvasView;
     Canvas*         m_canvas;
 };
 }

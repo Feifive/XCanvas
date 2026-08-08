@@ -12,7 +12,7 @@ class TextTool : public DrawingTool
     Q_OBJECT
 
   public:
-    explicit TextTool(MyGraphicsView* view, Canvas* canvas);
+    explicit TextTool(ICanvasViewport* view, Canvas* canvas);
     virtual ~TextTool() override;
 
     void                    mousePressEvent(QMouseEvent* event) override;

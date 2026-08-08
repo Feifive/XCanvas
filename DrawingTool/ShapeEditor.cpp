@@ -1,5 +1,5 @@
 #include "ShapeEditor.h"
-#include "../MyGraphicsView.h"
+#include "../Canvas/ICanvasViewport.h"
 #include "Canvas.h"
 #include "MyMath.h"
 #include "ReplaceCommand.h"
@@ -13,7 +13,7 @@
 
 using namespace Clipper2Lib;
 
-xcanvas::ShapeEditor::ShapeEditor(MyGraphicsView* view, Canvas* canvas) : m_canvasView(view), m_canvas(canvas)
+xcanvas::ShapeEditor::ShapeEditor(ICanvasViewport* view, Canvas* canvas) : m_canvasView(view), m_canvas(canvas)
 {
 }
 
@@ -95,7 +95,7 @@ bool xcanvas::ShapeEditor::booleanUnion() const
     resultShape->setSegments(std::move(optimizedSegments));
     m_canvas->undoStack()->push(new ReplaceShapesCommand(m_canvas->shapeManager(), m_canvas->layerManager(), m_canvas->shapeManager()->selectedShapeList(), {resultShape}));
     m_canvas->shapeManager()->selectShape(resultShape, true);
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
 
     return true;
 }
@@ -210,7 +210,7 @@ bool xcanvas::ShapeEditor::booleanIntersection() const
     resultShape->setSegments(std::move(optimizedSegments));
     m_canvas->undoStack()->push(new ReplaceShapesCommand(m_canvas->shapeManager(), m_canvas->layerManager(), m_canvas->shapeManager()->selectedShapeList(), {resultShape}));
     m_canvas->shapeManager()->selectShape(resultShape, true);
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
 
     return true;
 }
@@ -318,7 +318,7 @@ bool xcanvas::ShapeEditor::booleanSubtractAB() const
     {
         m_canvas->shapeManager()->selectShape(s, false);
     }
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
 
     return true;
 }
@@ -426,7 +426,7 @@ bool xcanvas::ShapeEditor::booleanSubtractBA() const
     {
         m_canvas->shapeManager()->selectShape(s, false);
     }
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
 
     return true;
 }
@@ -456,7 +456,7 @@ bool xcanvas::ShapeEditor::mirrorHorizontal() const
     }
 
     m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), beforeTransform, "Mirror Horizontal"));
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return true;
 }
 
@@ -485,7 +485,7 @@ bool xcanvas::ShapeEditor::mirrorVertical() const
     }
 
     m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), beforeTransform, "Mirror Vertical"));
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return true;
 }
 
@@ -526,7 +526,7 @@ bool xcanvas::ShapeEditor::alignLeft() const
     }
 
     m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), beforeTransform, "Align Left"));
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return true;
 }
 
@@ -567,7 +567,7 @@ bool xcanvas::ShapeEditor::alignRight() const
     }
 
     m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), beforeTransform, "Align Right"));
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return true;
 }
 
@@ -608,7 +608,7 @@ bool xcanvas::ShapeEditor::alignTop() const
     }
 
     m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), beforeTransform, "Align Top"));
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return true;
 }
 
@@ -649,7 +649,7 @@ bool xcanvas::ShapeEditor::alignBottom() const
     }
 
     m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), beforeTransform, "Align Bottom"));
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return true;
 }
 
@@ -691,7 +691,7 @@ bool xcanvas::ShapeEditor::alignHorizontalCenter() const
     }
 
     m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), beforeTransform, "Align Horizontal Center"));
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return true;
 }
 
@@ -733,7 +733,7 @@ bool xcanvas::ShapeEditor::alignVerticalCenter() const
     }
 
     m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), beforeTransform, "Align Vertical Center"));
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return true;
 }
 
@@ -777,6 +777,6 @@ bool xcanvas::ShapeEditor::alignCenter() const
     }
 
     m_canvas->undoStack()->push(new TransformCommand(m_canvas->shapeManager(), beforeTransform, "Align Center"));
-    m_canvasView->requestFullUpdate();
+    m_canvasView->requestUpdate();
     return true;
 }

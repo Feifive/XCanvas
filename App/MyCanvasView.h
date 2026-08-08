@@ -1,11 +1,14 @@
-#ifndef MYGRAPHICSVIEW_H
-#define MYGRAPHICSVIEW_H
+#ifndef MYCANVASVIEW_H
+#define MYCANVASVIEW_H
 
-#include <QGraphicsView>
+#include "Canvas/CanvasView.h"
 #include <QSvgRenderer>
 #include <QColor>
 
 class QString;
+class QHideEvent;
+class QShowEvent;
+class QTimer;
 class BottomFloatingToolBar;
 class SelectionHudBar;
 class ColorPaletteWidget;
@@ -33,12 +36,12 @@ class Shape;
 class ShapeText;
 }// namespace xcanvas
 
-class MyGraphicsView : public QGraphicsView
+class MyCanvasView : public xcanvas::CanvasView
 {
     Q_OBJECT
   public:
-    explicit MyGraphicsView(EditorSession* session, QWidget* parent = nullptr);
-    ~MyGraphicsView() override;
+    explicit MyCanvasView(EditorSession* session, QWidget* parent = nullptr);
+    ~MyCanvasView() override;
 
     double                 zoomValue() const;
     void                   requestFullUpdate() const;
@@ -61,10 +64,12 @@ class MyGraphicsView : public QGraphicsView
     void inputMethodEvent(QInputMethodEvent* event) override;
     QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
     void wheelEvent(QWheelEvent* event) override;
+    void showEvent(QShowEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
     void scrollContentsBy(int dx, int dy) override;
-    void drawBackground(QPainter* painter, const QRectF& rect) override;
-    void drawForeground(QPainter* painter, const QRectF& rect) override;
+    void drawWorld(QPainter& painter, const QRectF& visibleWorldRect) override;
+    QColor rulerBaseColor() const override;
     void dragEnterEvent(QDragEnterEvent* event) override;
     void dragMoveEvent(QDragMoveEvent* event) override;
     void dropEvent(QDropEvent* event) override;
@@ -80,6 +85,8 @@ class MyGraphicsView : public QGraphicsView
     void initConnections();
     void initStartup();
     void applyStyle();
+    void scheduleInitialFit();
+    void syncSelectionOutlineAnimation();
 
     void   importFile();
     void   resetToNewDocument() const;
@@ -103,10 +110,10 @@ class MyGraphicsView : public QGraphicsView
     QString projectDisplayName() const;
 
   private:
-    xcanvas::Canvas*       m_canvas;
-    BottomFloatingToolBar* m_bottomFloatingToolBar;
-    SelectionHudBar*       m_selectionHudBar;
-    ColorPaletteWidget*    m_colorPaletteWidget;
+    xcanvas::Canvas*       m_canvas{nullptr};
+    BottomFloatingToolBar* m_bottomFloatingToolBar{nullptr};
+    SelectionHudBar*       m_selectionHudBar{nullptr};
+    ColorPaletteWidget*    m_colorPaletteWidget{nullptr};
     std::unique_ptr<SelectionHudController> m_selectionHudController;
     std::unique_ptr<SelectionUiCoordinator> m_selectionUiCoordinator;
     std::unique_ptr<ViewLayoutController> m_viewLayoutController;
@@ -115,14 +122,18 @@ class MyGraphicsView : public QGraphicsView
     std::unique_ptr<xcanvas::ToolManager> m_toolMgr;
     QSvgRenderer                          m_rotateHandle;
     std::unique_ptr<AsyncFileTaskRunner>  m_fileTaskRunner;
-    bool                                  m_isDestroying;
+    bool                                  m_isDestroying{false};
+    QTimer*                               m_initialFitTimer{nullptr};
+    bool                                  m_initialFitPending{true};
+    QTimer*                               m_selectionOutlineTimer{nullptr};
+    qreal                                 m_selectionDashPhase{0.0};
     std::unique_ptr<ClipboardCommandService> m_clipboardCommandService;
     std::unique_ptr<DocumentSessionController> m_documentSessionController;
     std::unique_ptr<ViewInteractionController> m_viewInteractionController;
     std::unique_ptr<DocumentIoController> m_documentIoController;
     std::unique_ptr<TextEditController> m_textEditController;
     std::unique_ptr<ShapeInteractionController> m_shapeInteractionController;
-    EditorSession*                           m_editorSession;
+    EditorSession*                           m_editorSession{nullptr};
 };
 
-#endif// MYGRAPHICSVIEW_H
+#endif// MYCANVASVIEW_H

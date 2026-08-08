@@ -3,6 +3,7 @@
 
 #include "DrawingTool.h"
 #include <QPointF>
+#include <functional>
 
 namespace xcanvas
 {
@@ -16,7 +17,7 @@ class SelectTool final : public DrawingTool
 {
     Q_OBJECT
 public:
-    explicit SelectTool(MyGraphicsView* view, Canvas* canvas);
+    explicit SelectTool(ICanvasViewport* view, Canvas* canvas, std::function<void()> updateSelectionUi);
     ~SelectTool() override;
 
     void            mousePressEvent(QMouseEvent* event) override;
@@ -52,6 +53,7 @@ private:
     int m_lastHitPos;
     Shape* m_lastHighlightedShape;
     std::map<Shape*, QTransform> m_initialTransforms;
+    std::function<void()> m_updateSelectionUi;
 };
 }// namespace xcanvas
 

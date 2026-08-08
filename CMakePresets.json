@@ -1,0 +1,136 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-msvc",
+      "displayName": "Windows MSVC 2022 x64 (Ninja)",
+      "description": "Fast single-config MSVC build. Run from a VS developer environment or select an MSVC Kit in Qt Creator.",
+      "generator": "Ninja",
+      "toolset": {
+        "value": "v143,host=x64",
+        "strategy": "external"
+      },
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "binaryDir": "${sourceDir}/build/windows-msvc-ninja",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "CMAKE_CXX_FLAGS": "/EHsc"
+      },
+      "environment": {
+        "VSLANG": "1033"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "windows-msvc-release",
+      "displayName": "Windows MSVC 2022 x64 Release (Ninja)",
+      "description": "Optimized XCanvas release build without project test targets.",
+      "inherits": "windows-msvc",
+      "binaryDir": "${sourceDir}/build/windows-msvc-ninja-release",
+      "cacheVariables": {
+        "BUILD_TESTING": "OFF",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "macos",
+      "displayName": "macOS",
+      "description": "Portable macOS configuration. Supply QT_SDK_DIR through a user preset or QT_ROOT_DIR through the environment.",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/macos",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-msvc-debug",
+      "displayName": "Build XCanvas (Windows Debug)",
+      "configurePreset": "windows-msvc",
+      "targets": [
+        "XCanvas"
+      ],
+      "jobs": 12
+    },
+    {
+      "name": "windows-msvc-release",
+      "displayName": "Build XCanvas (Windows Release)",
+      "configurePreset": "windows-msvc-release",
+      "targets": [
+        "XCanvas"
+      ],
+      "jobs": 12
+    },
+    {
+      "name": "windows-msvc-tests-debug",
+      "displayName": "Build tests (Windows Debug)",
+      "configurePreset": "windows-msvc",
+      "targets": [
+        "tst_CanvasCamera",
+        "tst_CanvasViewportContract",
+        "tst_CanvasView",
+        "tst_TextEditCommit"
+      ],
+      "jobs": 12
+    },
+    {
+      "name": "macos-debug",
+      "displayName": "Build XCanvas and tests (macOS Debug)",
+      "configurePreset": "macos",
+      "targets": [
+        "XCanvas",
+        "tst_CanvasCamera",
+        "tst_CanvasViewportContract",
+        "tst_CanvasView",
+        "tst_TextEditCommit"
+      ],
+      "jobs": 24
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-msvc-tests-debug",
+      "displayName": "Test XCanvas (Windows Debug)",
+      "configurePreset": "windows-msvc",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "macos-debug",
+      "displayName": "Test XCanvas (macOS Debug)",
+      "configurePreset": "macos",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}
