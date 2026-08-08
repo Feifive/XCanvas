@@ -4,6 +4,7 @@
 #include "AppSettings.h"
 #include "../Canvas/Canvas.h"
 #include "../Import/ImportManager.h"
+#include "../Import/Utils/ImageDpiUtil.h"
 #include "../Shape/GroupCommand.h"
 #include "../Shape/Shape.h"
 #include "../Shape/ShapeImage.h"
@@ -464,9 +465,11 @@ bool ClipboardCommandService::pasteFromClipboard(const QPointF& scenePos)
             const QImage image = imageData.value<QImage>();
             if (!image.isNull())
             {
+                constexpr double defaultDpi = 96.0;
+                const QSizeF     imageSizeMm = ImageDpiUtil::imageRectMm(image, defaultDpi).size();
                 auto* shape = new xcanvas::ShapeImage(image);
-                shape->setSize(image.size());
-                shape->translate(targetPos - QPointF(image.width() / 2.0, image.height() / 2.0));
+                shape->setSize(imageSizeMm);
+                shape->translate(targetPos - QPointF(imageSizeMm.width() / 2.0, imageSizeMm.height() / 2.0));
                 m_canvas->shapeManager()->deselectAll();
                 m_canvas->addShape(shape);
                 m_canvas->shapeManager()->selectShape(shape, true);

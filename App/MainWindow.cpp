@@ -1,7 +1,7 @@
 #include "MainWindow.h"
 
-#include "EditorPageManager.h"
 #include "Common/XTitleBar.h"
+#include "EditorPageManager.h"
 
 #include <QApplication>
 #include <QCloseEvent>
@@ -10,8 +10,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-MainWindow::MainWindow(QWidget* parent)
-    : qfw::FluentWindow(parent), m_pPageStack(nullptr), m_pTabBar(nullptr), m_editorPageManager(nullptr)
+MainWindow::MainWindow(QWidget *parent) : qfw::FluentWindow(parent), m_pPageStack(nullptr), m_pTabBar(nullptr), m_editorPageManager(nullptr)
 {
     init();
 }
@@ -20,13 +19,13 @@ MainWindow::~MainWindow()
 {
 }
 
-void MainWindow::showEvent(QShowEvent* event)
+void MainWindow::showEvent(QShowEvent *event)
 {
     qfw::FluentWindow::showEvent(event);
     fixTitleBarGeometry();
 }
 
-void MainWindow::resizeEvent(QResizeEvent* event)
+void MainWindow::resizeEvent(QResizeEvent *event)
 {
     qfw::FluentWindow::resizeEvent(event);
     fixTitleBarGeometry();
@@ -48,11 +47,11 @@ void MainWindow::init()
 
 void MainWindow::initMultiPageLayout()
 {
-    auto* xTitleBar = new XTitleBar(this);
+    auto *xTitleBar = new XTitleBar(this);
     setTitleBar(xTitleBar);
 
-    auto* contentHost = new QWidget(this);
-    auto* contentLayout = new QVBoxLayout(contentHost);
+    auto *contentHost   = new QWidget(this);
+    auto *contentLayout = new QVBoxLayout(contentHost);
     contentLayout->setContentsMargins(0, xTitleBar->height(), 0, 0);
     contentLayout->setSpacing(0);
 
@@ -82,7 +81,7 @@ void MainWindow::fixTitleBarGeometry()
     titleBar()->updateGeometry();
 }
 
-void MainWindow::closeEvent(QCloseEvent* event)
+void MainWindow::closeEvent(QCloseEvent *event)
 {
     if (m_editorPageManager && !m_editorPageManager->maybeSaveAllBeforeClose())
     {
