@@ -1,6 +1,5 @@
 #include "ShapeImage.h"
 #include "Global.h"
-#include <QPainter>
 
 namespace xcanvas
 {
@@ -22,21 +21,6 @@ ShapeImage::~ShapeImage()
 bool ShapeImage::isImage() const
 {
     return true;
-}
-
-void ShapeImage::draw(QPainter* painter) const
-{
-    if (m_image.isNull()) {
-        return;
-    }
-
-    painter->save();
-
-    painter->setTransform(m_transform, true);
-    const auto drawRect = QRectF(0, 0, m_imageSize.width(), m_imageSize.height());
-    painter->drawImage(drawRect, m_image);
-
-    painter->restore();
 }
 
 bool ShapeImage::hitTest(const QPointF &point, double tolerance) const {

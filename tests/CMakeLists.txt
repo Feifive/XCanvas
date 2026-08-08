@@ -127,3 +127,41 @@ if(WIN32)
 else()
     add_test(NAME TextEditCommit COMMAND tst_TextEditCommit)
 endif()
+
+add_executable(tst_ShapeRenderer
+    tst_ShapeRenderer.cpp
+    ../Controller/ShapeRenderer.cpp
+    ../Controller/ShapeRenderer.h
+    ../Shape/Shape.cpp
+    ../Shape/Shape.h
+    ../Shape/ShapeImage.cpp
+    ../Shape/ShapeImage.h
+    ../Shape/ShapeVector.cpp
+    ../Shape/ShapeVector.h
+    ../Common/MyMath.cpp
+    ../Common/MyMath.h
+)
+
+target_include_directories(tst_ShapeRenderer PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/Shape
+    ${PROJECT_SOURCE_DIR}/Common
+)
+
+target_link_libraries(tst_ShapeRenderer PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+if(WIN32)
+    add_test(
+        NAME ShapeRenderer
+        COMMAND ${CMAKE_COMMAND}
+            "-DTEST_EXECUTABLE=$<TARGET_FILE:tst_ShapeRenderer>"
+            "-DQT_RUNTIME_DIR=$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/RunQtTest.cmake"
+    )
+else()
+    add_test(NAME ShapeRenderer COMMAND tst_ShapeRenderer)
+endif()

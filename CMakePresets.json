@@ -91,7 +91,8 @@
         "tst_CanvasCamera",
         "tst_CanvasViewportContract",
         "tst_CanvasView",
-        "tst_TextEditCommit"
+        "tst_TextEditCommit",
+        "tst_ShapeRenderer"
       ],
       "jobs": 12
     },
@@ -104,7 +105,8 @@
         "tst_CanvasCamera",
         "tst_CanvasViewportContract",
         "tst_CanvasView",
-        "tst_TextEditCommit"
+        "tst_TextEditCommit",
+        "tst_ShapeRenderer"
       ],
       "jobs": 24
     }

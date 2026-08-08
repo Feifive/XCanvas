@@ -1,6 +1,8 @@
 #ifndef VIEWRENDERCONTROLLER_H
 #define VIEWRENDERCONTROLLER_H
 
+#include "ShapeRenderer.h"
+
 #include <QRectF>
 
 class ICanvasViewport;
@@ -39,6 +41,7 @@ class ViewRenderController final
     ICanvasViewport*     m_view;
     xcanvas::Canvas*     m_canvas;
     QSvgRenderer*        m_rotateHandle;
+    xcanvas::ShapeRenderer m_shapeRenderer;
     const xcanvas::Shape* m_suppressedShape = nullptr;
     bool m_selectionHandlesVisible = true;
     qreal m_selectionDashPhase = 0.0;

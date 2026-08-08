@@ -96,7 +96,7 @@ void ViewRenderController::drawNormalShapes(QPainter* painter, const QRectF& vis
                 }
                 if (visibleRect.intersects(shape->boundingRect()) && !shape->isSelected())
                 {
-                    shape->draw(painter);
+                    m_shapeRenderer.render(painter, *shape);
                 }
             }
 
@@ -134,7 +134,7 @@ void ViewRenderController::drawNormalShapes(QPainter* painter, const QRectF& vis
                 {
                     continue;
                 }
-                shape->draw(painter);
+                m_shapeRenderer.render(painter, *shape);
             }
         }
     }

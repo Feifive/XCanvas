@@ -15,7 +15,6 @@ class ShapeImage final : public Shape
     ShapeImage(const ShapeImage& other);
     ~ShapeImage() override;
     bool isImage() const override;
-    void      draw(QPainter* painter) const override;
     bool hitTest(const QPointF& point, double  tolerance) const override;
     Shape* clone() override;
     ShapeType type() const override;
